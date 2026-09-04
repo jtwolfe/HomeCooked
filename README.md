@@ -4,8 +4,7 @@ Universal standard communication interface for whitegoods and kitchen appliances
 discover devices, read telemetry/state, and write settings/commands.
 
 This repository is under active construction. The **docs catalog is the source
-of truth**; code (when it exists) must track `docs/catalog/` and
-`docs/standard/`.
+of truth**; code must track `docs/catalog/` and `docs/standard/`.
 
 ## Documentation
 
@@ -17,8 +16,25 @@ of truth**; code (when it exists) must track `docs/catalog/` and
 - [`docs/standard/overview.md`](docs/standard/overview.md) — catalog → schema →
   wire protocol, discovery, versioning, errors, extensions
 
-This revision is **docs-only**. Schema, protocol, core, simulator, and WASM
-crates are not in tree yet.
+## Workspace
+
+Cargo workspace. The first code crate is
+[`crates/homecooked-schema`](crates/homecooked-schema): catalog-backed serde
+types, capability model, static tables for nine appliance classes, and write
+validation. Schema and catalog versions are **0.1.0**.
+
+Protocol, core, simulator, and WASM crates are **not** in this revision.
+
+```bash
+cargo test
+cargo clippy --all-targets -- -D warnings
+cargo fmt --all
+```
+
+`list_all_class_ids` covers the full class index in
+`docs/catalog/appliances.md`. Static capability tables are provided for
+`washer`, `dryer`, `fridge`, `dishwasher`, `microwave`, `oven`,
+`induction_hob`, `kettle`, and `air_fryer`.
 
 ## Contributing
 
