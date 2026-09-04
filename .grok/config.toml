@@ -1,0 +1,24 @@
+[ui]
+permission_mode = "ask"
+
+[permission]
+deny = [
+  "Bash(rm -rf *)",
+  "Bash(sudo *)",
+  "Bash(git push --force *)",
+  "Bash(git push -f *)",
+  "Bash(git reset --hard *)",
+]
+allow = [
+  "Bash(git *)",
+  "Bash(cargo *)",
+  "Bash(rg *)",
+  "Bash(gh *)",
+  "Bash(rustup *)",
+  "Bash(wasm-pack *)",
+  "Bash(python3 *)",
+  "Read",
+  "Edit",
+  "Write",
+  "Grep",
+]
