@@ -9,7 +9,9 @@ of truth**; code must track `docs/catalog/` and `docs/standard/`.
 ## Documentation
 
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — ~75% of §2 in-scope bar **met in spirit**
-  (lab/software depth); Tier-A classes, workstreams and definitions of done
+  (lab/software depth; catalog optional depth improved via #56–#73 deepen series,
+  not catalog-complete — 30/31 Tier-B still thin); Tier-A/B classes, workstreams,
+  `thermal_offer` + dryer cycle TCP called out; definitions of done
 - [`docs/catalog/appliances.md`](docs/catalog/appliances.md) — appliance classes
   (ids, settings, state, composition, safety notes)
 - [`docs/catalog/variables-and-settings.md`](docs/catalog/variables-and-settings.md) —
@@ -46,8 +48,8 @@ is **0.1.0** (peers are rejected only on protocol **major** mismatch).
 | `homecooked-io-map` | [`crates/homecooked-io-map`](crates/homecooked-io-map) | Chassis I/O map serde+validate |
 | `homecooked-interlock` | [`crates/homecooked-interlock`](crates/homecooked-interlock) | Declarative interlock rules |
 | `homecooked-hal` | [`crates/homecooked-hal`](crates/homecooked-hal) | Firmware HAL surface sketch + host `MockHal` ([control-system.md](docs/standard/control-system.md) §4.3) |
-| `homecooked-procedure` | [`crates/homecooked-procedure`](crates/homecooked-procedure) | Procedure / recipe documents, validation, sequential runner ([procedures.md](docs/standard/procedures.md)) |
-| `homecooked-controller` | [`crates/homecooked-controller`](crates/homecooked-controller) | Host controller sim: IoMap + MockHal + interlocks + washer/dryer cycles + lab TCP endpoints (washer + dryer) ([control-system.md](docs/standard/control-system.md)) |
+| `homecooked-procedure` | [`crates/homecooked-procedure`](crates/homecooked-procedure) | Procedure / recipe documents, validation, sequential runner; thin `thermal_wait` / `thermal_offer` ([procedures.md](docs/standard/procedures.md)) |
+| `homecooked-controller` | [`crates/homecooked-controller`](crates/homecooked-controller) | Host controller sim: IoMap + MockHal + interlocks + washer cotton / dryer cycle + lab TCP (interlock + cycle start/phase) ([control-system.md](docs/standard/control-system.md)) |
 | `homecooked-thermal` | [`crates/homecooked-thermal`](crates/homecooked-thermal) | Thermal plant slice: reservoirs, heat ports, offer/accept, tick transfer ([thermal-plant.md](docs/standard/thermal-plant.md)) |
 | `homecooked-bridge` | [`crates/homecooked-bridge`](crates/homecooked-bridge) | Fabric bridges: Modbus + Matter + Zigbee + BACnet mock adapters ([bridges.md](docs/standard/bridges.md)) |
 | `homecooked-transport` | [`crates/homecooked-transport`](crates/homecooked-transport) | Lab TCP transport for protocol envelopes (length-prefixed JSON + optional PSK); sim or pluggable `RequestHandler` server + client ([overview.md](docs/standard/overview.md) §6) |
