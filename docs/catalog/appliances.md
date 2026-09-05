@@ -390,13 +390,14 @@ the ice maker inside a fridge.
 
 **Typical controllable settings:**
 
-- Ice production on/off, ice size / type (`cube`, `nugget`, `clear`), max bin
-  level, clean cycle, water filter reset, delayed start
+- Ice production on/off, ice size / type (`cube`, `nugget`, `clear`), max-ice
+  mode, scoop light, clean cycle, water filter reset, delayed start
 
 **Typical readable state:**
 
-- Making / harvest / full / off, bin level, water supply, inlet temperature
-- Clean needed, scale, low water, harvest fail, filter life
+- Making / harvest / full / off, bin level (`bin_percent` / `bin_full`), water
+  supply, inlet temperature
+- Clean needed, scale alert, low water, harvest fail, filter life
 
 **Notes:**
 
@@ -405,6 +406,9 @@ the ice maker inside a fridge.
 - Requires potable water. Leak and no-water are safety-relevant faults.
 - Never command a clean cycle with ice in the bin if the device forbids it;
   device returns `busy` or `safety_interlock`.
+- Catalog depth: optional class points include water/scale/harvest alerts,
+  scoop light, max-ice mode, delayed start (see variables-and-settings);
+  typical also advertises ice bin + filter life trait points.
 
 ### `kegerator`
 

@@ -194,6 +194,15 @@ fn extra_typical_trait_point(table: &ClassTable, trait_id: TraitId, point: &Cata
     {
         return true;
     }
+    // Ice maker: bin level/full + filter life are typical demo telemetry.
+    if table.class_id == ApplianceClassId::IceMaker {
+        if trait_id == TraitId::Ice && matches!(point.id, "bin_full" | "bin_percent") {
+            return true;
+        }
+        if trait_id == TraitId::Filter && point.id == "life_percent" {
+            return true;
+        }
+    }
     false
 }
 
@@ -220,6 +229,20 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "low_temp_alarm"
                 | "vibration_alert"
                 | "bottle_count"
+        );
+    }
+    // Stream 7 catalog depth: ice maker optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::IceMaker {
+        return matches!(
+            point.id,
+            "clean_cycle_needed"
+                | "water_temp_c"
+                | "water_low"
+                | "scoop_light"
+                | "max_ice_mode"
+                | "harvest_fail"
+                | "scale_alert"
+                | "delayed_start_s"
         );
     }
     // Stream 5: device-facing thermal-port surface on Tier-A water_heater / fridge / hvac / dishwasher / dryer.
@@ -559,6 +582,55 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn ice_maker_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::IceMaker).unwrap();
+        for id in [
+            "class.ice_maker.clean_cycle_needed",
+            "class.ice_maker.water_temp_c",
+            "class.ice_maker.water_low",
+            "class.ice_maker.scoop_light",
+            "class.ice_maker.max_ice_mode",
+            "class.ice_maker.harvest_fail",
+            "class.ice_maker.scale_alert",
+            "class.ice_maker.delayed_start_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical ice_maker"
+            );
+        }
+        let ice = cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Ice)
+            .unwrap();
+        assert!(ice.points.iter().any(|p| p.id == "trait.ice.bin_full"));
+        assert!(ice.points.iter().any(|p| p.id == "trait.ice.bin_percent"));
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Filter)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.filter.life_percent"));
+        cap.validate_write("class.ice_maker.scoop_light", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.ice_maker.max_ice_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.ice_maker.delayed_start_s", &Value::DurationS(3600))
+            .unwrap();
+        let err = cap
+            .validate_write("class.ice_maker.water_low", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("trait.ice.bin_percent", &Value::Percent(50.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
     }
 
     #[test]
