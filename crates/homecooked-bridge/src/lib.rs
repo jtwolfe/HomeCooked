@@ -77,7 +77,10 @@ mod stub_tests {
             PointRef::new("", "trait.temperature.setpoint_c"),
             Err(Error::EmptyId("device_id"))
         ));
-        assert!(PointRef::new("dev", "trait.power.on").is_err());
+        assert!(matches!(
+            PointRef::new("dev", "trait.power.on"),
+            Err(Error::UnknownCatalogPoint(id)) if id == "trait.power.on"
+        ));
         assert!(PointRef::new("dev", "trait.temperature.setpoint_c").is_ok());
     }
 }

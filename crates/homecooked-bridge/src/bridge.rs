@@ -1,6 +1,6 @@
 //! Small [`Bridge`] trait and HomeCooked / foreign address types.
 
-use homecooked_schema::{QualifiedPointId, Value};
+use homecooked_schema::{catalog_point, PointNamespace, QualifiedPointId, Value};
 
 use crate::error::Error;
 use crate::modbus::RegisterKind;
@@ -22,7 +22,12 @@ impl PointRef {
         if point_id.is_empty() {
             return Err(Error::EmptyId("point_id"));
         }
-        QualifiedPointId::parse(&point_id)?;
+        let qid = QualifiedPointId::parse(&point_id)?;
+        if !matches!(qid.namespace, PointNamespace::Vendor(_))
+            && catalog_point(&qid.namespace, &qid.id).is_none()
+        {
+            return Err(Error::UnknownCatalogPoint(point_id));
+        }
         Ok(Self {
             device_id,
             point_id,
