@@ -1,6 +1,6 @@
 # HomeCooked roadmap — ~75% project completeness
 
-Version **0.1.29**. Planning doc for a long flesh-out of the catalog, control
+Version **0.1.30**. Planning doc for a long flesh-out of the catalog, control
 stack, and simulator. It does **not** freeze APIs; crate and YAML shapes may
 evolve with the code that implements each stream.
 
@@ -11,7 +11,7 @@ Related: [`../README.md`](../README.md), [`catalog/`](./catalog/),
 
 ---
 
-## 1. Current state (~65% toward the 75% target)
+## 1. Current state (~70% toward the 75% target)
 
 What exists on `main` today (Done highlights called out):
 
@@ -47,17 +47,23 @@ catalog `thermal_port_*` on `water_heater` / `fridge` / `hvac` / `dishwasher` / 
 points); **one real bridge SDK** (Modbus serial/TCP or Matter/CHIP — mocks only
 today); richer UI / conformance matrices beyond write-denial; deeper Tier-B
 optional points; procedure⇄thermal **thin-present** (`thermal_wait` + backend
-hooks; offer/negotiate-as-steps and wasm UI still open); richer controller device-role over TCP (cycle start /
+hooks + `wait_dhw_reservoir`; offer/negotiate-as-steps and fuller wasm/UI
+wiring still open); richer controller device-role over TCP (cycle start /
 typical caps — washer+dryer TCP interlock smoke done); TLS (still out of scope
 for lab transport).
 
-Rough completeness: foundation + Tier-A/B tables + procedure library + HAL /
-controller TCP (washer+dryer) + hub-in-suite + thermal-port surface (5 classes +
-UI) + bridge mocks + write-denial matrix ≈ **~65%** of the 75% target below
-(was ~30% at roadmap start; ~55% before Stream 4/5/7 thin slices through
-`oven_bake_180` / thermal ports / controller TCP / denial matrix). Remaining
-work is depth (real bridge SDK, plant schema promotion, richer UI) — not
-greenfield product definition.
+Rough completeness: foundation + Tier-A/B tables + procedure library (kettle /
+Domino's / wash-then-dry / oven / coffee / air fryer + thin `thermal_wait`) +
+HAL / controller TCP (washer+dryer) + hub-in-suite + thermal-port surface
+(5 classes + UI) + bridge mocks + write-denial matrix ≈ **~70%** of the 75%
+target below (was ~30% at roadmap start; ~65% at the v0.1.24 refresh after
+oven bake / early thermal ports / controller TCP / denial matrix). PRs since
+then (coffee + air-fryer procedures, dishwasher+dryer ports, `thermal_wait`)
+are real but thin — they deepen Streams 3/5 without clearing the large §2
+gaps — so a band of **~68–72%** is honest; **~70%** is the midpoint, not a
+precise metric. Remaining work is still depth (real bridge SDK, plant schema
+promotion, richer UI / procedure⇄thermal steps) — not greenfield product
+definition.
 
 ---
 
@@ -292,8 +298,10 @@ multiple small PRs.
    header. **Procedure UI slice is done** — `list_example_procedures` /
    `get_example_procedure` / `parse_procedure` / `run_procedure` expose the
    sequential runner; simulator-web has a picker + paste/run panel with
-   step outcomes (kettle + Domino’s microwave + wash-then-dry + oven bake;
-   covered by wasm `run_procedure` E2E tests).
+   step outcomes (kettle + Domino’s microwave + wash-then-dry + oven bake +
+   coffee brew + air fryer cook; `wait_dhw_reservoir` listed/bundled —
+   `thermal_wait` run needs plant attach); covered by wasm `run_procedure`
+   E2E tests).
    **Thermal-port UI slice is done** — `create_thermal_demo` /
    `thermal_state` / `thermal_negotiate_demo` / `thermal_tick` /
    `thermal_demo_transfer` expose the fridge→DHW plant; simulator-web has a
@@ -482,3 +490,4 @@ the code that implements them.
 | 0.1.27 | Stream 3/5: thin procedure⇄thermal bridge (`thermal_wait` / backend hooks / `wait_dhw_reservoir` + conformance `procedure_thermal_wait_dhw`); offer-as-steps + wasm UI deferred |
 | 0.1.28 | Stream 3: `air_fryer_cook_200` procedure fixture + minimal air fryer heat tick; wasm/`run_procedure` E2E + conformance |
 | 0.1.29 | Stream 5: optional `thermal_port_*` on `dryer` (`exhaust`/source/air/2000 W); extend `water_heater_thermal_ports` |
+| 0.1.30 | Current-state refresh: ~65% → **~70%** (~68–72% band) of 75% target; cite PRs since v0.1.24 (coffee/air-fryer procedures, dishwasher+dryer thermal ports, `thermal_wait` / `wait_dhw_reservoir`, sim-web procedure copy); §2 gaps unchanged in kind |
