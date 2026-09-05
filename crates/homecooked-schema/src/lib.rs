@@ -8,6 +8,7 @@ mod access;
 mod capability;
 mod catalog;
 mod error;
+mod export;
 mod identity;
 mod ids;
 mod spec;
@@ -23,6 +24,10 @@ pub use catalog::{
     TIER_A_CLASS_IDS, TIER_B_CLASS_IDS,
 };
 pub use error::{ErrorCode, ValidationError};
+pub use export::{
+    catalog_export, export_catalog_json, CatalogClassExport, CatalogExport, CATALOG_EXPORT_FORMAT,
+    CATALOG_EXPORT_FORMAT_VERSION,
+};
 pub use identity::DeviceIdentity;
 pub use ids::{
     is_snake_case_id, ApplianceClassId, ParseIdError, PointNamespace, QualifiedPointId, TraitId,

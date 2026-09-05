@@ -9,6 +9,8 @@ description = "HomeCooked catalog-backed schema types, capability model, and val
 
 [dependencies]
 serde = { workspace = true }
-
-[dev-dependencies]
 serde_json = { workspace = true }
+
+[[example]]
+name = "export_catalog"
+path = "examples/export_catalog.rs"
