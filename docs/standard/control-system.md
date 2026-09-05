@@ -257,6 +257,8 @@ auditable reason. Both must agree to energize.
 
 ### 4.6 Cycle / procedure runtime
 
+Host sketch: crate [`homecooked-controller`](../../crates/homecooked-controller) runs a washer `cotton` cycle against `MockHal` + washer interlocks (no GPIO / no TCP in that crate yet).
+
 A state machine that executes:
 
 1. **Catalog named programs** (`trait.program.program` = `cotton`, …) as
@@ -430,4 +432,5 @@ look.
 
 | Version | Notes |
 |---------|--------|
+| 0.1.1 | Note host `homecooked-controller` cotton cycle sim |
 | 0.1.0 | Initial universal control-system sketch; laundry as worked example |

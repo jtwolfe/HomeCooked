@@ -45,6 +45,7 @@ is **0.1.0** (peers are rejected only on protocol **major** mismatch).
 | `homecooked-interlock` | [`crates/homecooked-interlock`](crates/homecooked-interlock) | Declarative interlock rules |
 | `homecooked-hal` | [`crates/homecooked-hal`](crates/homecooked-hal) | Firmware HAL surface sketch + host `MockHal` ([control-system.md](docs/standard/control-system.md) §4.3) |
 | `homecooked-procedure` | [`crates/homecooked-procedure`](crates/homecooked-procedure) | Procedure / recipe documents, validation, sequential runner ([procedures.md](docs/standard/procedures.md)) |
+| `homecooked-controller` | [`crates/homecooked-controller`](crates/homecooked-controller) | Host controller sim: IoMap + MockHal + interlocks + washer cotton cycle ([control-system.md](docs/standard/control-system.md)) |
 | simulator-web | [`apps/simulator-web`](apps/simulator-web) | Static HTML/JS UI that loads the wasm-pack output |
 
 `list_all_class_ids` covers the full class index in

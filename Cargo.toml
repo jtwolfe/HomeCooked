@@ -10,6 +10,7 @@ members = [
     "crates/homecooked-interlock",
     "crates/homecooked-hal",
     "crates/homecooked-procedure",
+    "crates/homecooked-controller",
 ]
 
 [workspace.package]
