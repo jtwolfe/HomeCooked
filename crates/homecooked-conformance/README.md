@@ -6,6 +6,9 @@ end-to-end without a heavy test framework.
 
 Failures are named by scenario so CI output stays actionable.
 
+Browse catalog (names + tags + `native_only` for the thin wasm UI):
+[`docs/conformance/scenarios.json`](../../docs/conformance/scenarios.json).
+
 ## Run
 
 ```bash

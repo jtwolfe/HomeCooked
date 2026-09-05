@@ -18,7 +18,8 @@
         <p class="lede">
           Spawn any Tier-A catalog class (grouped picker), write settings, tick
           simulated time, run a procedure / recipe, exercise the fridge→DHW
-          thermal plant demo, or one-click the thermal→dishwasher orchestrator.
+          thermal plant demo, one-click the thermal→dishwasher orchestrator, or
+          browse/run thin conformance lab checks.
           WASM wraps <code>homecooked-sim</code>,
           <code>homecooked-procedure</code>, and <code>homecooked-thermal</code>.
         </p>
@@ -229,6 +230,35 @@ python3 -m http.server 8080</pre>
             <ol id="orch-steps" class="step-outcomes"></ol>
           </div>
         </div>
+      </section>
+
+      <section class="panel conformance-panel">
+        <h2>Conformance (thin)</h2>
+        <p class="muted conformance-lede">
+          Browse the Stream 7 scenario catalog and run a <strong>small in-browser
+          lab-check subset</strong> (schema / sim / procedure / thermal). This is
+          <em>not</em> a full CI runner — TCP, Modbus TCP, hub, controller, and
+          bridge scenarios stay native-only
+          (<code>cargo test -p homecooked-conformance</code>).
+        </p>
+        <div class="conformance-toolbar">
+          <label class="field compact">
+            <span>Filter tag</span>
+            <select id="conformance-tag-filter">
+              <option value="">All tags</option>
+            </select>
+          </label>
+          <label class="field compact conformance-check">
+            <input id="conformance-runnable-only" type="checkbox" />
+            <span>Runnable only</span>
+          </label>
+          <button id="conformance-run-all-btn" type="button" class="secondary">
+            Run all lab checks
+          </button>
+        </div>
+        <p id="conformance-error" class="banner error compact" hidden></p>
+        <p id="conformance-summary" class="conformance-summary muted" hidden></p>
+        <ul id="conformance-list" class="conformance-list"></ul>
       </section>
     </div>
 

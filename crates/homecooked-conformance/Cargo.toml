@@ -21,3 +21,7 @@ homecooked-schema = { path = "../homecooked-schema" }
 homecooked-sim = { path = "../homecooked-sim" }
 homecooked-thermal = { path = "../homecooked-thermal" }
 homecooked-transport = { path = "../homecooked-transport" }
+
+[dev-dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }

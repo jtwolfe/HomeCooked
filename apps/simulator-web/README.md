@@ -148,6 +148,27 @@ panel and **Run**.
 Automated coverage: `cargo test -p homecooked-wasm run_thermal_then_dishwasher`
 and conformance scenario `thermal_then_dishwasher_preheat`.
 
+
+## Conformance (thin)
+
+The **Conformance** panel loads `list_conformance_scenarios()` (from
+[`docs/conformance/scenarios.json`](../../docs/conformance/scenarios.json)) —
+every `homecooked-conformance` scenario name + tags, with `native_only` for
+TCP / Modbus TCP / hub / controller / bridge.
+
+- **Runnable in wasm:** `catalog_hygiene`, `tier_a_catalog_sim_describe`,
+  `tier_b_catalog_sim_describe`, `write_denial_matrix`,
+  `procedure_kettle_happy_path`, `thermal_fridge_dhw_demo`,
+  `water_heater_thermal_ports` via `run_conformance_lab_check(name)`.
+- **Native-only rows** show a `cargo test -p homecooked-conformance` hint —
+  not runnable in-browser (no TCP / hub / controller-over-TCP).
+
+This is a **thin** browse + lab-check slice, not a full browser CI runner.
+CHIP / serial RTU / TLS remain deferred.
+
+Automated coverage: `cargo test -p homecooked-wasm lab_check` and
+`cargo test -p homecooked-conformance catalog_sync`.
+
 ## Rebuild note
 
 After any Rust change under `crates/homecooked-wasm` (or crates it depends on),

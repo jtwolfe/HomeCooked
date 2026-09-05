@@ -765,3 +765,124 @@ button.cmd {
   background: #fce7f3;
   color: #9d174d;
 }
+
+
+/* --- Conformance (thin) panel --- */
+.conformance-panel {
+  grid-column: 1 / -1;
+}
+
+.conformance-lede {
+  margin-bottom: 0.55rem;
+}
+
+.conformance-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+  align-items: end;
+  margin-bottom: 0.55rem;
+}
+
+.conformance-check {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+  padding-bottom: 0.35rem;
+}
+
+.conformance-summary {
+  margin: 0 0 0.55rem;
+  font-size: 0.85rem;
+}
+
+.conformance-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.conformance-row {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.65rem 0.75rem;
+  background: #fff;
+}
+
+.conformance-row.runnable {
+  border-color: #d9f99d;
+}
+
+.conformance-row.native-only {
+  background: #fafafa;
+}
+
+.conformance-row.ok {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.conformance-row.fail {
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+
+.conformance-row.hint {
+  border-color: #fcd34d;
+  background: #fffbeb;
+}
+
+.conformance-row-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.conformance-title {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.55rem;
+  align-items: center;
+}
+
+.conformance-title code {
+  font-size: 0.88rem;
+}
+
+.conformance-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.step-badge.badge-native {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.conformance-row-summary {
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+}
+
+.conformance-row-status {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+}
+
+.conformance-row-status.ok {
+  color: var(--ok);
+  font-weight: 600;
+}
+
+.conformance-row-status.fail {
+  color: var(--err);
+  font-weight: 600;
+  white-space: pre-wrap;
+}
