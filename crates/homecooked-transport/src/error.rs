@@ -1,4 +1,4 @@
-//! Transport errors (I/O, framing, protocol decode).
+//! Transport errors (I/O, framing, protocol decode, lab PSK auth).
 
 use std::fmt;
 use std::io;
@@ -6,7 +6,7 @@ use std::io;
 use homecooked_protocol::ProtocolError;
 use homecooked_schema::ErrorCode;
 
-/// Errors from framing, TCP I/O, or protocol decode on the wire.
+/// Errors from framing, TCP I/O, protocol decode, or lab PSK pairing.
 #[derive(Debug)]
 pub enum TransportError {
     Io(io::Error),
@@ -26,6 +26,8 @@ pub enum TransportError {
         expected: &'static str,
         got: String,
     },
+    /// Lab PSK pairing failed (missing, malformed, or mismatch).
+    Auth(String),
 }
 
 impl TransportError {
@@ -36,6 +38,7 @@ impl TransportError {
             Self::FrameTooLarge { .. } | Self::EmptyFrame => Some(ErrorCode::InvalidRequest),
             Self::UnexpectedEof | Self::Io(_) => Some(ErrorCode::Timeout),
             Self::UnexpectedKind { .. } => Some(ErrorCode::Internal),
+            Self::Auth(_) => Some(ErrorCode::Unauthorized),
         }
     }
 }
@@ -55,6 +58,7 @@ impl fmt::Display for TransportError {
                     "unexpected response kind: expected {expected}, got {got}"
                 )
             }
+            Self::Auth(msg) => write!(f, "unauthorized: {msg}"),
         }
     }
 }

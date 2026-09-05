@@ -31,7 +31,7 @@ What exists on `main` today:
 | `homecooked-controller` | Host controller sim: IoMap + MockHal + interlocks + washer cotton / dryer cycles |
 | `homecooked-thermal` | First executable thermal plant slice (types, registry, offer/accept, tick) |
 | `homecooked-bridge` | Bridge slice: Modbus + Matter + Zigbee + BACnet mock maps |
-| `homecooked-transport` | Lab TCP: length-prefixed JSON envelopes; sim-backed server + client smoke |
+| `homecooked-transport` | Lab TCP: length-prefixed JSON envelopes; optional PSK pairing; sim-backed server + client smoke |
 | `homecooked-conformance` | Light Stream 7 smoke: Tier-A / cotton / kettle procedure / thermal / Modbus / Matter / Zigbee / BACnet / TCP |
 | CI | rustfmt, clippy (`-D warnings`), `cargo test --workspace`, wasm-pack |
 
@@ -42,7 +42,7 @@ ids-only (no static tables / sim yet). Thermal has `homecooked-thermal` (plant
 slice; catalog/sim ports still open). Bridges have `homecooked-bridge`
 (Modbus + Matter + Zigbee + BACnet mock; real serial/TCP Modbus, CHIP SDK,
 zigbee2mqtt, real BACnet stack still open); control-system has HAL + controller-sim + io-map/interlock crates
-(TCP lab smoke in `homecooked-transport`; auth still out of scope); procedures has `homecooked-procedure`.
+(TCP lab smoke + optional PSK in `homecooked-transport`; TLS/OAuth still out of scope); procedures has `homecooked-procedure`.
 
 Rough completeness: docs + thin protocol/sim spine ≈ **~30%** of the 75%
 target below. Remaining work is depth (tables, I/O map, interlocks, HAL/sim
@@ -147,11 +147,12 @@ multiple small PRs.
 3. ~~TCP transport for the existing protocol envelope (one peer = one sim
    controller).~~ **Done (lab smoke)** — `homecooked-transport`: length-prefixed
    JSON framing, sim-backed TCP server + client, integration tests for
-   describe / read / write (kettle + washer). **Auth / TLS still out of
-   scope.** Full controller-sim-over-TCP (interlock-gated actuator via wire)
-   remains a thin follow-up; host controller unit tests already cover cotton
-   and dryer cycles + interlock denies (incl. dryer heat blocked when door
-   unlocked).
+   describe / read / write (kettle + washer). **Optional lab PSK pairing**
+   (dedicated auth preamble; refuse anonymous clients when configured).
+   **TLS / OAuth still out of scope.** Full controller-sim-over-TCP
+   (interlock-gated actuator via wire) remains a thin follow-up; host
+   controller unit tests already cover cotton and dryer cycles + interlock
+   denies (incl. dryer heat blocked when door unlocked).
 
 **Definition of done**
 
@@ -160,6 +161,7 @@ multiple small PRs.
   Controller-sim + interlock path over TCP is optional follow-up (host API
   already tested in `homecooked-controller`).
 - No claim of production firmware, TLS, OAuth, or certified safety path.
+  Lab PSK is a shared-secret handshake only (cleartext over cleartext TCP).
 
 ### Stream 5 — Thermal ports in schema / sim
 
@@ -340,3 +342,4 @@ the code that implements them.
 | 0.1.6 | Stream 6 BACnet mock bridge (`homecooked-bridge` kettle map; no BACnet stack) |
 | 0.1.7 | Stream 4 dryer cotton cycle (`homecooked-controller` + dryer io_map/interlocks) |
 | 0.1.5 | Stream 7 thermal plant UI (`homecooked-wasm` + simulator-web thermal panel) |
+| 0.1.8 | Stream 4 lab TCP PSK pairing (`homecooked-transport`); TLS/OAuth still out of scope |
