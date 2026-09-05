@@ -68,5 +68,9 @@ Also covered by `cargo test --workspace` (CI).
 12c2. **controller_tcp_dryer_dry_options** — write `dryness` /
    `heat_level` (DryOptions) before void `trait.cycle.start`; read-back +
    running; invalid dryness enum denied
+12d. **controller_tcp_washer_cycle_pause_cancel** — pause freezes phase; resume;
+   cancel → `canceling` → `idle`; cancel while idle → `invalid_request`
+12e. **controller_tcp_dryer_cycle_pause_cancel** — same pause/resume/cancel
+   path on dryer (cool then unlock → `idle`)
 13. **hub_lab_set_discover_describe** — optional `LabHub` lab set over TCP:
    Discover ≥3 devices, describe kettle (`homecooked-hub`)

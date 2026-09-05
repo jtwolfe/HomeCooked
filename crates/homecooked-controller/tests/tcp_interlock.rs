@@ -561,3 +561,304 @@ fn tcp_dryer_dry_options_over_wire() {
         other => panic!("expected remote invalid_enum for dryness=bogus, got {other:?}"),
     }
 }
+
+#[test]
+fn tcp_washer_cycle_pause_and_cancel() {
+    let ep = ControllerEndpoint::washer_lab().unwrap();
+    let (addr, _shared, _server) = spawn_handler_server("127.0.0.1:0", ep).unwrap();
+    thread::sleep(Duration::from_millis(20));
+
+    let mut client = TcpClient::connect(addr).unwrap();
+
+    let desc = client.describe(WASHER_CTRL_DEVICE_ID, vec![]).unwrap();
+    for point in [
+        "trait.cycle.pause",
+        "trait.cycle.resume",
+        "trait.cycle.cancel",
+    ] {
+        assert!(desc.capability.point(point).is_some(), "missing {point}");
+    }
+
+    // Cancel while idle denied.
+    let denied = client.write(
+        WASHER_CTRL_DEVICE_ID,
+        vec![WriteOp {
+            id: qid("trait.cycle.cancel"),
+            value: Value::Void,
+        }],
+    );
+    match denied {
+        Err(TransportError::Remote(body)) => {
+            assert_eq!(body.code, ErrorCode::InvalidRequest);
+        }
+        other => panic!("expected invalid_request cancel idle, got {other:?}"),
+    }
+
+    client
+        .write(
+            WASHER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: qid("trait.cycle.start"),
+                value: Value::Void,
+            }],
+        )
+        .unwrap();
+
+    for _ in 0..4 {
+        client
+            .write(
+                WASHER_CTRL_DEVICE_ID,
+                vec![WriteOp {
+                    id: qid("class.washer.sim_tick"),
+                    value: Value::Void,
+                }],
+            )
+            .unwrap();
+    }
+
+    client
+        .write(
+            WASHER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: qid("trait.cycle.pause"),
+                value: Value::Void,
+            }],
+        )
+        .unwrap();
+    let paused = client
+        .read(
+            WASHER_CTRL_DEVICE_ID,
+            vec![
+                qid("trait.cycle.cycle_state"),
+                qid("trait.cycle.cycle_phase"),
+            ],
+        )
+        .unwrap();
+    assert_eq!(paused.values[0].value, Some(Value::Enum("paused".into())));
+    let phase_paused = paused.values[1].value.clone();
+
+    for _ in 0..3 {
+        client
+            .write(
+                WASHER_CTRL_DEVICE_ID,
+                vec![WriteOp {
+                    id: qid("class.washer.sim_tick"),
+                    value: Value::Void,
+                }],
+            )
+            .unwrap();
+    }
+    let still = client
+        .read(
+            WASHER_CTRL_DEVICE_ID,
+            vec![
+                qid("trait.cycle.cycle_state"),
+                qid("trait.cycle.cycle_phase"),
+            ],
+        )
+        .unwrap();
+    assert_eq!(still.values[0].value, Some(Value::Enum("paused".into())));
+    assert_eq!(still.values[1].value, phase_paused);
+
+    client
+        .write(
+            WASHER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: qid("trait.cycle.resume"),
+                value: Value::Void,
+            }],
+        )
+        .unwrap();
+    let resumed = client
+        .read(WASHER_CTRL_DEVICE_ID, vec![qid("trait.cycle.cycle_state")])
+        .unwrap();
+    assert_eq!(resumed.values[0].value, Some(Value::Enum("running".into())));
+
+    client
+        .write(
+            WASHER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: qid("trait.cycle.cancel"),
+                value: Value::Void,
+            }],
+        )
+        .unwrap();
+    let canceling = client
+        .read(WASHER_CTRL_DEVICE_ID, vec![qid("trait.cycle.cycle_state")])
+        .unwrap();
+    assert_eq!(
+        canceling.values[0].value,
+        Some(Value::Enum("canceling".into()))
+    );
+
+    for _ in 0..40 {
+        let st = client
+            .read(WASHER_CTRL_DEVICE_ID, vec![qid("trait.cycle.cycle_state")])
+            .unwrap();
+        if st.values[0].value == Some(Value::Enum("idle".into())) {
+            break;
+        }
+        client
+            .write(
+                WASHER_CTRL_DEVICE_ID,
+                vec![WriteOp {
+                    id: qid("class.washer.sim_tick"),
+                    value: Value::Void,
+                }],
+            )
+            .unwrap();
+    }
+    let done = client
+        .read(WASHER_CTRL_DEVICE_ID, vec![qid("trait.cycle.cycle_state")])
+        .unwrap();
+    assert_eq!(done.values[0].value, Some(Value::Enum("idle".into())));
+}
+
+#[test]
+fn tcp_dryer_cycle_pause_and_cancel() {
+    use homecooked_controller::{DryerControllerEndpoint, DRYER_CTRL_DEVICE_ID};
+
+    let ep = DryerControllerEndpoint::dryer_lab().unwrap();
+    let (addr, _shared, _server) = spawn_handler_server("127.0.0.1:0", ep).unwrap();
+    thread::sleep(Duration::from_millis(20));
+
+    let mut client = TcpClient::connect(addr).unwrap();
+
+    let desc = client.describe(DRYER_CTRL_DEVICE_ID, vec![]).unwrap();
+    for point in [
+        "trait.cycle.pause",
+        "trait.cycle.resume",
+        "trait.cycle.cancel",
+    ] {
+        assert!(desc.capability.point(point).is_some(), "missing {point}");
+    }
+
+    let denied = client.write(
+        DRYER_CTRL_DEVICE_ID,
+        vec![WriteOp {
+            id: qid("trait.cycle.cancel"),
+            value: Value::Void,
+        }],
+    );
+    match denied {
+        Err(TransportError::Remote(body)) => {
+            assert_eq!(body.code, ErrorCode::InvalidRequest);
+        }
+        other => panic!("expected invalid_request cancel idle, got {other:?}"),
+    }
+
+    client
+        .write(
+            DRYER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: qid("trait.cycle.start"),
+                value: Value::Void,
+            }],
+        )
+        .unwrap();
+
+    for _ in 0..4 {
+        client
+            .write(
+                DRYER_CTRL_DEVICE_ID,
+                vec![WriteOp {
+                    id: qid("class.dryer.sim_tick"),
+                    value: Value::Void,
+                }],
+            )
+            .unwrap();
+    }
+
+    client
+        .write(
+            DRYER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: qid("trait.cycle.pause"),
+                value: Value::Void,
+            }],
+        )
+        .unwrap();
+    let paused = client
+        .read(
+            DRYER_CTRL_DEVICE_ID,
+            vec![
+                qid("trait.cycle.cycle_state"),
+                qid("trait.cycle.cycle_phase"),
+            ],
+        )
+        .unwrap();
+    assert_eq!(paused.values[0].value, Some(Value::Enum("paused".into())));
+    let phase_paused = paused.values[1].value.clone();
+
+    for _ in 0..3 {
+        client
+            .write(
+                DRYER_CTRL_DEVICE_ID,
+                vec![WriteOp {
+                    id: qid("class.dryer.sim_tick"),
+                    value: Value::Void,
+                }],
+            )
+            .unwrap();
+    }
+    let still = client
+        .read(
+            DRYER_CTRL_DEVICE_ID,
+            vec![
+                qid("trait.cycle.cycle_state"),
+                qid("trait.cycle.cycle_phase"),
+            ],
+        )
+        .unwrap();
+    assert_eq!(still.values[0].value, Some(Value::Enum("paused".into())));
+    assert_eq!(still.values[1].value, phase_paused);
+
+    client
+        .write(
+            DRYER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: qid("trait.cycle.resume"),
+                value: Value::Void,
+            }],
+        )
+        .unwrap();
+
+    client
+        .write(
+            DRYER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: qid("trait.cycle.cancel"),
+                value: Value::Void,
+            }],
+        )
+        .unwrap();
+    let canceling = client
+        .read(DRYER_CTRL_DEVICE_ID, vec![qid("trait.cycle.cycle_state")])
+        .unwrap();
+    assert_eq!(
+        canceling.values[0].value,
+        Some(Value::Enum("canceling".into()))
+    );
+
+    for _ in 0..40 {
+        let st = client
+            .read(DRYER_CTRL_DEVICE_ID, vec![qid("trait.cycle.cycle_state")])
+            .unwrap();
+        if st.values[0].value == Some(Value::Enum("idle".into())) {
+            break;
+        }
+        client
+            .write(
+                DRYER_CTRL_DEVICE_ID,
+                vec![WriteOp {
+                    id: qid("class.dryer.sim_tick"),
+                    value: Value::Void,
+                }],
+            )
+            .unwrap();
+    }
+    let done = client
+        .read(DRYER_CTRL_DEVICE_ID, vec![qid("trait.cycle.cycle_state")])
+        .unwrap();
+    assert_eq!(done.values[0].value, Some(Value::Enum("idle".into())));
+}

@@ -190,3 +190,169 @@ fn cold_wash_skips_heat() {
         assert_eq!(cmd.value, HalValue::Bool(false));
     }
 }
+
+#[test]
+fn washer_pause_freezes_phase_resume_continues() {
+    let mut ctrl = Controller::washer_cotton_demo().unwrap();
+    ctrl.start_cotton(CottonOptions {
+        wash_temp_c: 0.0,
+        spin_rpm: 800.0,
+        target_fill_pa: 2500.0,
+        wash_tumble_ticks: 5,
+        spin_ticks: 2,
+        rinse_tumble_ticks: 2,
+    })
+    .unwrap();
+
+    // Advance into fill / wash so phase is non-trivial.
+    for _ in 0..8 {
+        ctrl.tick().unwrap();
+        if ctrl.washer_state() == WasherState::WashTumble {
+            break;
+        }
+    }
+    let phase_before = ctrl.phase();
+    let state_before = ctrl.washer_state();
+    assert_eq!(ctrl.cycle_state(), CycleState::Running);
+
+    ctrl.pause().unwrap();
+    assert_eq!(ctrl.cycle_state(), CycleState::Paused);
+    // Idempotent pause.
+    ctrl.pause().unwrap();
+    assert_eq!(ctrl.cycle_state(), CycleState::Paused);
+
+    for _ in 0..5 {
+        ctrl.tick().unwrap();
+    }
+    assert_eq!(ctrl.cycle_state(), CycleState::Paused);
+    assert_eq!(ctrl.washer_state(), state_before);
+    assert_eq!(ctrl.phase(), phase_before);
+
+    ctrl.resume().unwrap();
+    assert_eq!(ctrl.cycle_state(), CycleState::Running);
+    ctrl.run_until_done(200).expect("resume should complete");
+    assert_eq!(ctrl.cycle_state(), CycleState::Complete);
+}
+
+#[test]
+fn washer_cancel_mid_cycle_reaches_idle_unlocked() {
+    let mut ctrl = Controller::washer_cotton_demo().unwrap();
+    ctrl.start_cotton(CottonOptions {
+        wash_temp_c: 0.0,
+        spin_rpm: 800.0,
+        target_fill_pa: 2500.0,
+        wash_tumble_ticks: 5,
+        spin_ticks: 3,
+        rinse_tumble_ticks: 2,
+    })
+    .unwrap();
+    for _ in 0..10 {
+        ctrl.tick().unwrap();
+    }
+    assert_eq!(ctrl.cycle_state(), CycleState::Running);
+
+    ctrl.cancel().unwrap();
+    assert_eq!(ctrl.cycle_state(), CycleState::Canceling);
+    // Idempotent cancel while canceling.
+    ctrl.cancel().unwrap();
+
+    for _ in 0..40 {
+        if ctrl.cycle_state() == CycleState::Idle {
+            break;
+        }
+        ctrl.tick().unwrap();
+    }
+    assert_eq!(ctrl.cycle_state(), CycleState::Idle);
+    assert_eq!(ctrl.washer_state(), WasherState::Idle);
+    let lock = ctrl
+        .hal()
+        .get(&ChannelId::new("aout.door_lock").unwrap())
+        .unwrap();
+    assert_eq!(lock, &HalValue::Bool(false));
+}
+
+#[test]
+fn washer_cancel_while_idle_denied() {
+    let mut ctrl = Controller::washer_cotton_demo().unwrap();
+    let err = ctrl.cancel().expect_err("cancel idle");
+    assert!(err.to_string().contains("no active"));
+    let err = ctrl.pause().expect_err("pause idle");
+    assert!(err.to_string().contains("not running"));
+}
+
+#[test]
+fn dryer_pause_freezes_phase_resume_continues() {
+    let mut ctrl = DryerController::dryer_cotton_demo().unwrap();
+    ctrl.start_dry(DryOptions {
+        target_temp_c: 55.0,
+        target_humidity_rh: 25.0,
+        cool_temp_c: 30.0,
+        tumble_rpm: 50.0,
+        max_dry_ticks: 20,
+        max_cool_ticks: 20,
+    })
+    .unwrap();
+    for _ in 0..5 {
+        ctrl.tick().unwrap();
+        if ctrl.dryer_state() == DryerState::Dry {
+            break;
+        }
+    }
+    let state_before = ctrl.dryer_state();
+    let phase_before = ctrl.phase();
+    assert_eq!(ctrl.cycle_state(), CycleState::Running);
+
+    ctrl.pause().unwrap();
+    assert_eq!(ctrl.cycle_state(), CycleState::Paused);
+    ctrl.pause().unwrap();
+    for _ in 0..5 {
+        ctrl.tick().unwrap();
+    }
+    assert_eq!(ctrl.cycle_state(), CycleState::Paused);
+    assert_eq!(ctrl.dryer_state(), state_before);
+    assert_eq!(ctrl.phase(), phase_before);
+
+    ctrl.resume().unwrap();
+    assert_eq!(ctrl.cycle_state(), CycleState::Running);
+    ctrl.run_until_done(200).expect("resume should complete");
+    assert_eq!(ctrl.cycle_state(), CycleState::Complete);
+}
+
+#[test]
+fn dryer_cancel_mid_cycle_reaches_idle_unlocked() {
+    let mut ctrl = DryerController::dryer_cotton_demo().unwrap();
+    ctrl.start_dry(DryOptions::default()).unwrap();
+    for _ in 0..6 {
+        ctrl.tick().unwrap();
+    }
+    assert_eq!(ctrl.cycle_state(), CycleState::Running);
+
+    ctrl.cancel().unwrap();
+    assert_eq!(ctrl.cycle_state(), CycleState::Canceling);
+
+    for _ in 0..40 {
+        if ctrl.cycle_state() == CycleState::Idle {
+            break;
+        }
+        ctrl.tick().unwrap();
+    }
+    assert_eq!(ctrl.cycle_state(), CycleState::Idle);
+    assert_eq!(ctrl.dryer_state(), DryerState::Idle);
+    let lock = ctrl
+        .hal()
+        .get(&ChannelId::new("aout.door_lock").unwrap())
+        .unwrap();
+    assert_eq!(lock, &HalValue::Bool(false));
+    let heater = ctrl
+        .hal()
+        .get(&ChannelId::new("aout.heater_enable").unwrap())
+        .unwrap();
+    assert_eq!(heater, &HalValue::Bool(false));
+}
+
+#[test]
+fn dryer_cancel_while_idle_denied() {
+    let mut ctrl = DryerController::dryer_cotton_demo().unwrap();
+    let err = ctrl.cancel().expect_err("cancel idle");
+    assert!(err.to_string().contains("no active"));
+}
