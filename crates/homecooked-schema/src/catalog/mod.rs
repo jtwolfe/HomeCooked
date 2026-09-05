@@ -181,9 +181,20 @@ pub fn typical_capability(class_id: ApplianceClassId) -> Option<CapabilityModel>
 }
 
 fn extra_typical_trait_point(table: &ClassTable, trait_id: TraitId, point: &CatalogPoint) -> bool {
-    trait_id == TraitId::Temperature
+    if trait_id == TraitId::Temperature
         && point.id == "setpoint_c"
         && table.typical_setpoint_c.is_some()
+    {
+        return true;
+    }
+    // Wine cooler: humidity target is typical when the cabinet actively humidifies.
+    if table.class_id == ApplianceClassId::WineCooler
+        && trait_id == TraitId::Humidity
+        && point.id == "setpoint_rh"
+    {
+        return true;
+    }
+    false
 }
 
 /// Optional class points that the typical model still advertises for demos.
@@ -196,6 +207,20 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
         && matches!(point.id, "boiler_c" | "brew_pressure_bar")
     {
         return true;
+    }
+    // Stream 7 catalog depth: wine cooler optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::WineCooler {
+        return matches!(
+            point.id,
+            "vibration_reduce"
+                | "uv_protect"
+                | "sabbath_mode"
+                | "compressor_on"
+                | "high_temp_alarm"
+                | "low_temp_alarm"
+                | "vibration_alert"
+                | "bottle_count"
+        );
     }
     // Stream 5: device-facing thermal-port surface on Tier-A water_heater / fridge / hvac / dishwasher / dryer.
     matches!(
@@ -534,6 +559,46 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn wine_cooler_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::WineCooler).unwrap();
+        for id in [
+            "class.wine_cooler.vibration_reduce",
+            "class.wine_cooler.uv_protect",
+            "class.wine_cooler.sabbath_mode",
+            "class.wine_cooler.compressor_on",
+            "class.wine_cooler.high_temp_alarm",
+            "class.wine_cooler.low_temp_alarm",
+            "class.wine_cooler.vibration_alert",
+            "class.wine_cooler.bottle_count",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical wine_cooler"
+            );
+        }
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Humidity)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.humidity.setpoint_rh"));
+        cap.validate_write("class.wine_cooler.vibration_reduce", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.wine_cooler.uv_protect", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.wine_cooler.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        let err = cap
+            .validate_write("class.wine_cooler.bottle_count", &Value::U16(12))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        cap.validate_write("trait.humidity.setpoint_rh", &Value::Percent(60.0))
+            .unwrap();
     }
 
     #[test]

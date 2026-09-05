@@ -757,9 +757,16 @@ Convertible zone uses `trait.zone.zone_mode`: `fridge` `freezer` `off` `bar`.
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
 | `vibration_reduce` | bool | — | | r/w | opt | Night / quiet compressor |
-| `uv_protect` | bool | — | | r/w | opt | Disable interior light |
+| `uv_protect` | bool | — | | r/w | opt | Disable interior light (UV protect) |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `compressor_on` | bool | — | | r/e | opt | |
+| `high_temp_alarm` | bool | — | | r/e | opt | |
+| `low_temp_alarm` | bool | — | | r/e | opt | Freeze / too-cold risk |
+| `vibration_alert` | bool | — | | r/e | opt | Vibration / cork risk |
+| `bottle_count` | u16 | — | 0–300 | r/e | opt | Estimated bottles loaded |
 
-Setpoints typically 5–20 °C per zone (`upper` / `lower`). Humidity via trait.
+Setpoints typically 5–20 °C per zone (`upper` / `lower`). Humidity via
+`trait.humidity` (`current_rh` / optional `setpoint_rh`). Dual-zone is typical.
 
 ---
 

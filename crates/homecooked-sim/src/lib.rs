@@ -252,6 +252,22 @@ mod tests {
             Value::F32(12.0),
         )
         .unwrap();
+        assert!(
+            (f32_val(
+                &sim.read_value(&wine, "trait.temperature.current_c#upper")
+                    .unwrap()
+            ) - 16.0)
+                .abs()
+                < f32::EPSILON
+        );
+        assert!(
+            (f32_val(
+                &sim.read_value(&wine, "trait.temperature.current_c#lower")
+                    .unwrap()
+            ) - 10.0)
+                .abs()
+                < f32::EPSILON
+        );
 
         let heater = sim.spawn(ApplianceClassId::WaterHeater).unwrap();
         sim.write(&heater, "trait.temperature.setpoint_c", Value::F32(60.0))
@@ -268,6 +284,92 @@ mod tests {
         let hood = sim.spawn(ApplianceClassId::RangeHood).unwrap();
         sim.write(&hood, "trait.fan.fan_state", Value::Enum("on".into()))
             .unwrap();
+    }
+
+    #[test]
+    fn wine_cooler_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let wine = sim.spawn(ApplianceClassId::WineCooler).unwrap();
+
+        assert_eq!(
+            sim.read_value(&wine, "class.wine_cooler.bottle_count")
+                .unwrap(),
+            Value::U16(24)
+        );
+        assert_eq!(
+            sim.read_value(&wine, "class.wine_cooler.vibration_alert")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wine, "class.wine_cooler.compressor_on")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wine, "class.wine_cooler.high_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wine, "class.wine_cooler.low_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wine, "trait.humidity.current_rh").unwrap(),
+            Value::Percent(60.0)
+        );
+        assert_eq!(
+            sim.read_value(&wine, "trait.humidity.setpoint_rh").unwrap(),
+            Value::Percent(60.0)
+        );
+
+        sim.write(
+            &wine,
+            "class.wine_cooler.vibration_reduce",
+            Value::Bool(true),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&wine, "class.wine_cooler.vibration_reduce")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&wine, "class.wine_cooler.uv_protect", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&wine, "class.wine_cooler.uv_protect")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&wine, "class.wine_cooler.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&wine, "class.wine_cooler.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&wine, "trait.humidity.setpoint_rh", Value::Percent(70.0))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&wine, "trait.humidity.setpoint_rh").unwrap(),
+            Value::Percent(70.0)
+        );
+        sim.write(&wine, "trait.temperature.setpoint_c#lower", Value::F32(8.0))
+            .unwrap();
+        assert!(
+            (f32_val(
+                &sim.read_value(&wine, "trait.temperature.setpoint_c#lower")
+                    .unwrap()
+            ) - 8.0)
+                .abs()
+                < f32::EPSILON
+        );
+        let err = sim
+            .write(&wine, "class.wine_cooler.bottle_count", Value::U16(40))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
     }
 
     #[test]

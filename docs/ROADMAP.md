@@ -1,6 +1,6 @@
 # HomeCooked roadmap — ~75% project completeness
 
-Version **0.1.32**. Planning doc for a long flesh-out of the catalog, control
+Version **0.1.33**. Planning doc for a long flesh-out of the catalog, control
 stack, and simulator. It does **not** freeze APIs; crate and YAML shapes may
 evolve with the code that implements each stream.
 
@@ -105,8 +105,9 @@ Even with Stream 3–7 thin DoDs met on `main`, the §2 bar is not fully cleared
   crate-local in `homecooked-thermal` (not full schema promotion).
 - **Richer UI** — picker + procedure runner + thermal panel + port chips are
   in; conformance-oriented / deeper screens remain.
-- **Deeper Tier-B optional points** — thin tables cover all 31 ids; more
-  optional points/programs where devices need them can follow.
+- **Deeper Tier-B optional points** — thin tables cover all 31 ids; depth
+  **started** with `wine_cooler` (optional class telemetry/settings + humidity
+  setpoint in typical/sim); more classes can follow.
 - **Procedure⇄thermal depth** — thin `thermal_wait` on reservoir `temp_c` is
   present (`wait_dhw_reservoir` + conformance); offer/accept/negotiate as
   procedure steps and wasm/UI wiring remain open. Dual-path dishwasher demo
@@ -388,7 +389,7 @@ devices:
 | `sous_vide` | |
 | `multi_cooker` | |
 | `ice_maker` | |
-| `wine_cooler` | |
+| `wine_cooler` | Optional depth: sabbath/compressor/alarms/vibration/bottle_count + humidity setpoint |
 
 Count: **25** Tier-A ids, all with static tables + sim.
 
@@ -499,3 +500,5 @@ the code that implements them.
 | 0.1.29 | Stream 5: optional `thermal_port_*` on `dryer` (`exhaust`/source/air/2000 W); extend `water_heater_thermal_ports` |
 | 0.1.30 | Current-state refresh: ~65% → **~70%** (~68–72% band) of 75% target; cite PRs since v0.1.24 (coffee/air-fryer procedures, dishwasher+dryer thermal ports, `thermal_wait` / `wait_dhw_reservoir`, sim-web procedure copy); §2 gaps unchanged in kind |
 | 0.1.31 | Stream 5: shared thermal vocabulary types (`Media` / `PortDirection` / `TempBandC` / `HeatPortSpec`) in `homecooked-schema`; `homecooked-thermal` re-exports; plant runtime still crate-local |
+| 0.1.32 | Stream 5: `ClassTable.thermal_ports: &[HeatPortSpec]` advertisement matching sim seeds (water_heater/fridge/hvac/dishwasher/dryer) |
+| 0.1.33 | Stream 7 catalog depth: deepen `wine_cooler` optional class points (sabbath/compressor/alarms/vibration_alert/bottle_count + typical humidity setpoint); Tier-B deepen started |
