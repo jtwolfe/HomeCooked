@@ -125,7 +125,7 @@ class points in the table with `required: true`; optional catalog points may
 be omitted from `typical_capability` until a device advertises them. To keep
 optional points in the typical/sim model (demos / catalog depth), allow them in
 `extra_typical_class_point` / `extra_typical_trait_point` in
-`crates/homecooked-schema/src/catalog/mod.rs` (see `wine_cooler` / `ice_maker` / `sous_vide` / `multi_cooker` / `toaster_oven` / `dehumidifier` / `range_hood` / `steam_oven` / `cooktop` / `humidifier` / `freezer` / `fridge_freezer` / `beverage_cooler` / `kegerator` / `warming_drawer` / `pizza_oven` / `electric_grill` / `electric_smoker` / `espresso_machine` / `drip_coffee_maker` / `coffee_grinder` / `water_dispenser` / `toaster` / `blender` / `food_processor` / `stand_mixer` / `juicer` / `rice_cooker` / `slow_cooker` / `bread_maker` / `dehydrator` / `vacuum_sealer` / `ice_cream_maker` / `yogurt_maker`).
+`crates/homecooked-schema/src/catalog/mod.rs` (see `wine_cooler` / `ice_maker` / `sous_vide` / `multi_cooker` / `toaster_oven` / `dehumidifier` / `range_hood` / `steam_oven` / `cooktop` / `humidifier` / `freezer` / `fridge_freezer` / `beverage_cooler` / `kegerator` / `warming_drawer` / `pizza_oven` / `electric_grill` / `electric_smoker` / `espresso_machine` / `drip_coffee_maker` / `coffee_grinder` / `water_dispenser` / `toaster` / `blender` / `food_processor` / `stand_mixer` / `juicer` / `rice_cooker` / `slow_cooker` / `bread_maker` / `dehydrator` / `vacuum_sealer` / `ice_cream_maker` / `yogurt_maker` / `waffle_maker`).
 
 For cycle/program classes, add `program_tokens` / `cycle_phase_tokens` slices
 when the catalog documents them. For closed-loop temperature classes, set
