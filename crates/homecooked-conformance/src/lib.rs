@@ -1500,6 +1500,143 @@ pub fn controller_tcp_washer_cotton() -> ScenarioResult {
     Ok(())
 }
 
+/// (9c2) Controller-sim over TCP: CottonOptions via adjacent catalog writes before start.
+pub fn controller_tcp_washer_cotton_options() -> ScenarioResult {
+    const NAME: &str = "controller_tcp_washer_cotton_options";
+    let ep = ControllerEndpoint::washer_lab().map_err(|e| err(NAME, format!("washer_lab: {e}")))?;
+    let (addr, _shared, _server) = spawn_handler_server("127.0.0.1:0", ep)
+        .map_err(|e| err(NAME, format!("spawn_handler_server: {e}")))?;
+    thread::sleep(Duration::from_millis(20));
+
+    let mut client = TcpClient::connect(addr).map_err(|e| err(NAME, format!("connect: {e}")))?;
+
+    let desc = client
+        .describe(WASHER_CTRL_DEVICE_ID, vec![])
+        .map_err(|e| err(NAME, format!("describe: {e}")))?;
+    for point in [
+        "class.washer.wash_temp_c",
+        "class.washer.spin_rpm",
+        "trait.cycle.start",
+    ] {
+        if desc.capability.point(point).is_none() {
+            return Err(err(NAME, format!("describe missing {point}")));
+        }
+    }
+
+    // Adjacent catalog writes = CottonOptions over the wire (void start stays catalog-shaped).
+    client
+        .write(
+            WASHER_CTRL_DEVICE_ID,
+            vec![
+                WriteOp {
+                    id: QualifiedPointId::parse("class.washer.wash_temp_c")
+                        .map_err(|e| err(NAME, e.to_string()))?,
+                    value: Value::F32(0.0),
+                },
+                WriteOp {
+                    id: QualifiedPointId::parse("class.washer.spin_rpm")
+                        .map_err(|e| err(NAME, e.to_string()))?,
+                    value: Value::U16(1_200),
+                },
+            ],
+        )
+        .map_err(|e| err(NAME, format!("cotton options write: {e}")))?;
+
+    let opts = client
+        .read(
+            WASHER_CTRL_DEVICE_ID,
+            vec![
+                QualifiedPointId::parse("class.washer.wash_temp_c")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                QualifiedPointId::parse("class.washer.spin_rpm")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+            ],
+        )
+        .map_err(|e| err(NAME, format!("read options: {e}")))?;
+    if opts.values[0].value != Some(Value::F32(0.0)) {
+        return Err(err(
+            NAME,
+            format!("wash_temp_c={:?}, expected 0", opts.values[0].value),
+        ));
+    }
+    if opts.values[1].value != Some(Value::U16(1_200)) {
+        return Err(err(
+            NAME,
+            format!("spin_rpm={:?}, expected 1200", opts.values[1].value),
+        ));
+    }
+
+    client
+        .write(
+            WASHER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: QualifiedPointId::parse("trait.cycle.start")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                value: Value::Void,
+            }],
+        )
+        .map_err(|e| err(NAME, format!("cycle start: {e}")))?;
+
+    let after = client
+        .read(
+            WASHER_CTRL_DEVICE_ID,
+            vec![
+                QualifiedPointId::parse("trait.cycle.cycle_state")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                QualifiedPointId::parse("class.washer.wash_temp_c")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                QualifiedPointId::parse("class.washer.spin_rpm")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+            ],
+        )
+        .map_err(|e| err(NAME, format!("read after start: {e}")))?;
+    if after.values[0].value != Some(Value::Enum("running".into())) {
+        return Err(err(
+            NAME,
+            format!("cycle_state={:?}, expected running", after.values[0].value),
+        ));
+    }
+    if after.values[1].value != Some(Value::F32(0.0))
+        || after.values[2].value != Some(Value::U16(1_200))
+    {
+        return Err(err(
+            NAME,
+            format!(
+                "options after start wash_temp={:?} spin={:?}, expected 0 / 1200",
+                after.values[1].value, after.values[2].value
+            ),
+        ));
+    }
+
+    // Catalog range still enforced over TCP.
+    let denied = client.write(
+        WASHER_CTRL_DEVICE_ID,
+        vec![WriteOp {
+            id: QualifiedPointId::parse("class.washer.spin_rpm")
+                .map_err(|e| err(NAME, e.to_string()))?,
+            value: Value::U16(2_000),
+        }],
+    );
+    match denied {
+        Err(TransportError::Remote(body)) => {
+            if body.code != ErrorCode::OutOfRange {
+                return Err(err(
+                    NAME,
+                    format!("spin_rpm=2000 code={:?}, expected out_of_range", body.code),
+                ));
+            }
+        }
+        other => {
+            return Err(err(
+                NAME,
+                format!("expected remote out_of_range for spin_rpm=2000, got {other:?}"),
+            ));
+        }
+    }
+
+    Ok(())
+}
+
 /// (9d) Controller-sim over TCP: start dryer cotton + observe cycle state/phase.
 pub fn controller_tcp_dryer_cycle() -> ScenarioResult {
     const NAME: &str = "controller_tcp_dryer_cycle";
@@ -2150,6 +2287,10 @@ pub fn all_scenarios() -> &'static [(&'static str, ScenarioFn)] {
             controller_tcp_dryer_interlock,
         ),
         ("controller_tcp_washer_cotton", controller_tcp_washer_cotton),
+        (
+            "controller_tcp_washer_cotton_options",
+            controller_tcp_washer_cotton_options,
+        ),
         ("controller_tcp_dryer_cycle", controller_tcp_dryer_cycle),
         (
             "hub_lab_set_discover_describe",

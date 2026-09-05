@@ -45,8 +45,10 @@ capabilities onto MockHal so clients over `homecooked-transport` get
 lock+blower). Washer and dryer TCP also start cotton/dry via
 `trait.cycle.start` and expose readable `trait.cycle.cycle_state` /
 `cycle_phase`, plus lab-only `class.washer.sim_tick` /
-`class.dryer.sim_tick`. CottonOptions / DryOptions / cancel / pause /
-typical_capability remain follow-up. No GPIO, TLS, or OAuth.
+`class.dryer.sim_tick`. Washer **CottonOptions** over TCP via adjacent
+catalog writes (`class.washer.wash_temp_c` / `spin_rpm` before void
+`trait.cycle.start`). DryOptions / cancel / pause / typical_capability remain
+follow-up. No GPIO, TLS, or OAuth.
 
 ## Tests
 
