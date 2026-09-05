@@ -654,6 +654,22 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "slots"
         );
     }
+    // Stream 7 catalog depth: blender optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::Blender {
+        return matches!(
+            point.id,
+            "form_factor"
+                | "pulse"
+                | "jar_present"
+                | "lid_locked"
+                | "heated"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "motor_on"
+                | "overload_trip"
+                | "timer_s"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -2544,6 +2560,63 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.toaster.slots", &Value::U8(4))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn blender_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::Blender).unwrap();
+        for id in [
+            "class.blender.speed_level",
+            "class.blender.form_factor",
+            "class.blender.pulse",
+            "class.blender.jar_present",
+            "class.blender.lid_locked",
+            "class.blender.heated",
+            "class.blender.sabbath_mode",
+            "class.blender.eco_mode",
+            "class.blender.motor_on",
+            "class.blender.overload_trip",
+            "class.blender.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical blender"
+            );
+        }
+        cap.validate_write("class.blender.speed_level", &Value::U8(6))
+            .unwrap();
+        cap.validate_write("class.blender.pulse", &Value::Void)
+            .unwrap();
+        cap.validate_write("class.blender.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.blender.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.blender.timer_s", &Value::DurationS(90))
+            .unwrap();
+        let err = cap
+            .validate_write("class.blender.form_factor", &Value::Enum("jar".into()))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.blender.jar_present", &Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.blender.lid_locked", &Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.blender.heated", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.blender.motor_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.blender.overload_trip", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }

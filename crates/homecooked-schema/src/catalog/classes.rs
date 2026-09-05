@@ -3870,6 +3870,46 @@ static BLENDER_POINTS: &[CatalogPoint] = &[
         false,
     ),
     v("heated", ValueType::Bool, None, None, AccessMode::R, false),
+    s(
+        "sabbath_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    ),
+    s(
+        "eco_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "motor_on",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "overload_trip",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "timer_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 3600),
+        AccessMode::RWE,
+        false,
+    ),
 ];
 
 const FOOD_PROCESSOR_TRAITS: &[TraitId] = &[

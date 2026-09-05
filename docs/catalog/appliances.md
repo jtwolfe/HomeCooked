@@ -1031,6 +1031,10 @@ temp / stall, remaining.
 
 **Notes:** Safety: lid and jar interlocks. Heated blenders add `temperature`
 and `heater`. Do not start with lid open.
+- Catalog depth: optional class points include `form_factor`, `pulse`,
+  `jar_present`, `lid_locked`, `heated`, sabbath, eco, `motor_on`,
+  `overload_trip`, and `timer_s` (see variables-and-settings). Required
+  `speed_level` remains the primary speed control.
 
 ### `food_processor`
 

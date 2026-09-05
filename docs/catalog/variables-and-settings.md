@@ -1305,12 +1305,17 @@ Filter life via `trait.filter.life_percent`. Hot-water lock via
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `form_factor` | enum | — | `jar` `immersion` | r | opt | |
-| `speed_level` | u8 | — | 0–max | r/w | req | |
-| `pulse` | command | void | — | w | opt | Momentary |
-| `jar_present` | bool | — | | r/e | opt | |
-| `lid_locked` | bool | — | | r/e | opt | |
+| `form_factor` | enum | — | `jar` `immersion` | r | opt | Jar vs immersion form |
+| `speed_level` | u8 | — | 0–10 | r/w | req | Blade speed |
+| `pulse` | command | void | — | w | opt | Momentary high-speed pulse |
+| `jar_present` | bool | — | | r/e | opt | Jar seated on base |
+| `lid_locked` | bool | — | | r/e | opt | Lid interlock closed |
 | `heated` | bool | — | | r | opt | Capability: soup blender |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving motor duty |
+| `motor_on` | bool | — | | r/e | opt | Blade motor active |
+| `overload_trip` | bool | — | | r/e | opt | Stall / thermal overload trip |
+| `timer_s` | duration_s | second | 0–3600 | r/w/e | opt | Timed blend / remaining |
 
 ---
 

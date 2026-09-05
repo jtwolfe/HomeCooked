@@ -3539,6 +3539,117 @@ mod tests {
     }
 
     #[test]
+    fn blender_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let blender = sim.spawn(ApplianceClassId::Blender).unwrap();
+
+        assert_eq!(
+            sim.read_value(&blender, "class.blender.speed_level")
+                .unwrap(),
+            Value::U8(0)
+        );
+        assert_eq!(
+            sim.read_value(&blender, "class.blender.form_factor")
+                .unwrap(),
+            Value::Enum("jar".into())
+        );
+        assert_eq!(
+            sim.read_value(&blender, "class.blender.jar_present")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(
+            sim.read_value(&blender, "class.blender.lid_locked")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(
+            sim.read_value(&blender, "class.blender.heated").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&blender, "class.blender.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&blender, "class.blender.eco_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&blender, "class.blender.motor_on").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&blender, "class.blender.overload_trip")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&blender, "class.blender.timer_s").unwrap(),
+            Value::DurationS(0)
+        );
+
+        sim.write(&blender, "class.blender.speed_level", Value::U8(7))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&blender, "class.blender.speed_level")
+                .unwrap(),
+            Value::U8(7)
+        );
+        sim.write(&blender, "class.blender.pulse", Value::Void)
+            .unwrap();
+        sim.write(&blender, "class.blender.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&blender, "class.blender.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&blender, "class.blender.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&blender, "class.blender.eco_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&blender, "class.blender.timer_s", Value::DurationS(45))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&blender, "class.blender.timer_s").unwrap(),
+            Value::DurationS(45)
+        );
+
+        let err = sim
+            .write(
+                &blender,
+                "class.blender.form_factor",
+                Value::Enum("immersion".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&blender, "class.blender.jar_present", Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&blender, "class.blender.lid_locked", Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&blender, "class.blender.heated", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&blender, "class.blender.motor_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&blender, "class.blender.overload_trip", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {
