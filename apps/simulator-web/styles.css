@@ -284,6 +284,42 @@ button.cmd {
   font-weight: 600;
 }
 
+.thermal-port-panel {
+  margin: 0 0 1rem;
+  padding: 0.7rem 0.8rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fffaf3;
+}
+
+.thermal-port-head {
+  font-size: 0.95rem;
+  margin: 0 0 0.45rem;
+  color: #44403c;
+}
+
+.thermal-port-panel .highlights {
+  margin-top: 0;
+}
+
+.thermal-port-attach {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-top: 0.65rem;
+}
+
+.thermal-port-attach .field {
+  margin: 0;
+  min-width: 12rem;
+}
+
+.thermal-port-hint {
+  margin: 0.55rem 0 0;
+  font-size: 0.78rem;
+}
+
 .tick-bar {
   display: flex;
   gap: 0.6rem;

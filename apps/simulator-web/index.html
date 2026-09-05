@@ -83,6 +83,26 @@ python3 -m http.server 8080</pre>
           </div>
 
           <p id="write-error" class="banner error compact" hidden></p>
+          <section id="thermal-port-panel" class="thermal-port-panel" hidden>
+            <h3 class="thermal-port-head">Thermal port</h3>
+            <ul id="thermal-port-chips" class="highlights"></ul>
+            <div class="thermal-port-attach">
+              <label class="field compact grow">
+                <span>Attached reservoir id</span>
+                <input
+                  id="thermal-port-attach-input"
+                  type="text"
+                  spellcheck="false"
+                  placeholder="e.g. dhw-tank"
+                />
+              </label>
+              <button id="thermal-port-attach-btn" type="button">Set</button>
+            </div>
+            <p class="muted thermal-port-hint">
+              Catalog <code>thermal_port_*</code> telemetry for this class.
+              Write attaches/detaches a plant reservoir id (empty to clear).
+            </p>
+          </section>
           <div id="point-groups"></div>
 
           <details class="raw">
