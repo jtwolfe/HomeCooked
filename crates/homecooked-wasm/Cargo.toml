@@ -1,0 +1,21 @@
+[package]
+name = "homecooked-wasm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description = "wasm-bindgen JSON API wrapping the HomeCooked in-memory simulator"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+console_error_panic_hook = "0.1"
+getrandom = { version = "0.2", features = ["js"] }
+homecooked-core = { path = "../homecooked-core" }
+homecooked-schema = { path = "../homecooked-schema" }
+homecooked-sim = { path = "../homecooked-sim" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+wasm-bindgen = "0.2"

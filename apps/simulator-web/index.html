@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HomeCooked simulator</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23b45309'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div class="brand">
+        <p class="eyebrow">HomeCooked · catalog 0.1.0</p>
+        <h1>Appliance simulator</h1>
+        <p class="lede">
+          Spawn a catalog class, write settings, and tick simulated time. WASM
+          wraps <code>homecooked-sim</code>.
+        </p>
+      </div>
+      <p id="status" class="status" role="status">Loading WASM…</p>
+    </header>
+
+    <div id="boot-error" class="banner error" hidden>
+      <strong>Could not load the simulator WASM.</strong>
+      <p>
+        From the repo root, build the package and serve this directory over HTTP
+        (opening the file directly will not work):
+      </p>
+      <pre>
+wasm-pack build crates/homecooked-wasm --target web --out-dir ../../apps/simulator-web/pkg
+cd apps/simulator-web
+python3 -m http.server 8080</pre>
+      <p id="boot-error-detail" class="muted"></p>
+    </div>
+
+    <div id="app" class="layout" hidden>
+      <aside class="panel">
+        <h2>Devices</h2>
+        <label class="field">
+          <span>Appliance class</span>
+          <select id="class-select"></select>
+        </label>
+        <button id="create-btn" type="button">Create device</button>
+        <ul id="device-list" class="device-list"></ul>
+        <p id="empty-devices" class="muted">No devices yet. Pick a class and create one.</p>
+      </aside>
+
+      <main class="panel main">
+        <div id="placeholder" class="placeholder">
+          <p>Select or create a device to inspect variables and settings.</p>
+          <p class="muted">
+            Kettle heats ~5&nbsp;°C/s toward setpoint when powered on. Washer
+            cycle progress is a 60s stub.
+          </p>
+        </div>
+
+        <section id="device-view" hidden>
+          <div class="device-head">
+            <div>
+              <p class="eyebrow" id="device-class"></p>
+              <h2 id="device-title">Device</h2>
+              <p class="mono" id="device-id"></p>
+            </div>
+            <div class="tick-bar">
+              <label class="field compact">
+                <span>dt (ms)</span>
+                <input id="dt-ms" type="number" min="1" step="1" value="250" />
+              </label>
+              <button id="tick-btn" type="button">Tick</button>
+              <label class="check">
+                <input id="auto-tick" type="checkbox" />
+                Auto tick
+              </label>
+            </div>
+          </div>
+
+          <p id="write-error" class="banner error compact" hidden></p>
+          <div id="point-groups"></div>
+
+          <details class="raw">
+            <summary>Raw state JSON</summary>
+            <pre id="raw-state"></pre>
+          </details>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

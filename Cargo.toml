@@ -5,6 +5,7 @@ members = [
     "crates/homecooked-protocol",
     "crates/homecooked-core",
     "crates/homecooked-sim",
+    "crates/homecooked-wasm",
 ]
 
 [workspace.package]
