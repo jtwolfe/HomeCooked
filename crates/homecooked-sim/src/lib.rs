@@ -2245,6 +2245,110 @@ mod tests {
     }
 
     #[test]
+    fn warming_drawer_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let wd = sim.spawn(ApplianceClassId::WarmingDrawer).unwrap();
+
+        assert_eq!(
+            sim.read_value(&wd, "class.warming_drawer.level").unwrap(),
+            Value::Enum("medium".into())
+        );
+        assert_eq!(
+            sim.read_value(&wd, "class.warming_drawer.moist").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wd, "class.warming_drawer.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wd, "class.warming_drawer.eco_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wd, "class.warming_drawer.heater_on")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wd, "class.warming_drawer.high_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wd, "class.warming_drawer.door_ajar")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wd, "class.warming_drawer.timer_s").unwrap(),
+            Value::DurationS(0)
+        );
+
+        sim.write(
+            &wd,
+            "class.warming_drawer.level",
+            Value::Enum("high".into()),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&wd, "class.warming_drawer.level").unwrap(),
+            Value::Enum("high".into())
+        );
+        sim.write(&wd, "class.warming_drawer.moist", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&wd, "class.warming_drawer.moist").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&wd, "class.warming_drawer.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&wd, "class.warming_drawer.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&wd, "class.warming_drawer.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&wd, "class.warming_drawer.eco_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&wd, "class.warming_drawer.timer_s", Value::DurationS(3600))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&wd, "class.warming_drawer.timer_s").unwrap(),
+            Value::DurationS(3600)
+        );
+        sim.write(&wd, "trait.temperature.setpoint_c", Value::F32(70.0))
+            .unwrap();
+        assert!(
+            (f32_val(&sim.read_value(&wd, "trait.temperature.setpoint_c").unwrap()) - 70.0).abs()
+                < f32::EPSILON
+        );
+
+        let err = sim
+            .write(&wd, "class.warming_drawer.heater_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &wd,
+                "class.warming_drawer.high_temp_alarm",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&wd, "class.warming_drawer.door_ajar", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {

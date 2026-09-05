@@ -707,13 +707,22 @@ Heated drawer for plates or food holding.
 **Typical traits:** `identity`, `power`, `connectivity`, `temperature`,
 `door_lid`, `fault`, `energy`, `safety`.
 
-**Typical controllable settings:** mode (`low`, `medium`, `high` or °C), timer,
-moist/crisp vent if present.
+**Typical controllable settings:**
 
-**Typical readable state:** on, setpoint, drawer open, overtemp.
+- Level (`low` / `medium` / `high`) or setpoint (typically 40–90 °C), moist vent,
+  timer, eco, sabbath
 
-**Notes:** Often a zone of `range` rather than a standalone device. Either is
-valid; standalone built-ins use this class.
+**Typical readable state:**
+
+- Temperature, heater on, high-temp alarm, drawer ajar (`door_ajar`), energy
+
+**Notes:**
+
+- Often a zone of `range` rather than a standalone device. Either is valid;
+  standalone built-ins use this class.
+- Catalog depth: optional class points include level, moist, sabbath, eco,
+  `heater_on`, `high_temp_alarm`, `door_ajar`, and `timer_s` (see
+  variables-and-settings).
 
 ### `pizza_oven`
 

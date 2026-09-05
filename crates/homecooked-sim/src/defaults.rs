@@ -326,7 +326,10 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
         },
         "spin_rpm" => Value::U16(800),
         "cook_s" => Value::DurationS(600),
-        "level" => Value::U8(0),
+        "level" => match ctx.identity.class_id {
+            ApplianceClassId::WarmingDrawer => Value::Enum("medium".into()),
+            _ => Value::U8(0),
+        },
         "program" => first_enum(point).unwrap_or_else(|| Value::Enum("custom".into())),
         "available_programs" => enum_list(point),
         "thermal_port_id" => match ctx.identity.class_id {

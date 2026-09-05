@@ -502,6 +502,20 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "door_ajar"
         );
     }
+    // Stream 7 catalog depth: warming_drawer optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::WarmingDrawer {
+        return matches!(
+            point.id,
+            "level"
+                | "moist"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "heater_on"
+                | "high_temp_alarm"
+                | "door_ajar"
+                | "timer_s"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -1865,6 +1879,48 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.kegerator.low_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn warming_drawer_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::WarmingDrawer).unwrap();
+        for id in [
+            "class.warming_drawer.level",
+            "class.warming_drawer.moist",
+            "class.warming_drawer.sabbath_mode",
+            "class.warming_drawer.eco_mode",
+            "class.warming_drawer.heater_on",
+            "class.warming_drawer.high_temp_alarm",
+            "class.warming_drawer.door_ajar",
+            "class.warming_drawer.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical warming_drawer"
+            );
+        }
+        cap.validate_write("class.warming_drawer.level", &Value::Enum("medium".into()))
+            .unwrap();
+        cap.validate_write("class.warming_drawer.moist", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.warming_drawer.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.warming_drawer.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.warming_drawer.timer_s", &Value::DurationS(1800))
+            .unwrap();
+        let err = cap
+            .validate_write("class.warming_drawer.heater_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.warming_drawer.high_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.warming_drawer.door_ajar", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }
