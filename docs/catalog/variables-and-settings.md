@@ -936,16 +936,27 @@ unchanged.
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `cook_s` | duration_s | second | 1–3600 | r/w | req | |
+| `cook_s` | duration_s | second | 1–3600 | r/w | req | Cook duration (required surface) |
 | `power_level_percent` | percent | percent | 0–100 | r/w | req | 10% steps typical |
-| `power_w` | u16 | watt | 0–2000 | r/w | opt | Alternate to percent |
-| `defrost_g` | u16 | gram | 50–4000 | r/w | opt | |
-| `turntable` | bool | — | | r/w | opt | |
-| `inverter` | bool | — | | r | opt | Capability flag |
+| `power_w` | u16 | watt | 0–2000 | r/w | opt | Alternate to percent (typical) |
+| `defrost_g` | u16 | gram | 50–4000 | r/w | opt | Thin-table defrost mass (typical) |
+| `turntable` | bool | — | | r/w | opt | Turntable on/off (typical; not `turntable_on`) |
+| `inverter` | bool | — | | r | opt | Capability flag (typical) |
 | `add_30s` | command | void | — | w | opt | Shortcut |
+| `sabbath_mode` | bool | — | | r/w/e | opt | Suppress beeps / delay display |
+| `eco_mode` | bool | — | | r/w | opt | Prefer lower average power |
+| `door_ajar` | bool | — | | r/e | opt | Door ajar bit |
+| `magnetron_on` | bool | — | | r/e | opt | Magnetron energizing telemetry (not raw RF control) |
+| `high_temp_alarm` | bool | — | | r/e | opt | Cavity / grill overtemp alarm |
+| `timer_s` | duration_s | second | 0–86400 | r/w/e | opt | Kitchen timer (distinct from `cook_s`) |
 
 Door open + start → `safety_interlock`. Remote start often `remote_disabled`
 by default.
+
+Optional depth (sixth undepened Tier-A deepen): sabbath/eco/door_ajar/
+magnetron_on/high_temp_alarm/timer_s; typical also advertises thin-table
+`power_w` / `defrost_g` / `turntable` / `inverter`. Required `cook_s` /
+`power_level_percent` unchanged. `trait.child_lock.child_lock` already typical.
 
 ---
 

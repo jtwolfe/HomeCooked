@@ -304,6 +304,26 @@ fn extra_typical_trait_point(table: &ClassTable, trait_id: TraitId, point: &Cata
 
 /// Optional class points that the typical model still advertises for demos.
 fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
+    // Stream 7 undepened Tier-A deepen: microwave optional telemetry/settings.
+    // Advertise thin-table power_w/defrost_g/turntable/inverter; add depth
+    // sabbath/eco/door_ajar/magnetron_on/high_temp_alarm/timer_s. Do not
+    // duplicate required cook_s / power_level_percent (already required).
+    // ChildLock trait already on typical traits.
+    if table.class_id == ApplianceClassId::Microwave {
+        return matches!(
+            point.id,
+            "power_w"
+                | "defrost_g"
+                | "turntable"
+                | "inverter"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "door_ajar"
+                | "magnetron_on"
+                | "high_temp_alarm"
+                | "timer_s"
+        );
+    }
     // Stream 7 undepened Tier-A deepen: dishwasher optional telemetry/settings.
     // Advertise thin-table rinse_aid_level/salt_level + wash_temp_c; add depth
     // sabbath/eco/door/alarms/timer. thermal_port_* stay via Stream 5 match below
@@ -4662,6 +4682,72 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.dishwasher.overflow_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn microwave_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::Microwave).unwrap();
+        for id in [
+            // Required cook surface still present.
+            "class.microwave.cook_s",
+            "class.microwave.power_level_percent",
+            // Thin-table optional advertised in typical.
+            "class.microwave.power_w",
+            "class.microwave.defrost_g",
+            "class.microwave.turntable",
+            "class.microwave.inverter",
+            // Depth points.
+            "class.microwave.sabbath_mode",
+            "class.microwave.eco_mode",
+            "class.microwave.door_ajar",
+            "class.microwave.magnetron_on",
+            "class.microwave.high_temp_alarm",
+            "class.microwave.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical microwave"
+            );
+        }
+        // ChildLock already typical.
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::ChildLock)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.child_lock.child_lock"));
+        cap.validate_write("class.microwave.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.microwave.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.microwave.timer_s", &Value::DurationS(3600))
+            .unwrap();
+        cap.validate_write("class.microwave.turntable", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.microwave.power_w", &Value::U16(1000))
+            .unwrap();
+        cap.validate_write("class.microwave.defrost_g", &Value::U16(500))
+            .unwrap();
+        cap.validate_write("trait.child_lock.child_lock", &Value::Bool(true))
+            .unwrap();
+        let err = cap
+            .validate_write("class.microwave.inverter", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.microwave.door_ajar", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.microwave.magnetron_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.microwave.high_temp_alarm", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }

@@ -570,6 +570,12 @@ options; a true dual oven should also advertise `oven`.
   are `safety_interlock`. Remote start is commonly forbidden or requires a
   local confirmation flag.
 - Never expose raw magnetron control. Power level and time only.
+  Optional `magnetron_on` is **read/event telemetry** only (like oven
+  `element_bake`), not a writable RF enable.
+- Catalog depth: optional sabbath/eco/door_ajar/magnetron_on/high_temp_alarm/
+  timer_s; typical also advertises thin-table power_w/defrost_g/turntable/
+  inverter. Child lock via typical `child_lock` trait. Does not duplicate
+  required cook_s / power_level_percent.
 - Over-the-range microwaves may also advertise `range_hood` as a secondary
   class for the vent fan / light.
 

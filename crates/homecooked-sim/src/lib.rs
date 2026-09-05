@@ -6799,6 +6799,123 @@ mod tests {
     }
 
     #[test]
+    fn microwave_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let mw = sim.spawn(ApplianceClassId::Microwave).unwrap();
+
+        assert_eq!(
+            sim.read_value(&mw, "class.microwave.power_w").unwrap(),
+            Value::U16(1000)
+        );
+        assert_eq!(
+            sim.read_value(&mw, "class.microwave.defrost_g").unwrap(),
+            Value::U16(50)
+        );
+        assert_eq!(
+            sim.read_value(&mw, "class.microwave.turntable").unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(
+            sim.read_value(&mw, "class.microwave.inverter").unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(
+            sim.read_value(&mw, "class.microwave.sabbath_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&mw, "class.microwave.eco_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&mw, "class.microwave.door_ajar").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&mw, "class.microwave.magnetron_on").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&mw, "class.microwave.high_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&mw, "class.microwave.timer_s").unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&mw, "trait.child_lock.child_lock").unwrap(),
+            Value::Bool(false)
+        );
+        // Required cook surface unchanged.
+        assert_eq!(
+            sim.read_value(&mw, "class.microwave.cook_s").unwrap(),
+            Value::DurationS(600)
+        );
+
+        sim.write(&mw, "class.microwave.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&mw, "class.microwave.sabbath_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&mw, "class.microwave.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&mw, "class.microwave.eco_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&mw, "class.microwave.timer_s", Value::DurationS(900))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&mw, "class.microwave.timer_s").unwrap(),
+            Value::DurationS(900)
+        );
+        sim.write(&mw, "class.microwave.turntable", Value::Bool(false))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&mw, "class.microwave.turntable").unwrap(),
+            Value::Bool(false)
+        );
+        sim.write(&mw, "class.microwave.power_w", Value::U16(800))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&mw, "class.microwave.power_w").unwrap(),
+            Value::U16(800)
+        );
+        sim.write(&mw, "class.microwave.defrost_g", Value::U16(750))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&mw, "class.microwave.defrost_g").unwrap(),
+            Value::U16(750)
+        );
+        sim.write(&mw, "trait.child_lock.child_lock", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&mw, "trait.child_lock.child_lock").unwrap(),
+            Value::Bool(true)
+        );
+
+        let err = sim
+            .write(&mw, "class.microwave.inverter", Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&mw, "class.microwave.door_ajar", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&mw, "class.microwave.magnetron_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&mw, "class.microwave.high_temp_alarm", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn dishwasher_thermal_port_read_write() {
         let mut sim = Simulator::new();
         let id = sim.spawn(ApplianceClassId::Dishwasher).unwrap();
