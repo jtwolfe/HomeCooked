@@ -1048,6 +1048,10 @@ Bowl-and-blade food processor, optional dicing / slicing attachments.
 **Typical readable state:** running, bowl / lid / pusher interlock, stall.
 
 **Notes:** Attachment type may be an enum if sensed; otherwise omit.
+- Catalog depth: optional class points include `pulse`, `bowl_present`,
+  `lid_locked`, `attachment`, sabbath, eco, `motor_on`, `overload_trip`, and
+  `timer_s` (see variables-and-settings). Required `speed_level` remains the
+  primary speed control.
 
 ### `stand_mixer`
 
