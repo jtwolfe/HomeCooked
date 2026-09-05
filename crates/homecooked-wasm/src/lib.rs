@@ -111,6 +111,36 @@ pub fn run_procedure(json: &str) -> Result<String, JsError> {
     with_api_mut(|api| api.run_procedure(json)).map_err(js_err)
 }
 
+/// Create/reset the fridge condenser → DHW demo thermal plant. Returns thermal_state JSON.
+#[wasm_bindgen]
+pub fn create_thermal_demo() -> Result<String, JsError> {
+    with_api_mut(|api| api.create_thermal_demo()).map_err(js_err)
+}
+
+/// JSON snapshot of the thermal plant (reservoirs, ports, last transfer/reply).
+#[wasm_bindgen]
+pub fn thermal_state() -> Result<String, JsError> {
+    with_api(|api| api.thermal_state()).map_err(js_err)
+}
+
+/// Negotiate the demo fridge→DHW offer. Returns thermal_state JSON.
+#[wasm_bindgen]
+pub fn thermal_negotiate_demo() -> Result<String, JsError> {
+    with_api_mut(|api| api.thermal_negotiate_demo()).map_err(js_err)
+}
+
+/// Apply queued thermal accepts over `dt_s` seconds. Returns ThermalTickOut JSON.
+#[wasm_bindgen]
+pub fn thermal_tick(dt_s: f32) -> Result<String, JsError> {
+    with_api_mut(|api| api.thermal_tick(dt_s)).map_err(js_err)
+}
+
+/// Negotiate demo offer then tick once. Returns ThermalTickOut JSON.
+#[wasm_bindgen]
+pub fn thermal_demo_transfer(dt_s: f32) -> Result<String, JsError> {
+    with_api_mut(|api| api.thermal_demo_transfer(dt_s)).map_err(js_err)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -134,5 +164,15 @@ mod tests {
         assert_eq!(from_fn, from_api);
         assert!(from_fn.contains("\"kettle_heat_80\""));
         assert!(from_fn.contains("\"reheat_dominos_microwave\""));
+    }
+
+    #[test]
+    fn bindgen_thermal_demo_raises_dhw() {
+        let empty = thermal_state().unwrap();
+        assert!(empty.contains("\"loaded\":false") || empty.contains("\"loaded\": false"));
+        create_thermal_demo().unwrap();
+        let tick = thermal_demo_transfer(3_600.0).unwrap();
+        assert!(tick.contains("\"power_w\":120") || tick.contains("\"power_w\": 120"));
+        assert!(tick.contains("36.2") || tick.contains("36.200"));
     }
 }

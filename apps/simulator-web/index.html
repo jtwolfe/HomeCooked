@@ -17,9 +17,9 @@
         <h1>Appliance simulator</h1>
         <p class="lede">
           Spawn any Tier-A catalog class (grouped picker), write settings, tick
-          simulated time, or run a procedure / recipe against sim devices.
-          WASM wraps <code>homecooked-sim</code> and
-          <code>homecooked-procedure</code>.
+          simulated time, run a procedure / recipe, or exercise the fridge→DHW
+          thermal plant demo. WASM wraps <code>homecooked-sim</code>,
+          <code>homecooked-procedure</code>, and <code>homecooked-thermal</code>.
         </p>
       </div>
       <p id="status" class="status" role="status">Loading WASM…</p>
@@ -129,6 +129,38 @@ python3 -m http.server 8080</pre>
           </div>
           <ul id="procedure-bindings" class="procedure-bindings" hidden></ul>
           <ol id="procedure-steps" class="step-outcomes"></ol>
+        </div>
+      </section>
+
+      <section class="panel thermal-panel">
+        <h2>Thermal plant</h2>
+        <p class="muted thermal-lede">
+          Load the fridge condenser → DHW water-heater demo from
+          <code>homecooked-thermal</code>. Negotiate a best-effort transfer and
+          tick plant time to move heat into the shared reservoir.
+        </p>
+        <div class="thermal-toolbar">
+          <button id="thermal-load-btn" type="button">Load demo</button>
+          <button id="thermal-negotiate-btn" type="button" class="secondary">
+            Negotiate
+          </button>
+          <label class="field compact">
+            <span>dt (s)</span>
+            <input id="thermal-dt-s" type="number" min="0.1" step="1" value="3600" />
+          </label>
+          <button id="thermal-tick-btn" type="button" class="secondary">Tick</button>
+          <button id="thermal-transfer-btn" type="button">Transfer + tick</button>
+        </div>
+        <p id="thermal-error" class="banner error compact" hidden></p>
+        <div id="thermal-summary" class="thermal-summary" hidden></div>
+        <div id="thermal-view" hidden>
+          <h3 class="thermal-subhead">Reservoirs</h3>
+          <ul id="thermal-reservoirs" class="thermal-list"></ul>
+          <h3 class="thermal-subhead">Ports</h3>
+          <ul id="thermal-ports" class="thermal-list"></ul>
+          <h3 class="thermal-subhead">Last transfer</h3>
+          <ul id="thermal-transfers" class="step-outcomes"></ul>
+          <p id="thermal-reply" class="muted thermal-reply"></p>
         </div>
       </section>
     </div>

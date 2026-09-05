@@ -50,7 +50,7 @@ is **0.1.0** (peers are rejected only on protocol **major** mismatch).
 | `homecooked-bridge` | [`crates/homecooked-bridge`](crates/homecooked-bridge) | Fabric bridges: Modbus + Matter mock adapters; Zigbee/BACnet stubs ([bridges.md](docs/standard/bridges.md)) |
 | `homecooked-transport` | [`crates/homecooked-transport`](crates/homecooked-transport) | Lab TCP transport for protocol envelopes (length-prefixed JSON); sim-backed server + client ([overview.md](docs/standard/overview.md) §6) |
 | `homecooked-conformance` | [`crates/homecooked-conformance`](crates/homecooked-conformance) | Light Stream 7 conformance smoke (catalog↔schema↔sim↔protocol↔TCP) |
-| simulator-web | [`apps/simulator-web`](apps/simulator-web) | Static HTML/JS UI that loads the wasm-pack output |
+| simulator-web | [`apps/simulator-web`](apps/simulator-web) | Static HTML/JS UI: Tier-A picker, procedure runner, thermal plant panel |
 
 `list_all_class_ids` covers the full class index in
 `docs/catalog/appliances.md`. Static capability tables (and therefore
