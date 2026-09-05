@@ -1,6 +1,11 @@
 [workspace]
 resolver = "2"
-members = ["crates/homecooked-schema"]
+members = [
+    "crates/homecooked-schema",
+    "crates/homecooked-protocol",
+    "crates/homecooked-core",
+    "crates/homecooked-sim",
+]
 
 [workspace.package]
 version = "0.1.0"

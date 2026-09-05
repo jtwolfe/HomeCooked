@@ -18,12 +18,17 @@ of truth**; code must track `docs/catalog/` and `docs/standard/`.
 
 ## Workspace
 
-Cargo workspace. The first code crate is
-[`crates/homecooked-schema`](crates/homecooked-schema): catalog-backed serde
-types, capability model, static tables for nine appliance classes, and write
-validation. Schema and catalog versions are **0.1.0**.
+Cargo workspace. Schema and catalog versions are **0.1.0**. Protocol version
+is **0.1.0** (peers are rejected only on protocol **major** mismatch).
 
-Protocol, core, simulator, and WASM crates are **not** in this revision.
+| Crate | Path | Role |
+|-------|------|------|
+| `homecooked-schema` | [`crates/homecooked-schema`](crates/homecooked-schema) | Catalog-backed serde types, capability model, static tables, write validation |
+| `homecooked-protocol` | [`crates/homecooked-protocol`](crates/homecooked-protocol) | Envelope framing, request/response kinds, discovery, JSON, errors |
+| `homecooked-core` | [`crates/homecooked-core`](crates/homecooked-core) | Device registry, capability-enforced read/write, request handling |
+| `homecooked-sim` | [`crates/homecooked-sim`](crates/homecooked-sim) | In-memory devices for the nine static classes |
+
+WASM and the web simulator are **not** in this revision.
 
 ```bash
 cargo test
@@ -32,9 +37,10 @@ cargo fmt --all
 ```
 
 `list_all_class_ids` covers the full class index in
-`docs/catalog/appliances.md`. Static capability tables are provided for
-`washer`, `dryer`, `fridge`, `dishwasher`, `microwave`, `oven`,
-`induction_hob`, `kettle`, and `air_fryer`.
+`docs/catalog/appliances.md`. Static capability tables (and therefore
+simulated devices) are provided for `washer`, `dryer`, `fridge`,
+`dishwasher`, `microwave`, `oven`, `induction_hob`, `kettle`, and
+`air_fryer`.
 
 ## Contributing
 

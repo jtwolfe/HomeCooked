@@ -1,0 +1,13 @@
+[package]
+name = "homecooked-protocol"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description = "HomeCooked wire protocol: envelope, request/response, discovery, and errors"
+
+[dependencies]
+homecooked-schema = { path = "../homecooked-schema" }
+serde = { workspace = true }
+serde_json = { workspace = true }

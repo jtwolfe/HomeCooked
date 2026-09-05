@@ -1,0 +1,13 @@
+[package]
+name = "homecooked-sim"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description = "In-memory HomeCooked device simulator driven by the catalog"
+
+[dependencies]
+homecooked-core = { path = "../homecooked-core" }
+homecooked-protocol = { path = "../homecooked-protocol" }
+homecooked-schema = { path = "../homecooked-schema" }

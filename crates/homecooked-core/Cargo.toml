@@ -1,0 +1,14 @@
+[package]
+name = "homecooked-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description = "HomeCooked device registry, capability validation, and request handling"
+
+[dependencies]
+homecooked-protocol = { path = "../homecooked-protocol" }
+homecooked-schema = { path = "../homecooked-schema" }
+serde = { workspace = true }
+serde_json = { workspace = true }
