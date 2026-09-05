@@ -1727,6 +1727,141 @@ mod tests {
     }
 
     #[test]
+    fn freezer_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let fz = sim.spawn(ApplianceClassId::Freezer).unwrap();
+
+        assert_eq!(
+            sim.read_value(&fz, "class.freezer.vacation_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&fz, "class.freezer.sabbath_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&fz, "class.freezer.eco_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&fz, "class.freezer.defrost_active").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&fz, "class.freezer.compressor_on").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&fz, "class.freezer.high_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&fz, "class.freezer.fast_freeze").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&fz, "class.freezer.door_ajar").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&fz, "class.freezer.ice_buildup").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&fz, "class.freezer.low_temp_alarm").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&fz, "class.freezer.anti_sweat").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&fz, "class.freezer.fast_freeze_remaining_s")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&fz, "class.freezer.frost_clean_needed")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&fz, "trait.temperature.setpoint_c#freezer")
+                .unwrap(),
+            Value::F32(-18.0)
+        );
+
+        sim.write(&fz, "class.freezer.fast_freeze", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&fz, "class.freezer.fast_freeze").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&fz, "class.freezer.anti_sweat", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&fz, "class.freezer.anti_sweat").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&fz, "class.freezer.vacation_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&fz, "class.freezer.vacation_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&fz, "class.freezer.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&fz, "class.freezer.sabbath_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&fz, "class.freezer.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&fz, "class.freezer.eco_mode").unwrap(),
+            Value::Bool(true)
+        );
+
+        let err = sim
+            .write(&fz, "class.freezer.door_ajar", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&fz, "class.freezer.ice_buildup", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&fz, "class.freezer.low_temp_alarm", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&fz, "class.freezer.frost_clean_needed", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &fz,
+                "class.freezer.fast_freeze_remaining_s",
+                Value::DurationS(120),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&fz, "class.freezer.defrost_active", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&fz, "class.freezer.compressor_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&fz, "class.freezer.high_temp_alarm", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {

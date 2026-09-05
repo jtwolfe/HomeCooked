@@ -293,19 +293,24 @@ Dedicated frozen-food cabinet (upright or chest).
 
 **Typical controllable settings:**
 
-- Setpoint (°C), super-freeze / fast-freeze
-- Door alarm enable, eco / vacation, sabbath
-- Chest freezers: little else; uprights may have lights and anti-sweat heaters
+- Setpoint (°C), super-freeze (`trait.temperature.super_mode`) / `fast_freeze`
+- Eco / vacation / sabbath, anti-sweat heater (uprights)
+- Door alarm enable via `door_lid`; chest lids map to `door_lid`
 
 **Typical readable state:**
 
 - Current temperature, compressor, defrost
-- Door / lid state, high-temp alarm, power-fail timestamp
-- Energy, frost-build suggestion (maintenance)
+- Door / lid ajar, high/low temp alarms, power-fail timestamp
+- Ice / frost buildup, frost-clean needed, fast-freeze remaining
 
 **Notes:**
 
 - Typical setpoint −24 to −16 °C. Chest lids map to `door_lid` (open = lid up).
+- Catalog depth: freezer-only extras (`fast_freeze`, `door_ajar`, `ice_buildup`,
+  `low_temp_alarm`, `anti_sweat`, `fast_freeze_remaining_s`, `frost_clean_needed`)
+  are merged onto shared cold-cabinet points (vacation/sabbath/eco/defrost/
+  compressor/high_temp/power_fail) without changing `fridge_freezer` or adding
+  thermal ports (fridge owns condenser ports).
 - Medical / laboratory freezers are out of core catalog (vendor class) because
   alarm and validation requirements differ.
 - Drawer freezers still use this class; multiple drawers are `zone`s.

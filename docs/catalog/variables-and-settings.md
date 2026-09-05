@@ -737,9 +737,28 @@ Fridge `setpoint_c` typical 1–7. `super_mode` is super-cool.
 
 ### Class `freezer`
 
-Same extras as fridge that apply (vacation, sabbath, eco, defrost, compressor,
-high_temp_alarm, power_fail_ms). `setpoint_c` typical −24–−12. `super_mode` is
-super-freeze. Chest lid uses `door_lid`.
+Shared cold-cabinet extras plus freezer-only depth (merged like fridge thermal
+ports — `fridge_freezer` keeps shared cold-cabinet only):
+
+| id | type | unit | range / enum | access | req | description |
+|----|------|------|--------------|--------|-----|-------------|
+| `vacation_mode` | bool | — | | r/w/e | opt | Shared cold-cabinet |
+| `sabbath_mode` | bool | — | | r/w/e | opt | Shared cold-cabinet |
+| `eco_mode` | bool | — | | r/w | opt | Shared cold-cabinet |
+| `defrost_active` | bool | — | | r/e | opt | Shared cold-cabinet |
+| `compressor_on` | bool | — | | r/e | opt | Shared cold-cabinet |
+| `high_temp_alarm` | bool | — | | r/e | opt | Shared cold-cabinet |
+| `power_fail_ms` | timestamp_ms | — | | r/e | opt | Shared cold-cabinet; last outage |
+| `fast_freeze` | bool | — | | r/w/e | opt | Fast / boost freeze mode |
+| `door_ajar` | bool | — | | r/e | opt | Door / lid ajar bit |
+| `ice_buildup` | bool | — | | r/e | opt | Frost / ice buildup detected |
+| `low_temp_alarm` | bool | — | | r/e | opt | Too-cold alarm |
+| `anti_sweat` | bool | — | | r/w | opt | Anti-sweat heater (uprights) |
+| `fast_freeze_remaining_s` | duration_s | second | 0–86400 | r/e | opt | Fast-freeze timer remaining |
+| `frost_clean_needed` | bool | — | | r/e | opt | Manual frost clean suggested |
+
+`setpoint_c` typical −24–−12. `trait.temperature.super_mode` is super-freeze.
+Chest lid uses `door_lid`. No `thermal_port_*` on this class.
 
 ---
 
