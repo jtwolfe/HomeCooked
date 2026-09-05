@@ -202,6 +202,7 @@ dependencies = [
 name = "homecooked-thermal"
 version = "0.1.0"
 dependencies = [
+ "homecooked-schema",
  "serde",
  "serde_json",
 ]

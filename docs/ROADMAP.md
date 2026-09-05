@@ -1,6 +1,6 @@
 # HomeCooked roadmap — ~75% project completeness
 
-Version **0.1.30**. Planning doc for a long flesh-out of the catalog, control
+Version **0.1.31**. Planning doc for a long flesh-out of the catalog, control
 stack, and simulator. It does **not** freeze APIs; crate and YAML shapes may
 evolve with the code that implements each stream.
 
@@ -19,7 +19,7 @@ What exists on `main` today (Done highlights called out):
 |------|--------|
 | Catalog docs | Appliance class index (**56** ids), traits, variables/settings in `docs/catalog/` |
 | Standard docs | Overview, thermal-plant, procedures, bridges, control-system sketches; washer/dryer I/O example |
-| `homecooked-schema` | Serde types, capability model, write validation; **56** static class tables (**25 Tier-A + 31 Tier-B**); optional thermal-port class points on `water_heater` + `fridge` + `hvac` + `dishwasher` + `dryer` — **Done** |
+| `homecooked-schema` | Serde types, capability model, write validation; **56** static class tables (**25 Tier-A + 31 Tier-B**); optional thermal-port class points on `water_heater` + `fridge` + `hvac` + `dishwasher` + `dryer`; shared thermal **vocabulary** (`Media` / `PortDirection` / `TempBandC` / `HeatPortSpec`) — **Done** |
 | `homecooked-protocol` | Envelope, request/response kinds, discovery, JSON, errors (v0.1.0); **invalid Envelope JSON table tests** |
 | `homecooked-core` | Device registry, capability-enforced read/write |
 | `homecooked-sim` | In-memory devices for all 56 statically tabled classes; microwave cook ticks advance `elapsed_s`; water_heater/fridge/hvac/dishwasher/dryer thermal-port seeds + RW attach |
@@ -29,7 +29,7 @@ What exists on `main` today (Done highlights called out):
 | `homecooked-hal` | Firmware HAL sketch + host `MockHal` |
 | `homecooked-procedure` | Procedure documents + sequential runner; Domino's microwave + wash-then-dry + oven bake + coffee brew + air fryer cook + thin `thermal_wait` / `wait_dhw_reservoir` fixtures |
 | `homecooked-controller` | Host controller sim: IoMap + MockHal + interlocks + washer cotton / **dryer cycle**; **lab TCP endpoints** (`ControllerEndpoint` + `DryerControllerEndpoint` interlock deny) — **Done** |
-| `homecooked-thermal` | First executable thermal plant slice (types, registry, offer/accept, tick); plant types still crate-local |
+| `homecooked-thermal` | First executable thermal plant slice (types, registry, offer/accept, tick); re-exports schema thermal vocabulary; plant **runtime** still crate-local |
 | `homecooked-bridge` | **Modbus + Matter + Zigbee + BACnet mocks** (no real serial/TCP/CHIP/z2m/BACnet stacks) — **Done** |
 | `homecooked-transport` | Lab TCP JSON envelopes; **optional PSK pairing**; sim-backed server + **pluggable `RequestHandler`**; malformed frame table tests — **Done** |
 | `homecooked-hub` | Optional multi-device lab TCP aggregator (**not required for devices**) — **Done** |
@@ -43,8 +43,8 @@ simulator-web blob-load; procedure library (kettle + Domino's + wash-then-dry +
 catalog `thermal_port_*` on `water_heater` / `fridge` / `hvac` / `dishwasher` / `dryer` + sim UI chips;
 `write_denial_matrix` + `catalog_hygiene` conformance.
 
-**Still open toward 75%:** promote plant types into schema (beyond device port
-points); **one real bridge SDK** (Modbus serial/TCP or Matter/CHIP — mocks only
+**Still open toward 75%:** promote full plant **runtime** into schema (vocabulary
+types landed; `ThermalPlant` / transfer dialogue still crate-local); **one real bridge SDK** (Modbus serial/TCP or Matter/CHIP — mocks only
 today); richer UI / conformance matrices beyond write-denial; deeper Tier-B
 optional points; procedure⇄thermal **thin-present** (`thermal_wait` + backend
 hooks + `wait_dhw_reservoir`; offer/negotiate-as-steps and fuller wasm/UI
@@ -61,7 +61,7 @@ oven bake / early thermal ports / controller TCP / denial matrix). PRs since
 then (coffee + air-fryer procedures, dishwasher+dryer ports, `thermal_wait`)
 are real but thin — they deepen Streams 3/5 without clearing the large §2
 gaps — so a band of **~68–72%** is honest; **~70%** is the midpoint, not a
-precise metric. Remaining work is still depth (real bridge SDK, plant schema
+precise metric. Remaining work is still depth (real bridge SDK, full plant runtime schema
 promotion, richer UI / procedure⇄thermal steps) — not greenfield product
 definition.
 
@@ -98,9 +98,11 @@ Even with Stream 3–7 thin DoDs met on `main`, the §2 bar is not fully cleared
 - **Real bridge SDK** — in-scope asks for *one* real Matter **or** Modbus
   implementation; `homecooked-bridge` has Modbus + Matter + Zigbee + BACnet
   **mocks** only (no serial/TCP Modbus, CHIP, z2m, or BACnet stack).
-- **Plant types** — device `thermal_port_*` points exist on
-  `water_heater` / `fridge` / `hvac` / `dishwasher` / `dryer`; plant object types remain crate-local in
-  `homecooked-thermal` (not full schema promotion).
+- **Plant runtime** — device `thermal_port_*` points exist on
+  `water_heater` / `fridge` / `hvac` / `dishwasher` / `dryer`; shared vocabulary
+  (`Media` / `PortDirection` / `TempBandC`) lives in `homecooked-schema`; plant
+  object runtime (`ThermalPlant`, reservoirs, offer/accept, tick) remains
+  crate-local in `homecooked-thermal` (not full schema promotion).
 - **Richer UI** — picker + procedure runner + thermal panel + port chips are
   in; conformance-oriented / deeper screens remain.
 - **Deeper Tier-B optional points** — thin tables cover all 31 ids; more
@@ -226,10 +228,12 @@ multiple small PRs.
 
 1. Schema representation of thermal / hydraulic ports from
    `docs/standard/thermal-plant.md` (sketch → types). **Progressed (device
-   ports Done; plant objects still crate-local)** — first executable plant
-   slice in `homecooked-thermal` (reservoirs, heat ports, offer/accept, tick
-   transfer). Device-facing optional catalog points landed on
-   `water_heater` / `fridge` / `hvac` / `dishwasher` / `dryer` (not a full schema promotion of plant objects).
+   ports Done; vocabulary types in schema; plant runtime still crate-local)** —
+   first executable plant slice in `homecooked-thermal` (reservoirs, heat ports,
+   offer/accept, tick transfer); `Media` / `PortDirection` / `TempBandC` /
+   `HeatPortSpec` shared with catalog tokens via `homecooked-schema`.
+   Device-facing optional catalog points landed on
+   `water_heater` / `fridge` / `hvac` / `dishwasher` / `dryer` (not a full schema promotion of plant runtime).
 2. Sim devices that advertise and update a minimal port set (e.g. water heater
    / HVAC heat interface). **Done (thin)** for `water_heater` + `fridge` +
    `hvac` + `dishwasher` + `dryer`: optional `thermal_port_*` class points; sim seeds match plant /
@@ -237,14 +241,15 @@ multiple small PRs.
    simulator-web device panel auto-surfaces ports when `thermal_port_id` is
    present (no class-id hardcoding). Broader classes still open.
 3. Docs note what remains vendor / experimental. **Progressed** — catalog +
-   thermal-plant note that plant types stay in `homecooked-thermal`.
+   thermal-plant note that plant **runtime** stays in `homecooked-thermal`;
+   vocabulary types are schema-owned.
 
 **Definition of done**
 
 - ~~At least one Tier-A thermal-capable class exercises port read/write in tests.~~
   **Met** — `water_heater` (+ lighter `fridge` + `hvac` + `dishwasher` + `dryer`) in schema/sim tests and
-  conformance scenario `water_heater_thermal_ports`. Plant object types remain
-  crate-local in `homecooked-thermal` (not promoted into schema this slice).
+  conformance scenario `water_heater_thermal_ports`. Plant **runtime** types remain
+  crate-local in `homecooked-thermal`; vocabulary enums are in schema (this slice).
 
 ### Stream 6 — One real bridge + stubs
 
@@ -440,7 +445,7 @@ Count: **31** Tier-B ids, all with thin static tables + sim.
 | later | Tier-A table batches | 2 |
 | later | procedure + sim | 3 — **Done** (kettle + Domino's + wash-then-dry + `oven_bake_180` + `coffee_brew_espresso` + `air_fryer_cook_200` + thin `thermal_wait`) |
 | later | HAL + controller-sim + TCP | 4 — TCP lab smoke + washer+dryer controller-sim-over-TCP interlock smoke **Done** |
-| later | thermal ports | 5 — **Done (thin)** water_heater+fridge+hvac+dishwasher+dryer catalog/sim ports; plant types still crate-local |
+| later | thermal ports | 5 — **Done (thin)** water_heater+fridge+hvac+dishwasher+dryer catalog/sim ports; schema vocabulary types; plant runtime still crate-local |
 | later | `feat/bridges-modbus` | 6 — Modbus + stubs (first slice) |
 | later | `feat/matter-mock-bridge` | 6 — Matter mock fabric + kettle map |
 | later | `feat/simulator-tier-a-ui` | 7 — grouped Tier-A picker (first UI slice) |
@@ -491,3 +496,4 @@ the code that implements them.
 | 0.1.28 | Stream 3: `air_fryer_cook_200` procedure fixture + minimal air fryer heat tick; wasm/`run_procedure` E2E + conformance |
 | 0.1.29 | Stream 5: optional `thermal_port_*` on `dryer` (`exhaust`/source/air/2000 W); extend `water_heater_thermal_ports` |
 | 0.1.30 | Current-state refresh: ~65% → **~70%** (~68–72% band) of 75% target; cite PRs since v0.1.24 (coffee/air-fryer procedures, dishwasher+dryer thermal ports, `thermal_wait` / `wait_dhw_reservoir`, sim-web procedure copy); §2 gaps unchanged in kind |
+| 0.1.31 | Stream 5: shared thermal vocabulary types (`Media` / `PortDirection` / `TempBandC` / `HeatPortSpec`) in `homecooked-schema`; `homecooked-thermal` re-exports; plant runtime still crate-local |
