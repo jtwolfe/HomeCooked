@@ -52,8 +52,8 @@ Open <http://127.0.0.1:8080>.
    key telemetry chips (power / temperature / cycle when present),
    variables, and settings.
 4. Write settings / fire commands (`start`, `power_on`, …).
-5. Use **Tick** or **Auto tick** so simulated behavior (kettle heat, washer / microwave
-   progress) advances.
+5. Use **Tick** or **Auto tick** so simulated behavior (kettle heat, washer / dryer /
+   microwave progress) advances.
 
 Writes that fail capability checks (`out_of_range`, `not_writable`, …) show
 an error banner and leave device state unchanged.
@@ -64,7 +64,7 @@ The lower **Procedure** panel loads a bundled recipe or accepts pasted
 procedure JSON, then runs it through `homecooked-procedure` against the
 current simulator world.
 
-1. Pick a sample (**Heat kettle to 80C** or the Domino’s microwave fixture)
+1. Pick a sample (**Heat kettle to 80C**, Domino’s microwave, or **Wash then dry**)
    or paste JSON.
 2. **Load sample** fills the editor (WASM `get_example_procedure`, with a
    fetch fallback to `procedures/*.json`).

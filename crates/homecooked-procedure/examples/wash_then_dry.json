@@ -1,0 +1,78 @@
+{
+  "id": "wash_then_dry",
+  "name": "Wash then dry (laundry)",
+  "description": "Multi-device laundry demo: run washer to cycle complete, then dryer to cycle complete. Sim-friendly stub cycle lengths (washer 60s, dryer 30s).",
+  "catalog_version": "0.1.0",
+  "protocol_version": "0.1.0",
+  "devices": [
+    { "role": "washer", "class_id": "washer" },
+    { "role": "dryer", "class_id": "dryer" }
+  ],
+  "steps": [
+    {
+      "id": "wash_spin",
+      "action": "write",
+      "target": { "role": "washer", "point": "class.washer.spin_rpm" },
+      "value": { "type": "u16", "value": 800 },
+      "timeout_s": 5
+    },
+    {
+      "id": "wash_temp",
+      "action": "write",
+      "target": { "role": "washer", "point": "class.washer.wash_temp_c" },
+      "value": { "type": "f32", "value": 40.0 },
+      "timeout_s": 5
+    },
+    {
+      "id": "wash_start",
+      "action": "command",
+      "target": { "role": "washer", "point": "trait.cycle.start" },
+      "value": { "type": "void" },
+      "timeout_s": 5
+    },
+    {
+      "id": "wash_wait",
+      "action": "wait",
+      "target": { "role": "washer" },
+      "timeout_s": 90,
+      "guards": [
+        { "point": "trait.cycle.cycle_state", "eq": { "type": "enum", "value": "complete" } }
+      ]
+    },
+    {
+      "id": "wash_assert",
+      "op": "guard",
+      "target": { "role": "washer" },
+      "guard": { "point": "trait.cycle.progress_percent", "gte": { "type": "percent", "value": 100.0 } }
+    },
+    {
+      "id": "dry_program",
+      "action": "write",
+      "target": { "role": "dryer", "point": "trait.program.program" },
+      "value": { "type": "enum", "value": "cotton" },
+      "timeout_s": 5
+    },
+    {
+      "id": "dry_start",
+      "action": "command",
+      "target": { "role": "dryer", "point": "trait.cycle.start" },
+      "value": { "type": "void" },
+      "timeout_s": 5
+    },
+    {
+      "id": "dry_wait",
+      "action": "wait",
+      "target": { "role": "dryer" },
+      "timeout_s": 60,
+      "guards": [
+        { "point": "trait.cycle.cycle_state", "eq": { "type": "enum", "value": "complete" } }
+      ]
+    },
+    {
+      "id": "dry_assert",
+      "op": "guard",
+      "target": { "role": "dryer" },
+      "guard": { "point": "trait.cycle.cycle_state", "eq": { "type": "enum", "value": "complete" } }
+    }
+  ]
+}

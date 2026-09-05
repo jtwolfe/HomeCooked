@@ -4,7 +4,9 @@ mod behavior;
 mod defaults;
 mod simulator;
 
-pub use behavior::{DEFAULT_MICROWAVE_COOK_S, KETTLE_HEAT_RATE_C_PER_S, WASHER_CYCLE_S};
+pub use behavior::{
+    DEFAULT_MICROWAVE_COOK_S, DRYER_CYCLE_S, KETTLE_HEAT_RATE_C_PER_S, WASHER_CYCLE_S,
+};
 pub use defaults::{seed_identity, seed_state, sim_capability};
 pub use simulator::Simulator;
 
@@ -103,6 +105,38 @@ mod tests {
         );
 
         sim.tick(&id, 30_000).unwrap();
+        assert_eq!(
+            sim.read_value(&id, "trait.cycle.cycle_state").unwrap(),
+            Value::Enum("complete".into())
+        );
+        let done = f32_val(&sim.read_value(&id, "trait.cycle.progress_percent").unwrap());
+        assert!((done - 100.0).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn dryer_cycle_progress_stub() {
+        let mut sim = Simulator::new();
+        let id = sim.spawn(ApplianceClassId::Dryer).unwrap();
+        assert_eq!(
+            sim.read_value(&id, "trait.cycle.cycle_state").unwrap(),
+            Value::Enum("idle".into())
+        );
+
+        sim.write(&id, "trait.cycle.start", Value::Void).unwrap();
+        assert_eq!(
+            sim.read_value(&id, "trait.cycle.cycle_state").unwrap(),
+            Value::Enum("running".into())
+        );
+
+        sim.tick(&id, 15_000).unwrap();
+        let progress = f32_val(&sim.read_value(&id, "trait.cycle.progress_percent").unwrap());
+        assert!((progress - 50.0).abs() < 1.0, "progress={progress}");
+        assert_eq!(
+            sim.read_value(&id, "trait.cycle.cycle_state").unwrap(),
+            Value::Enum("running".into())
+        );
+
+        sim.tick(&id, 15_000).unwrap();
         assert_eq!(
             sim.read_value(&id, "trait.cycle.cycle_state").unwrap(),
             Value::Enum("complete".into())

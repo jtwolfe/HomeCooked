@@ -5,7 +5,7 @@ use homecooked_sim::Simulator;
 
 use crate::{
     run, DeviceBindings, FailReason, Procedure, RunStatus, StepAction, KETTLE_HEAT_80_JSON,
-    REHEAT_DOMINOS_MICROWAVE_JSON,
+    REHEAT_DOMINOS_MICROWAVE_JSON, WASH_THEN_DRY_JSON,
 };
 
 fn kettle_bindings(sim: &mut Simulator) -> DeviceBindings {
@@ -16,6 +16,14 @@ fn kettle_bindings(sim: &mut Simulator) -> DeviceBindings {
 fn microwave_bindings(sim: &mut Simulator) -> DeviceBindings {
     let id = sim.spawn(ApplianceClassId::Microwave).unwrap();
     DeviceBindings::new().bind("microwave", id.as_str())
+}
+
+fn laundry_bindings(sim: &mut Simulator) -> DeviceBindings {
+    let washer = sim.spawn(ApplianceClassId::Washer).unwrap();
+    let dryer = sim.spawn(ApplianceClassId::Dryer).unwrap();
+    DeviceBindings::new()
+        .bind("washer", washer.as_str())
+        .bind("dryer", dryer.as_str())
 }
 
 #[test]
@@ -29,7 +37,14 @@ fn bundled_example_constants_parse() {
         .iter()
         .map(|(id, _)| *id)
         .collect();
-    assert_eq!(listed, ["kettle_heat_80", "reheat_dominos_microwave"]);
+    assert_eq!(
+        listed,
+        [
+            "kettle_heat_80",
+            "reheat_dominos_microwave",
+            "wash_then_dry",
+        ]
+    );
 }
 
 #[test]
@@ -343,5 +358,65 @@ fn short_microwave_wait_fixture_completes() {
         result.is_completed(),
         "expected completed, got {:?}",
         result.status
+    );
+}
+
+#[test]
+fn parse_wash_then_dry_fixture() {
+    let doc = Procedure::load_json(WASH_THEN_DRY_JSON).unwrap();
+    assert_eq!(doc.id, "wash_then_dry");
+    assert_eq!(doc.devices.len(), 2);
+    assert_eq!(doc.devices[0].role, "washer");
+    assert_eq!(doc.devices[1].role, "dryer");
+    assert!(!doc.devices[0].optional);
+    assert!(!doc.devices[1].optional);
+    assert_eq!(doc.steps.len(), 9);
+    assert_eq!(doc.steps[3].action, StepAction::Wait);
+    assert_eq!(doc.steps[3].id, "wash_wait");
+    assert_eq!(doc.steps[7].id, "dry_wait");
+}
+
+#[test]
+fn wash_then_dry_validates_against_typical_caps() {
+    let doc = Procedure::load_json(WASH_THEN_DRY_JSON).unwrap();
+    let washer = typical_capability(ApplianceClassId::Washer).unwrap();
+    let dryer = typical_capability(ApplianceClassId::Dryer).unwrap();
+    let mut caps = HashMap::new();
+    caps.insert("washer".to_string(), &washer);
+    caps.insert("dryer".to_string(), &dryer);
+    doc.validate_with_capabilities(Some(&caps)).unwrap();
+}
+
+#[test]
+fn wash_then_dry_completes_against_sim() {
+    let doc = Procedure::load_json(WASH_THEN_DRY_JSON).unwrap();
+    let mut sim = Simulator::new();
+    let bindings = laundry_bindings(&mut sim);
+    let result = run(&doc, &mut sim, &bindings);
+    assert!(
+        result.is_completed(),
+        "expected completed, got {:?}",
+        result.status
+    );
+    assert_eq!(result.outcomes.len(), 9);
+    assert!(result.outcomes.iter().all(|o| o.ok));
+
+    let washer = bindings.get("washer").unwrap();
+    let dryer = bindings.get("dryer").unwrap();
+    assert_eq!(
+        sim.read_value(
+            &homecooked_core::DeviceId::new(washer),
+            "trait.cycle.cycle_state"
+        )
+        .unwrap(),
+        homecooked_schema::Value::Enum("complete".into())
+    );
+    assert_eq!(
+        sim.read_value(
+            &homecooked_core::DeviceId::new(dryer),
+            "trait.cycle.cycle_state"
+        )
+        .unwrap(),
+        homecooked_schema::Value::Enum("complete".into())
     );
 }
