@@ -18,15 +18,16 @@ mesh routing, a production Modbus / BACnet stack, or a CHIP / Matter SDK.
 | `PointRef` | `device_id` + qualified point id (`trait.temperature.setpoint_c`) |
 | `ForeignRef` / `ForeignRaw` | Fabric address + payload (Modbus register/coil, Matter/Zigbee endpoint/cluster/attribute, or BACnet object/property) |
 | `PointBackend` / `MemoryBackend` | Apply HomeCooked updates (test store; core can be wired later) |
-| `modbus` | YAML/JSON map, in-memory slave, `ModbusBridge` |
+| `modbus` | YAML/JSON map, in-memory slave, `ModbusBridge`, localhost Modbus TCP lab |
 | `matter` | YAML/JSON map, in-memory attribute store, `MatterBridge` |
 | `zigbee` | YAML/JSON map, in-memory attribute store, `ZigbeeBridge` (no zigbee2mqtt) |
 | `bacnet` | YAML/JSON map, in-memory property store, `BacnetBridge` (no BACnet stack) |
 
 ## Modbus (implemented)
 
-No `tokio-modbus`, serial, or TCP dependency. An in-memory slave holds
-register and coil values. A serde-loadable map translates them:
+An in-memory slave holds register and coil values. A serde-loadable map
+translates them. There is **no** `tokio-modbus` crate and **no** serial RTU —
+default builds stay dependency-light.
 
 | Foreign | HomeCooked point | Encoding |
 |---------|------------------|----------|
@@ -39,6 +40,25 @@ Example fixture: [`examples/water_heater_map.yaml`](examples/water_heater_map.ya
 
 ```bash
 cargo test -p homecooked-bridge --test water_heater_roundtrip
+```
+
+### Modbus TCP lab (CI / localhost)
+
+`spawn_modbus_tcp_lab` exposes the same slave over **Modbus TCP** on
+`127.0.0.1:0` using minimal MBAP framing (std only). Covered function codes
+for the water_heater map:
+
+| FC | Name | Map use |
+|----|------|---------|
+| 01 | Read Coils | power coil 0 |
+| 03 | Read Holding Registers | setpoint + current temp |
+| 05 | Write Single Coil | power on/off → HC backend |
+| 06 | Write Single Register | setpoint → HC backend |
+
+Hardware-free: loopback only. **Not** serial RTU, TLS, or a production stack.
+
+```bash
+cargo test -p homecooked-bridge --test water_heater_modbus_tcp
 ```
 
 ## Matter (mock fabric)
@@ -112,7 +132,7 @@ cargo test -p homecooked-bridge --test kettle_bacnet_roundtrip
 
 ## Still follow-up
 
-- Real serial / TCP Modbus
+- Serial RTU Modbus (TCP lab path landed; RTU still deferred)
 - Real CHIP / Matter SDK (or thin bindings) behind the same map shape
 - Real zigbee2mqtt / ZCL bindings behind the same map shape
 - Real BACnet/IP or MS/TP stack behind the same map shape

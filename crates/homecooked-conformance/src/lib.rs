@@ -7,9 +7,9 @@ use std::thread;
 use std::time::Duration;
 
 use homecooked_bridge::{
-    BacnetBridge, BacnetObjectType, BacnetPropValue, BacnetProperty, BacnetRaw, Bridge, ForeignRaw,
-    ForeignRef, MatterAttrValue, MatterBridge, MatterRaw, ModbusBridge, PointRef, ZigbeeAttrValue,
-    ZigbeeBridge, ZigbeeRaw,
+    shared_bridge, spawn_modbus_tcp_lab, BacnetBridge, BacnetObjectType, BacnetPropValue,
+    BacnetProperty, BacnetRaw, Bridge, ForeignRaw, ForeignRef, MatterAttrValue, MatterBridge,
+    MatterRaw, ModbusBridge, ModbusTcpClient, PointRef, ZigbeeAttrValue, ZigbeeBridge, ZigbeeRaw,
 };
 use homecooked_controller::{
     Controller, ControllerEndpoint, CottonOptions, CyclePhase, CycleState, DryerControllerEndpoint,
@@ -965,6 +965,51 @@ pub fn modbus_water_heater_roundtrip() -> ScenarioResult {
         .map_err(|e| err(NAME, format!("write power on: {e}")))?;
     if !bridge.slave().get_coil(0) {
         return Err(err(NAME, "coil expected true after power on"));
+    }
+    Ok(())
+}
+
+/// (5c) Modbus TCP lab: localhost MBAP FC03/FC06 against water_heater map.
+pub fn modbus_tcp_water_heater_lab() -> ScenarioResult {
+    const NAME: &str = "modbus_tcp_water_heater_lab";
+    let bridge = ModbusBridge::water_heater_example()
+        .map_err(|e| err(NAME, format!("water_heater_example: {e}")))?;
+    let shared = shared_bridge(bridge);
+    let (addr, shared, _join) = spawn_modbus_tcp_lab("127.0.0.1:0", shared)
+        .map_err(|e| err(NAME, format!("spawn_modbus_tcp_lab: {e}")))?;
+
+    let mut client =
+        ModbusTcpClient::connect(addr, 1).map_err(|e| err(NAME, format!("connect: {e}")))?;
+
+    let regs = client
+        .read_holding_registers(0, 2)
+        .map_err(|e| err(NAME, format!("FC03: {e}")))?;
+    if regs != vec![550, 480] {
+        return Err(err(
+            NAME,
+            format!("seeded holdings={regs:?}, expected [550, 480]"),
+        ));
+    }
+
+    client
+        .write_single_register(0, 600)
+        .map_err(|e| err(NAME, format!("FC06: {e}")))?;
+    let after = client
+        .read_holding_registers(0, 1)
+        .map_err(|e| err(NAME, format!("FC03 after write: {e}")))?;
+    if after != vec![600] {
+        return Err(err(NAME, format!("holding after FC06={after:?}")));
+    }
+
+    let bridge = shared
+        .lock()
+        .map_err(|_| err(NAME, "bridge lock poisoned"))?;
+    let sp = bridge
+        .backend()
+        .get_value("water-heater-plant", "trait.temperature.setpoint_c")
+        .cloned();
+    if sp != Some(Value::F32(60.0)) {
+        return Err(err(NAME, format!("HC setpoint after TCP write={sp:?}")));
     }
     Ok(())
 }
@@ -3210,6 +3255,7 @@ pub fn all_scenarios() -> &'static [(&'static str, ScenarioFn)] {
             "modbus_water_heater_roundtrip",
             modbus_water_heater_roundtrip,
         ),
+        ("modbus_tcp_water_heater_lab", modbus_tcp_water_heater_lab),
         ("matter_kettle_roundtrip", matter_kettle_roundtrip),
         ("zigbee_kettle_roundtrip", zigbee_kettle_roundtrip),
         ("bacnet_kettle_roundtrip", bacnet_kettle_roundtrip),

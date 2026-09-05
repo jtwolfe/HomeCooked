@@ -1,6 +1,6 @@
 # Bridges — integration with existing home automation
 
-Version **0.1.3** — design extension plus first crate slice.
+Version **0.1.5** — design extension plus first crate slice.
 
 HomeCooked is an **appliance semantics layer** for heavy whitegoods and
 kitchen / utility plant. It is **not** a replacement for Zigbee, Matter,
@@ -153,7 +153,8 @@ so those assets can appear beside kitchen devices in one client. Mapping tips:
 - [`Bridge`](../../crates/homecooked-bridge/src/bridge.rs) trait maps foreign
   reads/writes ↔ HomeCooked `device_id` + qualified point + `Value`.
 - **Modbus** is implemented with a YAML/JSON register map and an in-memory
-  slave (no serial/TCP). Example:
+  slave, plus a **localhost Modbus TCP lab** (`spawn_modbus_tcp_lab`, MBAP
+  FC01/FC03/FC05/FC06; no `tokio-modbus`, serial RTU, or TLS). Example:
   [`water_heater_map.yaml`](../../crates/homecooked-bridge/examples/water_heater_map.yaml)
   (`trait.temperature.setpoint_c`, `trait.temperature.current_c`,
   `trait.power.power_state`).
@@ -192,3 +193,4 @@ BACnet stacks stay out of scope (§5).
 | 0.1.2 | Matter mock bridge (in-memory attributes + kettle map); Zigbee/BACnet remain stubs |
 | 0.1.3 | Zigbee mock bridge (in-memory attributes + kettle map); BACnet remains stub |
 | 0.1.4 | BACnet mock bridge (in-memory properties + kettle map); no BACnet stack |
+| 0.1.5 | Modbus TCP lab path (localhost MBAP FC01/03/05/06); serial RTU still deferred |
