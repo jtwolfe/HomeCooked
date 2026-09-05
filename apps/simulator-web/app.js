@@ -401,7 +401,22 @@ function syncAutoTick() {
 
 async function boot() {
   try {
-    wasm = await import("./pkg/homecooked_wasm.js");
+    // Cache-bust the bindgen module URL. Browsers (and automation) stick to the
+    // previous ES module graph across rebuilds if the specifier is unchanged —
+    // which left parse_procedure / create_thermal_demo as "not a function"
+    // while older exports like list_appliance_classes still worked.
+    const wasmUrl = new URL("./pkg/homecooked_wasm.js", import.meta.url);
+    const pkgMeta = await fetch(new URL("./pkg/package.json", import.meta.url), {
+      cache: "no-store",
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null);
+    wasmUrl.searchParams.set(
+      "v",
+      (pkgMeta && (pkgMeta.version || pkgMeta.files && pkgMeta.files.join(","))) ||
+        String(Date.now()),
+    );
+    wasm = await import(wasmUrl.href);
     await wasm.default();
   } catch (err) {
     bootError.hidden = false;
@@ -410,11 +425,30 @@ async function boot() {
     return;
   }
 
+  const required = [
+    "list_appliance_classes",
+    "list_example_procedures",
+    "parse_procedure",
+    "run_procedure",
+    "create_thermal_demo",
+    "thermal_state",
+  ];
+  const missing = required.filter((name) => typeof wasm[name] !== "function");
+  if (missing.length) {
+    bootError.hidden = false;
+    bootDetail.textContent =
+      "WASM module missing exports: " +
+      missing.join(", ") +
+      ". Hard-refresh or rebuild pkg/ (wasm-pack).";
+    setStatus("WASM exports incomplete", true);
+    return;
+  }
+
   const classes = JSON.parse(wasm.list_appliance_classes());
   fillClassSelect(classes);
   fillProcedureSelect(listExampleProcedures());
   await loadSelectedProcedure();
-  refreshThermalFromState();
+  // Don't call thermal_state before Load demo — empty plant is expected.
 
   appEl.hidden = false;
   setStatus("Simulator ready");

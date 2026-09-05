@@ -112,3 +112,5 @@ With the page served as above, spawn at least:
 Automated coverage lives in `crates/homecooked-wasm` native tests:
 `list_appliance_classes` length is 25 and matches `TIER_A_CLASS_IDS`;
 `create_device` + `describe` + `get_state` succeed for every Tier-A id.
+
+After `wasm-pack build`, hard-refresh the browser. `app.js` cache-busts the WASM module URL via `pkg/package.json` so new exports (procedures, thermal) load after rebuilds.
