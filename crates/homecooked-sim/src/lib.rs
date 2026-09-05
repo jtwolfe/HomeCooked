@@ -1016,6 +1016,183 @@ mod tests {
     }
 
     #[test]
+    fn range_hood_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let hood = sim.spawn(ApplianceClassId::RangeHood).unwrap();
+
+        assert_eq!(
+            sim.read_value(&hood, "class.range_hood.auto_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hood, "class.range_hood.delay_off_s")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&hood, "class.range_hood.voc_index").unwrap(),
+            Value::U16(40)
+        );
+        assert_eq!(
+            sim.read_value(&hood, "class.range_hood.grease_filter")
+                .unwrap(),
+            Value::Enum("ok".into())
+        );
+        assert_eq!(
+            sim.read_value(&hood, "class.range_hood.charcoal_filter")
+                .unwrap(),
+            Value::Enum("ok".into())
+        );
+        assert_eq!(
+            sim.read_value(&hood, "class.range_hood.filter_dirty")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hood, "class.range_hood.boost").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hood, "class.range_hood.boost_remaining_s")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&hood, "class.range_hood.light_level")
+                .unwrap(),
+            Value::U8(2)
+        );
+        assert_eq!(
+            sim.read_value(&hood, "class.range_hood.grease_sensor")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hood, "class.range_hood.hob_linked")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hood, "class.range_hood.overtemp").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hood, "class.range_hood.charcoal_filter_life_percent")
+                .unwrap(),
+            Value::Percent(70.0)
+        );
+        assert_eq!(
+            sim.read_value(&hood, "trait.fan.fan_speed").unwrap(),
+            Value::U8(2)
+        );
+        assert_eq!(
+            sim.read_value(&hood, "trait.lighting.light_percent")
+                .unwrap(),
+            Value::Percent(80.0)
+        );
+        assert_eq!(
+            sim.read_value(&hood, "trait.filter.life_percent").unwrap(),
+            Value::Percent(75.0)
+        );
+
+        sim.write(&hood, "class.range_hood.auto_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hood, "class.range_hood.auto_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&hood, "class.range_hood.boost", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hood, "class.range_hood.boost").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&hood, "class.range_hood.hob_linked", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hood, "class.range_hood.hob_linked")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&hood, "class.range_hood.delay_off_s", Value::DurationS(300))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hood, "class.range_hood.delay_off_s")
+                .unwrap(),
+            Value::DurationS(300)
+        );
+        sim.write(&hood, "class.range_hood.light_level", Value::U8(4))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hood, "class.range_hood.light_level")
+                .unwrap(),
+            Value::U8(4)
+        );
+        sim.write(&hood, "trait.fan.fan_speed", Value::U8(3))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hood, "trait.fan.fan_speed").unwrap(),
+            Value::U8(3)
+        );
+        sim.write(&hood, "trait.lighting.light_percent", Value::Percent(50.0))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hood, "trait.lighting.light_percent")
+                .unwrap(),
+            Value::Percent(50.0)
+        );
+
+        let err = sim
+            .write(&hood, "class.range_hood.voc_index", Value::U16(100))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &hood,
+                "class.range_hood.grease_filter",
+                Value::Enum("clogged".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &hood,
+                "class.range_hood.charcoal_filter",
+                Value::Enum("replace".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&hood, "class.range_hood.filter_dirty", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &hood,
+                "class.range_hood.boost_remaining_s",
+                Value::DurationS(60),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&hood, "class.range_hood.grease_sensor", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&hood, "class.range_hood.overtemp", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &hood,
+                "class.range_hood.charcoal_filter_life_percent",
+                Value::Percent(50.0),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {

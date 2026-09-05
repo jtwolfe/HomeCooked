@@ -755,23 +755,26 @@ linked to hob.
 **Typical traits:** `identity`, `power`, `connectivity`, `fan`, `lighting`,
 `filter`, `fault`, `energy`, `remote`, `audio`.
 
-**Typical controllable settings:**
+**Typical controllable settings:** fan speed, light on / dim (`light_percent` /
+discrete `light_level`), delay-off, auto mode (follow hob or VOC), boost,
+hob-linked auto-follow, grease-filter reset.
 
-- Fan speed (off / 1–n / boost / auto), light on/dim, delay-off
-- Auto mode (follow hob or VOC/temp sensor), grease-filter reset
-
-**Typical readable state:**
-
-- Fan speed, boost remaining, air quality / VOC if sensed
-- Grease filter life / present, charcoal filter life (recirculating)
-- Light, motor fault, overtemp
+**Typical readable state:** fan speed, boost / boost remaining, VOC index,
+grease sensor, grease / charcoal filter status + life, filter dirty, overtemp,
+light level.
 
 **Notes:**
 
 - Over-the-range microwave ventilation is this class as **secondary** on a
   `microwave` device, or a separate endpoint if the hood is independent.
 - Make-up air dampers are vendor extensions.
-- Boost usually auto-expires; that is expected, not a write failure.
+- Boost usually auto-expires (`boost_remaining_s`); that is expected, not a
+  write failure.
+- Catalog depth: optional class points include filter_dirty / boost /
+  boost_remaining / light_level / grease_sensor / hob_linked / overtemp /
+  charcoal_filter_life plus existing auto_mode / delay_off / voc /
+  grease+charcoal filters; typical also advertises `trait.fan.fan_speed`,
+  `trait.lighting.light_percent`, and `trait.filter.life_percent`.
 
 ---
 
