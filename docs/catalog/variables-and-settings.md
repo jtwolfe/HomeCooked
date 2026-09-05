@@ -1541,7 +1541,15 @@ Cycle remaining via `trait.cycle.remaining_s`. Setpoint resolution typically 0.1
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `incubate_s` | duration_s | second | 3600–86400 | r/w | req | |
+| `incubate_s` | duration_s | second | 3600–86400 | r/w | req | Incubation duration |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving incubation profile |
+| `heater_on` | bool | — | | r/e | opt | Heater element active |
+| `high_temp_alarm` | bool | — | | r/e | opt | Chamber over-temp |
+| `low_temp_alarm` | bool | — | | r/e | opt | Chamber under-temp (culture risk) |
+| `lid_open` | bool | — | | r/e | opt | Lid ajar bit |
+| `jar_present` | bool | — | | r/e | opt | Jar / vessel seated |
+| `timer_s` | duration_s | second | 0–86400 | r/w/e | opt | Delay start / remaining timer |
 
 ---
 

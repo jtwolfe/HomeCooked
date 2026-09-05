@@ -4735,6 +4735,106 @@ mod tests {
     }
 
     #[test]
+    fn yogurt_maker_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let ym = sim.spawn(ApplianceClassId::YogurtMaker).unwrap();
+
+        assert_eq!(
+            sim.read_value(&ym, "class.yogurt_maker.incubate_s")
+                .unwrap(),
+            Value::DurationS(28800)
+        );
+        assert_eq!(
+            sim.read_value(&ym, "class.yogurt_maker.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&ym, "class.yogurt_maker.eco_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&ym, "class.yogurt_maker.heater_on").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&ym, "class.yogurt_maker.high_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&ym, "class.yogurt_maker.low_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&ym, "class.yogurt_maker.lid_open").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&ym, "class.yogurt_maker.jar_present")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(
+            sim.read_value(&ym, "class.yogurt_maker.timer_s").unwrap(),
+            Value::DurationS(0)
+        );
+
+        sim.write(&ym, "class.yogurt_maker.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&ym, "class.yogurt_maker.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&ym, "class.yogurt_maker.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&ym, "class.yogurt_maker.eco_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&ym, "class.yogurt_maker.timer_s", Value::DurationS(3600))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&ym, "class.yogurt_maker.timer_s").unwrap(),
+            Value::DurationS(3600)
+        );
+        sim.write(
+            &ym,
+            "class.yogurt_maker.incubate_s",
+            Value::DurationS(43200),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&ym, "class.yogurt_maker.incubate_s")
+                .unwrap(),
+            Value::DurationS(43200)
+        );
+
+        let err = sim
+            .write(&ym, "class.yogurt_maker.heater_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&ym, "class.yogurt_maker.high_temp_alarm", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&ym, "class.yogurt_maker.low_temp_alarm", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&ym, "class.yogurt_maker.lid_open", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&ym, "class.yogurt_maker.jar_present", Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {
