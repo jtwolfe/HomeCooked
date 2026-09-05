@@ -950,6 +950,14 @@ cavity uses `oven`. Zone ids: `hob_1`…`hob_n`, `oven`, `oven_lower`,
 | `flame_out` | bool | — | | r/e | opt | Gas |
 | `ignition_fail` | bool | — | | r/e | opt | Gas |
 | `power_limit_w` | u32 | watt | | r/w | opt | Load shed cap |
+| `keep_warm` | bool | — | | r/w/e | opt | Low hold heat per zone |
+| `hotspot_alert` | bool | — | | r/e | opt | Active hotspot warning beyond residual heat |
+| `timer_active` | bool | — | | r/e | opt | Zone timer running |
+| `paused` | bool | — | | r/e | opt | `pause_all` latch active |
+| `surface_c` | f32 | celsius | 0–400 | r/e | opt | Glass / coil surface temp |
+| `element_fault` | bool | — | | r/e | opt | Electric element fault |
+| `pan_detect` | bool | — | | r/e | opt | Electric glass pan present (not induction `pan_present`) |
+| `flame_on` | bool | — | | r/e | opt | Gas flame lit |
 
 **Commands:** `pause_all` (w, void) — all zones to 0 preserving last levels;
 `resume_all` (w, void).

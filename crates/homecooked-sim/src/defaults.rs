@@ -276,6 +276,18 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             ApplianceClassId::SteamOven => Value::U16(120),
             _ => Value::U16(int_min(point, 0) as u16),
         },
+        "surface_c" => match ctx.identity.class_id {
+            ApplianceClassId::Cooktop
+            | ApplianceClassId::InductionHob
+            | ApplianceClassId::Range => Value::F32(ctx.ambient_c),
+            _ => Value::F32(numeric_default(point)),
+        },
+        "power_limit_w" => match ctx.identity.class_id {
+            ApplianceClassId::Cooktop
+            | ApplianceClassId::InductionHob
+            | ApplianceClassId::Range => Value::U32(7200),
+            _ => Value::U32(int_min(point, 0) as u32),
+        },
         "water_temp_c" => match ctx.identity.class_id {
             ApplianceClassId::IceMaker => Value::F32(12.0),
             _ => Value::F32(numeric_default(point)),

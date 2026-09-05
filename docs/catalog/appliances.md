@@ -617,14 +617,15 @@ ceramic). Built-in independent of an oven.
 **Typical controllable settings:**
 
 - Per-zone power level (0–9, 0–17, or percent — device advertises the enum or
-  range), boost, timer per zone, bridge / combo zones
-- Pause all, child lock, keep-warm
+  range), boost, timer per zone, bridge / combo zones, keep-warm
+- Pause all, child lock, total power limit / load shed cap
 
 **Typical readable state:**
 
-- Per-zone power, residual heat (`hot_surface`), pan detect (electric)
+- Per-zone power, residual heat, hotspot alert, surface temp, pan detect
+  (electric), timer active, element fault
 - Gas: flame on, ignition fail, flame-out
-- Total power limit / load shedding active
+- Pause latch, total power limit
 
 **Notes:**
 
@@ -634,6 +635,11 @@ ceramic). Built-in independent of an oven.
   still warns. Child lock blocks level writes.
 - Remote start of a gas burner is **out of default policy**; devices may refuse
   with `safety_interlock` unless a local “remote cook enabled” setting exists.
+- Catalog depth: optional class points include keep_warm / hotspot_alert /
+  timer_active / paused / surface_c / element_fault / pan_detect / flame_on
+  plus existing boost / timer / bridge / flame_out / ignition_fail /
+  power_limit_w (see variables-and-settings); child lock stays on the
+  `child_lock` trait. Induction pan-detect remains `induction_hob.pan_present`.
 
 ### `induction_hob`
 
