@@ -3650,6 +3650,146 @@ mod tests {
     }
 
     #[test]
+    fn food_processor_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let food_processor = sim.spawn(ApplianceClassId::FoodProcessor).unwrap();
+
+        assert_eq!(
+            sim.read_value(&food_processor, "class.food_processor.speed_level")
+                .unwrap(),
+            Value::U8(0)
+        );
+        assert_eq!(
+            sim.read_value(&food_processor, "class.food_processor.bowl_present")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(
+            sim.read_value(&food_processor, "class.food_processor.lid_locked")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(
+            sim.read_value(&food_processor, "class.food_processor.attachment")
+                .unwrap(),
+            Value::Enum("unknown".into())
+        );
+        assert_eq!(
+            sim.read_value(&food_processor, "class.food_processor.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&food_processor, "class.food_processor.eco_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&food_processor, "class.food_processor.motor_on")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&food_processor, "class.food_processor.overload_trip")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&food_processor, "class.food_processor.timer_s")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+
+        sim.write(
+            &food_processor,
+            "class.food_processor.speed_level",
+            Value::U8(7),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&food_processor, "class.food_processor.speed_level")
+                .unwrap(),
+            Value::U8(7)
+        );
+        sim.write(&food_processor, "class.food_processor.pulse", Value::Void)
+            .unwrap();
+        sim.write(
+            &food_processor,
+            "class.food_processor.sabbath_mode",
+            Value::Bool(true),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&food_processor, "class.food_processor.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(
+            &food_processor,
+            "class.food_processor.eco_mode",
+            Value::Bool(true),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&food_processor, "class.food_processor.eco_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(
+            &food_processor,
+            "class.food_processor.timer_s",
+            Value::DurationS(45),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&food_processor, "class.food_processor.timer_s")
+                .unwrap(),
+            Value::DurationS(45)
+        );
+
+        let err = sim
+            .write(
+                &food_processor,
+                "class.food_processor.attachment",
+                Value::Enum("blade".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &food_processor,
+                "class.food_processor.bowl_present",
+                Value::Bool(false),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &food_processor,
+                "class.food_processor.lid_locked",
+                Value::Bool(false),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &food_processor,
+                "class.food_processor.motor_on",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &food_processor,
+                "class.food_processor.overload_trip",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {

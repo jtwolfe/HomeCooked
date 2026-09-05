@@ -670,6 +670,21 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "timer_s"
         );
     }
+    // Stream 7 catalog depth: food processor optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::FoodProcessor {
+        return matches!(
+            point.id,
+            "pulse"
+                | "bowl_present"
+                | "lid_locked"
+                | "attachment"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "motor_on"
+                | "overload_trip"
+                | "timer_s"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -2617,6 +2632,61 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.blender.overload_trip", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn food_processor_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::FoodProcessor).unwrap();
+        for id in [
+            "class.food_processor.speed_level",
+            "class.food_processor.pulse",
+            "class.food_processor.bowl_present",
+            "class.food_processor.lid_locked",
+            "class.food_processor.attachment",
+            "class.food_processor.sabbath_mode",
+            "class.food_processor.eco_mode",
+            "class.food_processor.motor_on",
+            "class.food_processor.overload_trip",
+            "class.food_processor.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical food_processor"
+            );
+        }
+        cap.validate_write("class.food_processor.speed_level", &Value::U8(6))
+            .unwrap();
+        cap.validate_write("class.food_processor.pulse", &Value::Void)
+            .unwrap();
+        cap.validate_write("class.food_processor.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.food_processor.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.food_processor.timer_s", &Value::DurationS(90))
+            .unwrap();
+        let err = cap
+            .validate_write(
+                "class.food_processor.attachment",
+                &Value::Enum("blade".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.food_processor.bowl_present", &Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.food_processor.lid_locked", &Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.food_processor.motor_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.food_processor.overload_trip", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }

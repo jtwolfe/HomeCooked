@@ -1323,11 +1323,16 @@ Filter life via `trait.filter.life_percent`. Hot-water lock via
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `speed_level` | u8 | — | 0–max | r/w | req | |
-| `pulse` | command | void | — | w | opt | |
-| `bowl_present` | bool | — | | r/e | opt | |
-| `lid_locked` | bool | — | | r/e | opt | |
-| `attachment` | enum | — | `unknown` `blade` `dough` `disc` | r | opt | |
+| `speed_level` | u8 | — | 0–10 | r/w | req | Blade / disc speed |
+| `pulse` | command | void | — | w | opt | Momentary high-speed pulse |
+| `bowl_present` | bool | — | | r/e | opt | Work bowl seated on base |
+| `lid_locked` | bool | — | | r/e | opt | Lid / pusher interlock closed |
+| `attachment` | enum | — | `unknown` `blade` `dough` `disc` | r | opt | Sensed tool attachment |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving motor duty |
+| `motor_on` | bool | — | | r/e | opt | Drive motor active |
+| `overload_trip` | bool | — | | r/e | opt | Stall / thermal overload trip |
+| `timer_s` | duration_s | second | 0–3600 | r/w/e | opt | Timed run / remaining |
 
 ---
 

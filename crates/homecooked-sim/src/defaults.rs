@@ -245,8 +245,12 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             ApplianceClassId::Blender => Value::Bool(true),
             _ => Value::Bool(false),
         },
+        "bowl_present" => match ctx.identity.class_id {
+            ApplianceClassId::FoodProcessor => Value::Bool(true),
+            _ => Value::Bool(false),
+        },
         "lid_locked" => match ctx.identity.class_id {
-            ApplianceClassId::Blender => Value::Bool(true),
+            ApplianceClassId::Blender | ApplianceClassId::FoodProcessor => Value::Bool(true),
             _ => Value::Bool(false),
         },
         "boiler_c" => Value::F32(20.0),
