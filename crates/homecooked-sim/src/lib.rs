@@ -1862,6 +1862,185 @@ mod tests {
     }
 
     #[test]
+    fn fridge_freezer_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let ff = sim.spawn(ApplianceClassId::FridgeFreezer).unwrap();
+
+        assert_eq!(
+            sim.read_value(&ff, "class.fridge_freezer.vacation_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&ff, "class.fridge_freezer.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&ff, "class.fridge_freezer.eco_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&ff, "class.fridge_freezer.defrost_active")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&ff, "class.fridge_freezer.compressor_on")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&ff, "class.fridge_freezer.high_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&ff, "class.fridge_freezer.door_ajar_fridge")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&ff, "class.fridge_freezer.door_ajar_freezer")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&ff, "class.fridge_freezer.fast_freeze")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&ff, "class.fridge_freezer.ice_buildup")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&ff, "class.fridge_freezer.high_temp_alarm_fridge")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&ff, "class.fridge_freezer.high_temp_alarm_freezer")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&ff, "class.fridge_freezer.convertible_zone_mode")
+                .unwrap(),
+            Value::Enum("fridge".into())
+        );
+        assert_eq!(
+            sim.read_value(&ff, "trait.temperature.setpoint_c#fridge")
+                .unwrap(),
+            Value::F32(4.0)
+        );
+        assert_eq!(
+            sim.read_value(&ff, "trait.temperature.setpoint_c#freezer")
+                .unwrap(),
+            Value::F32(-18.0)
+        );
+
+        sim.write(&ff, "class.fridge_freezer.fast_freeze", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&ff, "class.fridge_freezer.fast_freeze")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&ff, "class.fridge_freezer.vacation_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&ff, "class.fridge_freezer.vacation_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&ff, "class.fridge_freezer.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&ff, "class.fridge_freezer.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&ff, "class.fridge_freezer.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&ff, "class.fridge_freezer.eco_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(
+            &ff,
+            "class.fridge_freezer.convertible_zone_mode",
+            Value::Enum("freezer".into()),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&ff, "class.fridge_freezer.convertible_zone_mode")
+                .unwrap(),
+            Value::Enum("freezer".into())
+        );
+
+        let err = sim
+            .write(
+                &ff,
+                "class.fridge_freezer.door_ajar_fridge",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &ff,
+                "class.fridge_freezer.door_ajar_freezer",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&ff, "class.fridge_freezer.ice_buildup", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &ff,
+                "class.fridge_freezer.high_temp_alarm_fridge",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &ff,
+                "class.fridge_freezer.high_temp_alarm_freezer",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &ff,
+                "class.fridge_freezer.defrost_active",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&ff, "class.fridge_freezer.compressor_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &ff,
+                "class.fridge_freezer.high_temp_alarm",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {

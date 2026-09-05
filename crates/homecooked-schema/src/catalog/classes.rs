@@ -565,8 +565,9 @@ const FRIDGE_MERGED: [CatalogPoint; 12] = concat2(COLD_CABINET_POINTS, THERMAL_P
 const FRIDGE_POINTS: &[CatalogPoint] = &FRIDGE_MERGED;
 
 /// Freezer-only optional depth (Stream 7). Shared cold-cabinet points stay on
-/// `COLD_CABINET_POINTS` for fridge_freezer; freezer merges extras like fridge
-/// merges thermal ports — without attaching a thermal-port surface.
+/// `COLD_CABINET_POINTS`; freezer merges extras like fridge merges thermal ports
+/// — without attaching a thermal-port surface. Combo units use
+/// `FRIDGE_FREEZER_EXTRA` for dual-zone depth instead of this slice.
 static FREEZER_EXTRA: &[CatalogPoint] = &[
     s(
         "fast_freeze",
@@ -628,6 +629,77 @@ static FREEZER_EXTRA: &[CatalogPoint] = &[
 
 const FREEZER_MERGED: [CatalogPoint; 14] = concat2(COLD_CABINET_POINTS, FREEZER_EXTRA);
 const FREEZER_POINTS: &[CatalogPoint] = &FREEZER_MERGED;
+
+/// Fridge-freezer dual-zone optional depth (Stream 7).
+///
+/// Shared vacation/sabbath/eco/defrost/compressor/high_temp/power_fail stay on
+/// `COLD_CABINET_POINTS`; combo-specific per-side door/alarms + fast_freeze +
+/// freezer-side ice_buildup + convertible zone mode. Does not attach thermal
+/// ports (fridge owns those) and does not reuse the full `FREEZER_EXTRA` set.
+const CONVERTIBLE_ZONE_MODE: &[&str] = &["fridge", "freezer", "off", "bar"];
+
+static FRIDGE_FREEZER_EXTRA: &[CatalogPoint] = &[
+    v(
+        "door_ajar_fridge",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "door_ajar_freezer",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "fast_freeze",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    ),
+    v(
+        "ice_buildup",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "high_temp_alarm_fridge",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "high_temp_alarm_freezer",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "convertible_zone_mode",
+        ValueType::Enum,
+        None,
+        en(CONVERTIBLE_ZONE_MODE),
+        AccessMode::RW,
+        false,
+    ),
+];
+
+const FRIDGE_FREEZER_MERGED: [CatalogPoint; 14] =
+    concat2(COLD_CABINET_POINTS, FRIDGE_FREEZER_EXTRA);
+const FRIDGE_FREEZER_POINTS: &[CatalogPoint] = &FRIDGE_FREEZER_MERGED;
 
 const DISHWASHER_TRAITS: &[TraitId] = &[
     TraitId::Identity,
@@ -4288,7 +4360,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         class_id: ApplianceClassId::FridgeFreezer,
         typical_traits: FRIDGE_FREEZER_TRAITS,
         optional_traits: FRIDGE_FREEZER_OPTIONAL_TRAITS,
-        class_points: COLD_CABINET_POINTS,
+        class_points: FRIDGE_FREEZER_POINTS,
         program_tokens: &[],
         cycle_phase_tokens: &[],
         typical_setpoint_c: Some((-24.0, 7.0)),

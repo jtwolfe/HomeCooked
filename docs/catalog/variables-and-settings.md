@@ -738,7 +738,7 @@ Fridge `setpoint_c` typical 1–7. `super_mode` is super-cool.
 ### Class `freezer`
 
 Shared cold-cabinet extras plus freezer-only depth (merged like fridge thermal
-ports — `fridge_freezer` keeps shared cold-cabinet only):
+ports — combo dual-zone depth lives on `fridge_freezer`):
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
@@ -764,10 +764,32 @@ Chest lid uses `door_lid`. No `thermal_port_*` on this class.
 
 ### Class `fridge_freezer`
 
-Union of `fridge` and `freezer` extras. Zones required: at least `fridge` and
-`freezer`. Optional zones: `convertible`, `bar`, `pantry`, `crisper`, `door`.
+Shared cold-cabinet extras plus dual-zone depth (merged like freezer extras —
+no thermal-port surface; fridge owns condenser ports). Zones required: at least
+`fridge` and `freezer`. Optional zones: `convertible`, `bar`, `pantry`,
+`crisper`, `door`.
 
-Convertible zone uses `trait.zone.zone_mode`: `fridge` `freezer` `off` `bar`.
+| id | type | unit | range / enum | access | req | description |
+|----|------|------|--------------|--------|-----|-------------|
+| `vacation_mode` | bool | — | | r/w/e | opt | Shared cold-cabinet |
+| `sabbath_mode` | bool | — | | r/w/e | opt | Shared cold-cabinet |
+| `eco_mode` | bool | — | | r/w | opt | Shared cold-cabinet |
+| `defrost_active` | bool | — | | r/e | opt | Shared cold-cabinet |
+| `compressor_on` | bool | — | | r/e | opt | Shared cold-cabinet |
+| `high_temp_alarm` | bool | — | | r/e | opt | Shared chassis / any-zone high temp |
+| `power_fail_ms` | timestamp_ms | — | | r/e | opt | Shared cold-cabinet; last outage |
+| `door_ajar_fridge` | bool | — | | r/e | opt | Fresh-food door ajar |
+| `door_ajar_freezer` | bool | — | | r/e | opt | Freezer door / drawer ajar |
+| `fast_freeze` | bool | — | | r/w/e | opt | Fast / boost freeze (freezer side) |
+| `ice_buildup` | bool | — | | r/e | opt | Freezer-side frost / ice buildup |
+| `high_temp_alarm_fridge` | bool | — | | r/e | opt | Fresh-food zone high-temp alarm |
+| `high_temp_alarm_freezer` | bool | — | | r/e | opt | Freezer zone high-temp alarm |
+| `convertible_zone_mode` | enum | — | `fridge` `freezer` `off` `bar` | r/w | opt | Convertible compartment mode |
+
+Convertible compartment also uses `trait.zone.zone_mode` when advertised as a
+`zone`. Freezer-only points (`anti_sweat`, `frost_clean_needed`,
+`fast_freeze_remaining_s`, single `door_ajar`, `low_temp_alarm`) stay on
+`freezer`.
 
 ---
 
