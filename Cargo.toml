@@ -8,6 +8,7 @@ members = [
     "crates/homecooked-wasm",
     "crates/homecooked-io-map",
     "crates/homecooked-interlock",
+    "crates/homecooked-hal",
 ]
 
 [workspace.package]

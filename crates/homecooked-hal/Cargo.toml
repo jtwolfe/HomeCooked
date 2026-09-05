@@ -1,0 +1,20 @@
+[package]
+name = "homecooked-hal"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description = "HomeCooked firmware HAL surface sketch with host-side mock backend"
+readme = "README.md"
+
+[features]
+default = ["std", "interlock"]
+# Host-side MockHal and HashMap-backed storage. Firmware targets can omit this
+# and implement Hal against real I/O; no embedded-hal dependency is required.
+std = []
+# Gate MockHal writes through homecooked-interlock RuleSet (host tests).
+interlock = ["dep:homecooked-interlock", "std"]
+
+[dependencies]
+homecooked-interlock = { path = "../homecooked-interlock", optional = true }
