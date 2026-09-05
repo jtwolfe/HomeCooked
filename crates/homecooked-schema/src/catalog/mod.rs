@@ -259,6 +259,15 @@ fn extra_typical_trait_point(table: &ClassTable, trait_id: TraitId, point: &Cata
     {
         return true;
     }
+    // Water softener: hardness input + resin/filter life are typical.
+    if table.class_id == ApplianceClassId::WaterSoftener {
+        if trait_id == TraitId::Water && point.id == "hardness_ppm" {
+            return true;
+        }
+        if trait_id == TraitId::Filter && point.id == "life_percent" {
+            return true;
+        }
+    }
     // Steam oven: cycle remaining + water hardness are typical.
     if table.class_id == ApplianceClassId::SteamOven {
         if trait_id == TraitId::Cycle && point.id == "remaining_s" {
@@ -908,6 +917,21 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "high_temp_alarm"
                 | "lockout"
                 | "ignition_fail"
+                | "timer_s"
+        );
+    }
+    // Stream 7 catalog depth: water_softener optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::WaterSoftener {
+        return matches!(
+            point.id,
+            "capacity_remaining"
+                | "salt_level"
+                | "bypass"
+                | "treated_l"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "regenerating"
+                | "salt_low"
                 | "timer_s"
         );
     }
@@ -3686,6 +3710,80 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.boiler.ignition_fail", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn water_softener_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::WaterSoftener).unwrap();
+        for id in [
+            "class.water_softener.capacity_remaining",
+            "class.water_softener.salt_level",
+            "class.water_softener.bypass",
+            "class.water_softener.treated_l",
+            "class.water_softener.sabbath_mode",
+            "class.water_softener.eco_mode",
+            "class.water_softener.regenerating",
+            "class.water_softener.salt_low",
+            "class.water_softener.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical water_softener"
+            );
+        }
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Water)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.water.hardness_ppm"));
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Filter)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.filter.life_percent"));
+        cap.validate_write("class.water_softener.bypass", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.water_softener.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.water_softener.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.water_softener.timer_s", &Value::DurationS(30))
+            .unwrap();
+        cap.validate_write("trait.water.hardness_ppm", &Value::U16(180))
+            .unwrap();
+        let err = cap
+            .validate_write(
+                "class.water_softener.capacity_remaining",
+                &Value::F32(1000.0),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.water_softener.salt_level", &Value::Enum("ok".into()))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.water_softener.treated_l", &Value::F32(10.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.water_softener.regenerating", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.water_softener.salt_low", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("trait.filter.life_percent", &Value::Percent(50.0))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }
