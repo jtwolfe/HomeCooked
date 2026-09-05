@@ -21,6 +21,11 @@ of truth**; code must track `docs/catalog/` and `docs/standard/`.
   recipes as ordered HomeCooked steps (design sketch)
 - [`docs/standard/bridges.md`](docs/standard/bridges.md) — Zigbee / Matter /
   Modbus / BACnet bridges; HomeCooked as whitegoods semantics layer
+- [`docs/standard/control-system.md`](docs/standard/control-system.md) —
+  universal control computer (HAL, I/O map, interlocks, cycle runtime);
+  path from catalog semantics to real HV hardware (design sketch)
+- [`docs/standard/examples/washer-dryer-io.md`](docs/standard/examples/washer-dryer-io.md)
+  — washer and dryer I/O inventory, sample I/O map, `cotton` cycle outline
 
 ## Workspace
 

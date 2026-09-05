@@ -23,6 +23,8 @@ Related documents:
   (design sketch)
 - [`bridges.md`](./bridges.md) — Zigbee / Matter / Modbus / BACnet bridges
   (design sketch)
+- [`control-system.md`](./control-system.md) — universal control computer,
+  HAL, I/O map, interlocks, cycle runtime (design sketch)
 
 ---
 
@@ -73,6 +75,10 @@ that banned "recipe documents."
 - **Bridges** — map Zigbee / Matter / Thread / Modbus / BACnet / vendor Wi-Fi
   into HomeCooked points without replacing those fabrics
   ([`bridges.md`](./bridges.md))
+- **Control system** — path from catalog semantics to real HV hardware: HAL,
+  chassis I/O map, interlock engine, and cycle runtime on a native HomeCooked
+  controller ([`control-system.md`](./control-system.md); worked example
+  [`examples/washer-dryer-io.md`](./examples/washer-dryer-io.md))
 
 ### Catalog vs executable schema coverage
 
@@ -685,11 +691,12 @@ the web simulator have since been added and must continue to track
 
 Still follow-up relative to *this* design-extension pass:
 
-- Promote thermal-plant / procedures / bridges sketches into catalog traits
-  and schema types when ready
+- Promote thermal-plant / procedures / bridges / control-system sketches into
+  catalog traits and schema types when ready
 - Expand static capability tables beyond the nine classes listed in §1
 - Formal conformance test suite
 - Frozen guard-expression grammar for procedures
+- Frozen I/O map / HAL channel schema for the control-system sketch
 
 ---
 
@@ -699,3 +706,4 @@ Still follow-up relative to *this* design-extension pass:
 |---------|--------|
 | 0.1.0 | Initial overview; catalog-backed; no wire encoding frozen |
 | 0.1.0 | Docs extension: link thermal-plant, procedures, bridges; recipes as procedures; catalog 56 / schema 9 note |
+| 0.1.0 | Docs extension: link control-system and washer-dryer I/O example |
