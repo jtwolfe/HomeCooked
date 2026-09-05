@@ -2964,7 +2964,11 @@ const COFFEE_STRENGTH: &[&str] = &["mild", "normal", "strong", "extra"];
 const DRIP_TRAY: &[&str] = &["ok", "full", "missing"];
 const GROUNDS_BIN: &[&str] = &["ok", "full", "missing"];
 
-static COFFEE_MACHINE_POINTS: &[CatalogPoint] = &[
+/// Thin coffee_machine brew surface (required water_tank + drink/boiler
+/// telemetry used by `coffee_brew_espresso`). Depth points live in
+/// `COFFEE_MACHINE_DEPTH` so optional Tier-A deepen does not rewrite the
+/// procedure / stub boiler heat tick core.
+static COFFEE_MACHINE_BASE: &[CatalogPoint] = &[
     s(
         "strength",
         ValueType::Enum,
@@ -3062,6 +3066,84 @@ static COFFEE_MACHINE_POINTS: &[CatalogPoint] = &[
         false,
     ),
 ];
+
+/// Coffee_machine optional depth (Stream 7 undepened Tier-A). Espresso /
+/// drip_coffee_maker template (sabbath/eco/boiler_ready/alarms/carafe/timer).
+/// Reuses thin-table brew settings + `water_tank` / `boiler_c` /
+/// `brew_pressure_bar` (not parallel holds). Do not duplicate required
+/// `water_tank` enum with a second tank setting — `water_tank_empty` is compact
+/// RE inhibit telemetry like espresso_machine. Brew procedure + stub boiler
+/// heat tick unchanged.
+static COFFEE_MACHINE_DEPTH: &[CatalogPoint] = &[
+    s(
+        "sabbath_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    ),
+    s(
+        "eco_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "boiler_ready",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "high_temp_alarm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "water_tank_empty",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "descaling_needed",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "carafe_present",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "timer_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 3600),
+        AccessMode::RWE,
+        false,
+    ),
+];
+
+const COFFEE_MACHINE_MERGED: [CatalogPoint; 20] =
+    concat2(COFFEE_MACHINE_BASE, COFFEE_MACHINE_DEPTH);
+const COFFEE_MACHINE_POINTS: &[CatalogPoint] = &COFFEE_MACHINE_MERGED;
 
 const SOUS_VIDE_TRAITS: &[TraitId] = &[
     TraitId::Identity,

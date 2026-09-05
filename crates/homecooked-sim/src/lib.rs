@@ -7368,6 +7368,172 @@ mod tests {
     }
 
     #[test]
+    fn coffee_machine_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let coffee = sim.spawn(ApplianceClassId::CoffeeMachine).unwrap();
+
+        assert_eq!(
+            sim.read_value(&coffee, "class.coffee_machine.water_tank")
+                .unwrap(),
+            Value::Enum("ok".into())
+        );
+        assert_eq!(
+            sim.read_value(&coffee, "class.coffee_machine.strength")
+                .unwrap(),
+            Value::Enum("mild".into())
+        );
+        assert_eq!(
+            sim.read_value(&coffee, "class.coffee_machine.volume_ml")
+                .unwrap(),
+            Value::U16(15)
+        );
+        assert_eq!(
+            sim.read_value(&coffee, "class.coffee_machine.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&coffee, "class.coffee_machine.eco_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&coffee, "class.coffee_machine.boiler_ready")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&coffee, "class.coffee_machine.high_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&coffee, "class.coffee_machine.water_tank_empty")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&coffee, "class.coffee_machine.descaling_needed")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&coffee, "class.coffee_machine.carafe_present")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&coffee, "class.coffee_machine.timer_s")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+
+        sim.write(
+            &coffee,
+            "class.coffee_machine.strength",
+            Value::Enum("strong".into()),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&coffee, "class.coffee_machine.strength")
+                .unwrap(),
+            Value::Enum("strong".into())
+        );
+        sim.write(&coffee, "class.coffee_machine.volume_ml", Value::U16(150))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&coffee, "class.coffee_machine.volume_ml")
+                .unwrap(),
+            Value::U16(150)
+        );
+        sim.write(&coffee, "class.coffee_machine.cups", Value::U8(2))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&coffee, "class.coffee_machine.cups")
+                .unwrap(),
+            Value::U8(2)
+        );
+        sim.write(
+            &coffee,
+            "class.coffee_machine.sabbath_mode",
+            Value::Bool(true),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&coffee, "class.coffee_machine.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&coffee, "class.coffee_machine.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&coffee, "class.coffee_machine.eco_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(
+            &coffee,
+            "class.coffee_machine.timer_s",
+            Value::DurationS(900),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&coffee, "class.coffee_machine.timer_s")
+                .unwrap(),
+            Value::DurationS(900)
+        );
+
+        let err = sim
+            .write(
+                &coffee,
+                "class.coffee_machine.water_tank",
+                Value::Enum("empty".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &coffee,
+                "class.coffee_machine.boiler_ready",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &coffee,
+                "class.coffee_machine.high_temp_alarm",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &coffee,
+                "class.coffee_machine.water_tank_empty",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &coffee,
+                "class.coffee_machine.descaling_needed",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &coffee,
+                "class.coffee_machine.carafe_present",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn kettle_optional_depth_points_read_and_write() {
         let mut sim = Simulator::new();
         let k = sim.spawn(ApplianceClassId::Kettle).unwrap();
