@@ -46,9 +46,10 @@ impl Action {
 
 /// One declarative interlock rule.
 ///
-/// If [`Self::when`] is true on the snapshot (with the proposed command
-/// overlaid), [`Self::require`] must also hold. Otherwise the rule's actions
-/// fire and the command is denied.
+/// A rule **fires** when [`Self::when`] is true on the snapshot (with the
+/// proposed command overlaid) and [`Self::require`] is either absent or false.
+/// Only then do actions run: matching [`Action::DenyActuator`] may deny the
+/// current command; [`Action::ForceSafeState`] always applies on a fire.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Rule {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -111,6 +112,11 @@ impl RuleSet {
     }
 
     /// Evaluate `command` against `snapshot` before it is applied.
+    ///
+    /// Rules fire only when `when` holds and `require` fails (or is absent).
+    /// An allowed command gets an empty `force_safe` list unless another
+    /// firing rule forces channels (e.g. leak → force drain) without denying
+    /// this command.
     pub fn evaluate(&self, snapshot: &Snapshot, command: &Command) -> Decision {
         let view = snapshot.with_command(command);
         let mut force_safe = Vec::new();
@@ -120,7 +126,15 @@ impl RuleSet {
             if !rule.when.eval(&view) {
                 continue;
             }
-            let require_ok = rule.require.as_ref().map(|c| c.eval(&view)).unwrap_or(true);
+            let require_ok = rule
+                .require
+                .as_ref()
+                .map(|c| c.eval(&view))
+                .unwrap_or(false);
+            // Fire when require is missing (force-only / always-gate) or failed.
+            if require_ok {
+                continue;
+            }
 
             for action in &rule.actions {
                 match action {
@@ -131,16 +145,12 @@ impl RuleSet {
                         });
                     }
                     Action::DenyActuator { channel, reason } => {
-                        if channel == &command.channel && !require_ok && deny_reason.is_none() {
+                        if channel == &command.channel && deny_reason.is_none() {
                             deny_reason =
                                 Some(reason.clone().unwrap_or_else(|| rule_reason(rule, channel)));
                         }
                     }
                 }
-            }
-
-            if !require_ok && deny_reason.is_none() {
-                deny_reason = Some(rule_reason(rule, &command.channel));
             }
         }
 

@@ -44,15 +44,32 @@ pub struct Binding {
 
 impl Binding {
     /// Kind from the explicit field, or inferred from the channel prefix.
+    ///
+    /// An explicit `kind` may authorize a channel without a known prefix
+    /// (`heater_enable` + `kind: aout`). When both prefix and kind are known
+    /// kinds, they must agree.
     pub fn resolved_kind(&self) -> Result<IoKind, Error> {
-        if let Some(kind) = &self.kind {
-            return IoKind::from_token(kind).ok_or_else(|| Error::UnknownKind {
-                channel: self.channel.clone(),
-                kind: kind.clone(),
-            });
-        }
         let prefix = channel_prefix(&self.channel);
-        IoKind::from_token(prefix).ok_or_else(|| Error::UnknownPrefix {
+        let prefix_kind = IoKind::from_token(prefix);
+
+        if let Some(kind_tok) = &self.kind {
+            let kind = IoKind::from_token(kind_tok).ok_or_else(|| Error::UnknownKind {
+                channel: self.channel.clone(),
+                kind: kind_tok.clone(),
+            })?;
+            if let Some(pk) = prefix_kind {
+                if pk != kind {
+                    return Err(Error::KindMismatch {
+                        channel: self.channel.clone(),
+                        kind: kind_tok.clone(),
+                        prefix: prefix.to_string(),
+                    });
+                }
+            }
+            return Ok(kind);
+        }
+
+        prefix_kind.ok_or_else(|| Error::UnknownPrefix {
             channel: self.channel.clone(),
             prefix: prefix.to_string(),
         })
@@ -85,31 +102,18 @@ impl IoMap {
         }
     }
 
-    /// Reject duplicate `channel` ids and unknown kinds / prefixes.
+    /// Reject duplicate `channel` ids and unknown / mismatched kinds.
     ///
-    /// Allowed kinds (and channel prefixes) are `din`, `dout`, `ain`, `aout`,
-    /// `relay`, and `motor`.
+    /// Allowed kinds are `din`, `dout`, `ain`, `aout`, `relay`, and `motor`.
+    /// Kind may be inferred from the channel prefix or set explicitly; see
+    /// [`Binding::resolved_kind`].
     pub fn validate(&self) -> Result<(), Error> {
         let mut seen = HashSet::new();
         for binding in &self.bindings {
             if !seen.insert(binding.channel.as_str()) {
                 return Err(Error::DuplicateChannel(binding.channel.clone()));
             }
-            let prefix = channel_prefix(&binding.channel);
-            if IoKind::from_token(prefix).is_none() {
-                return Err(Error::UnknownPrefix {
-                    channel: binding.channel.clone(),
-                    prefix: prefix.to_string(),
-                });
-            }
-            if let Some(kind) = &binding.kind {
-                if IoKind::from_token(kind).is_none() {
-                    return Err(Error::UnknownKind {
-                        channel: binding.channel.clone(),
-                        kind: kind.clone(),
-                    });
-                }
-            }
+            binding.resolved_kind()?;
         }
         Ok(())
     }
@@ -303,5 +307,47 @@ bindings:
         .unwrap();
         assert_eq!(map.bindings[0].resolved_kind().unwrap(), IoKind::Din);
         assert_eq!(map.bindings[1].resolved_kind().unwrap(), IoKind::Relay);
+    }
+
+    #[test]
+    fn explicit_kind_without_known_prefix() {
+        let map = IoMap::from_yaml_str(
+            r#"
+version: "0.1.0"
+bindings:
+  - channel: heater_enable
+    kind: aout
+"#,
+        )
+        .unwrap();
+        assert_eq!(map.bindings[0].resolved_kind().unwrap(), IoKind::Aout);
+    }
+
+    #[test]
+    fn kind_prefix_mismatch_fails() {
+        let err = IoMap {
+            version: "0.1.0".into(),
+            class_id: None,
+            bindings: vec![Binding {
+                channel: "motor.speed_rpm_cmd".into(),
+                kind: Some("din".into()),
+                source: None,
+                sink: None,
+                point: None,
+                encode: None,
+                scale: None,
+                gated_by: None,
+            }],
+        }
+        .validate()
+        .unwrap_err();
+        assert_eq!(
+            err,
+            Error::KindMismatch {
+                channel: "motor.speed_rpm_cmd".into(),
+                kind: "din".into(),
+                prefix: "motor".into(),
+            }
+        );
     }
 }

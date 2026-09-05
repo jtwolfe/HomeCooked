@@ -28,6 +28,8 @@ mod tests {
         command: Command,
         allow: bool,
         reason_contains: Option<&'static str>,
+        /// When Some, assert force_safe length (Allow rows should be 0).
+        force_safe_len: Option<usize>,
     }
 
     fn cases() -> Vec<Case> {
@@ -40,6 +42,7 @@ mod tests {
                 command: Command::new("aout.heater_enable", true),
                 allow: true,
                 reason_contains: None,
+                force_safe_len: Some(0),
             },
             Case {
                 name: "heater on with lock feedback",
@@ -49,6 +52,7 @@ mod tests {
                 command: Command::new("aout.heater_enable", true),
                 allow: true,
                 reason_contains: None,
+                force_safe_len: Some(0),
             },
             Case {
                 name: "heater on without water",
@@ -58,6 +62,7 @@ mod tests {
                 command: Command::new("aout.heater_enable", true),
                 allow: false,
                 reason_contains: Some("water_present"),
+                force_safe_len: Some(1),
             },
             Case {
                 name: "heater on without lock",
@@ -68,6 +73,7 @@ mod tests {
                 command: Command::new("aout.heater_enable", true),
                 allow: false,
                 reason_contains: Some("door locked"),
+                force_safe_len: Some(1),
             },
             Case {
                 name: "heater off without water",
@@ -75,6 +81,7 @@ mod tests {
                 command: Command::new("aout.heater_enable", false),
                 allow: true,
                 reason_contains: None,
+                force_safe_len: Some(0),
             },
             Case {
                 name: "spin with door locked",
@@ -82,6 +89,7 @@ mod tests {
                 command: Command::new("motor.speed_rpm_cmd", 800),
                 allow: true,
                 reason_contains: None,
+                force_safe_len: Some(0),
             },
             Case {
                 name: "spin with lock feedback",
@@ -89,6 +97,7 @@ mod tests {
                 command: Command::new("motor.speed_rpm_cmd", SPIN_RPM_THRESHOLD),
                 allow: true,
                 reason_contains: None,
+                force_safe_len: Some(0),
             },
             Case {
                 name: "spin without lock",
@@ -98,6 +107,7 @@ mod tests {
                 command: Command::new("motor.speed_rpm_cmd", 800),
                 allow: false,
                 reason_contains: Some("door locked"),
+                force_safe_len: Some(1),
             },
             Case {
                 name: "tumble without lock is not spin",
@@ -105,6 +115,7 @@ mod tests {
                 command: Command::new("motor.speed_rpm_cmd", 50),
                 allow: true,
                 reason_contains: None,
+                force_safe_len: Some(0),
             },
         ]
     }
@@ -120,6 +131,15 @@ mod tests {
                 "{}: {decision:?}",
                 case.name
             );
+            if let Some(len) = case.force_safe_len {
+                assert_eq!(
+                    decision.force_safe().len(),
+                    len,
+                    "{}: force_safe {:?}",
+                    case.name,
+                    decision.force_safe()
+                );
+            }
             if let Some(needle) = case.reason_contains {
                 match &decision {
                     Decision::Deny { reason, .. } => {
@@ -148,6 +168,25 @@ mod tests {
                 assert_eq!(force_safe[0].value, Value::Bool(false));
             }
             other => panic!("expected deny, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn tumble_allowed_while_forcing_unsafe_heater_off() {
+        let decision = washer_rules().evaluate(
+            &Snapshot::new()
+                .with("aout.heater_enable", true)
+                .with("water_present", false)
+                .with("door_locked", true),
+            &Command::new("motor.speed_rpm_cmd", 50),
+        );
+        match decision {
+            Decision::Allow { force_safe } => {
+                assert_eq!(force_safe.len(), 1);
+                assert_eq!(force_safe[0].channel, "aout.heater_enable");
+                assert_eq!(force_safe[0].value, Value::Bool(false));
+            }
+            other => panic!("expected allow with force_safe, got {other:?}"),
         }
     }
 

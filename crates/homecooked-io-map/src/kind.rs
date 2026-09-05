@@ -2,12 +2,7 @@
 
 use std::fmt;
 
-/// Allowed I/O kinds (and matching channel prefixes).
-///
-/// Prefixes are the first `snake_case` segment of a channel id (`din.door_closed`
-/// → `din`, `motor.speed_rpm_cmd` → `motor`). `relay` is accepted as a kind
-/// and as a `relay.*` prefix even though the control-system sketch prefers
-/// `aout.*` / `dout.*` for actuators.
+/// Allowed I/O kinds: `din`, `dout`, `ain`, `aout`, `relay`, `motor`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum IoKind {
     Din,

@@ -9,8 +9,19 @@ pub enum Error {
     Json(String),
     Io(String),
     DuplicateChannel(String),
-    UnknownKind { channel: String, kind: String },
-    UnknownPrefix { channel: String, prefix: String },
+    UnknownKind {
+        channel: String,
+        kind: String,
+    },
+    UnknownPrefix {
+        channel: String,
+        prefix: String,
+    },
+    KindMismatch {
+        channel: String,
+        kind: String,
+        prefix: String,
+    },
 }
 
 impl fmt::Display for Error {
@@ -28,6 +39,14 @@ impl fmt::Display for Error {
             Self::UnknownPrefix { channel, prefix } => {
                 write!(f, "unknown channel prefix {prefix:?} on {channel}")
             }
+            Self::KindMismatch {
+                channel,
+                kind,
+                prefix,
+            } => write!(
+                f,
+                "kind {kind:?} does not match channel prefix {prefix:?} on {channel}"
+            ),
         }
     }
 }

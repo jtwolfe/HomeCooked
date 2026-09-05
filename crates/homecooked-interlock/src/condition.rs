@@ -98,7 +98,7 @@ impl Compare {
         let got = snapshot.get(&self.channel);
         match &self.op {
             CmpOp::Eq(expected) => got.map(|v| v.equal_to(expected)).unwrap_or(false),
-            CmpOp::Neq(expected) => got.map(|v| !v.equal_to(expected)).unwrap_or(true),
+            CmpOp::Neq(expected) => got.map(|v| !v.equal_to(expected)).unwrap_or(false),
             CmpOp::Gt(expected) => numeric(got, expected, |a, b| a > b),
             CmpOp::Gte(expected) => numeric(got, expected, |a, b| a >= b),
             CmpOp::Lt(expected) => numeric(got, expected, |a, b| a < b),
@@ -146,6 +146,6 @@ mod tests {
         ])
         .eval(&snap));
         assert!(!Condition::eq("missing", true).eval(&snap));
-        assert!(Condition::neq("missing", true).eval(&snap));
+        assert!(!Condition::neq("missing", true).eval(&snap));
     }
 }
