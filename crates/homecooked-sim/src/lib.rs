@@ -7105,6 +7105,269 @@ mod tests {
     }
 
     #[test]
+    fn range_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let range = sim.spawn(ApplianceClassId::Range).unwrap();
+
+        assert_eq!(
+            sim.read_value(&range, "class.range.surface").unwrap(),
+            Value::Enum("gas".into())
+        );
+        assert_eq!(
+            sim.read_value(&range, "class.range.level#hob_1").unwrap(),
+            Value::U8(0)
+        );
+        assert_eq!(
+            sim.read_value(&range, "class.range.boost#hob_1").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&range, "class.range.timer_s#hob_1").unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&range, "class.range.keep_warm#hob_1")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&range, "class.range.power_limit_w").unwrap(),
+            Value::U32(7200)
+        );
+        assert_eq!(
+            sim.read_value(&range, "class.range.paused").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&range, "class.range.surface_c#hob_1")
+                .unwrap(),
+            Value::F32(20.0)
+        );
+        assert_eq!(
+            sim.read_value(&range, "class.range.broil_level").unwrap(),
+            Value::Enum("low".into())
+        );
+        assert_eq!(
+            sim.read_value(&range, "class.range.convection_fan")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&range, "class.range.steam_percent").unwrap(),
+            Value::Percent(0.0)
+        );
+        assert_eq!(
+            sim.read_value(&range, "class.range.cook_s").unwrap(),
+            Value::DurationS(600)
+        );
+        assert_eq!(
+            sim.read_value(&range, "class.range.door_locked_clean")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&range, "class.range.element_bake").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&range, "class.range.element_broil").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&range, "class.range.sabbath_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&range, "class.range.eco_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&range, "class.range.heater_on").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&range, "class.range.high_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&range, "class.range.door_ajar").unwrap(),
+            Value::Bool(false)
+        );
+        // probe_c is zoned on Temperature; range advertises hob + oven zones.
+        assert_eq!(
+            sim.read_value(&range, "trait.temperature.probe_c#oven")
+                .unwrap(),
+            Value::F32(0.0)
+        );
+        assert_eq!(
+            sim.read_value(&range, "trait.temperature.probe_target_c")
+                .unwrap(),
+            Value::F32(0.0)
+        );
+        assert_eq!(
+            sim.read_value(&range, "trait.temperature.probe_connected")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&range, "trait.temperature.preheat_complete")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&range, "trait.child_lock.child_lock")
+                .unwrap(),
+            Value::Bool(false)
+        );
+
+        sim.write(&range, "class.range.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&range, "class.range.sabbath_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&range, "class.range.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&range, "class.range.eco_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&range, "class.range.boost#hob_1", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&range, "class.range.boost#hob_1").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&range, "class.range.timer_s#hob_2", Value::DurationS(900))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&range, "class.range.timer_s#hob_2").unwrap(),
+            Value::DurationS(900)
+        );
+        sim.write(&range, "class.range.keep_warm#hob_3", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&range, "class.range.keep_warm#hob_3")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&range, "class.range.power_limit_w", Value::U32(4800))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&range, "class.range.power_limit_w").unwrap(),
+            Value::U32(4800)
+        );
+        sim.write(
+            &range,
+            "class.range.broil_level",
+            Value::Enum("high".into()),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&range, "class.range.broil_level").unwrap(),
+            Value::Enum("high".into())
+        );
+        sim.write(&range, "class.range.convection_fan", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&range, "class.range.convection_fan")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&range, "class.range.steam_percent", Value::Percent(25.0))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&range, "class.range.steam_percent").unwrap(),
+            Value::Percent(25.0)
+        );
+        sim.write(&range, "class.range.cook_s", Value::DurationS(2400))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&range, "class.range.cook_s").unwrap(),
+            Value::DurationS(2400)
+        );
+        sim.write(&range, "trait.temperature.probe_target_c", Value::F32(71.0))
+            .unwrap();
+        assert!(
+            (f32_val(
+                &sim.read_value(&range, "trait.temperature.probe_target_c")
+                    .unwrap()
+            ) - 71.0)
+                .abs()
+                < f32::EPSILON
+        );
+        sim.write(&range, "trait.child_lock.child_lock", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&range, "trait.child_lock.child_lock")
+                .unwrap(),
+            Value::Bool(true)
+        );
+
+        let err = sim
+            .write(&range, "class.range.heater_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&range, "class.range.high_temp_alarm", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&range, "class.range.door_ajar", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&range, "class.range.door_locked_clean", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&range, "class.range.element_bake", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&range, "class.range.element_broil", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &range,
+                "class.range.surface",
+                Value::Enum("induction".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&range, "class.range.paused", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&range, "class.range.hotspot_alert#hob_1", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&range, "trait.temperature.probe_c#oven", Value::F32(55.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &range,
+                "trait.temperature.probe_connected",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &range,
+                "trait.temperature.preheat_complete",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn dishwasher_thermal_port_read_write() {
         let mut sim = Simulator::new();
         let id = sim.spawn(ApplianceClassId::Dishwasher).unwrap();

@@ -1047,13 +1047,31 @@ Cycle remaining via `trait.cycle.remaining_s`.
 
 ### Class `range`
 
-No unique points. Hob zones use `cooktop` / `induction_hob` class points;
-cavity uses `oven`. Zone ids: `hob_1`…`hob_n`, `oven`, `oven_lower`,
-`warming_drawer`.
+Composition: hob zones reuse `cooktop` class points; cavity reuses `oven`
+`OVEN_BASE` thin surface. Zone ids: `hob_1`…`hob_n`, `oven`, `oven_lower`,
+`warming_drawer`. Range-only extras live on `RANGE_EXTRA` (not `OVEN_DEPTH`).
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `surface` | enum | — | `gas` `electric` `radiant` `induction` `mixed` | r | req | |
+| `surface` | enum | — | `gas` `electric` `radiant` `induction` `mixed` | r | req | Hob fuel / heat source |
+| `sabbath_mode` | bool | — | | r/w/e | opt | Suppress beeps / delay display |
+| `eco_mode` | bool | — | | r/w | opt | Prefer lower average power |
+| `heater_on` | bool | — | | r/e | opt | Aggregate cavity heater telemetry |
+| `high_temp_alarm` | bool | — | | r/e | opt | Cavity overtemp alarm |
+| `door_ajar` | bool | — | | r/e | opt | Oven door ajar (distinct from pyro `door_locked_clean`) |
+
+Also advertises composed cooktop depth (`boost` / zoned `timer_s` / `bridge` /
+`keep_warm` / `hotspot_alert` / `timer_active` / `paused` / `surface_c` /
+`element_fault` / `pan_detect` / `flame_on` / `flame_out` / `ignition_fail` /
+`power_limit_w`) and `OVEN_BASE` (`broil_level` / `convection_fan` /
+`steam_percent` / `cook_s` / `door_locked_clean` / `element_bake` /
+`element_broil`). Do **not** add a second class `timer_s` from `OVEN_DEPTH`.
+Meat probe via `trait.temperature.probe_c` / `probe_target_c` /
+`probe_connected`; preheat via `preheat_complete`.
+
+Optional depth (eighth undepened Tier-A deepen): `RANGE_EXTRA` cavity
+sabbath/eco/heater_on/high_temp_alarm/door_ajar; typical reuses cooktop +
+`OVEN_BASE` composition + Temperature probe/preheat. Child lock already typical.
 
 ---
 

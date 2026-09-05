@@ -187,9 +187,11 @@ fn extra_typical_trait_point(table: &ClassTable, trait_id: TraitId, point: &Cata
     {
         return true;
     }
-    // Oven: meat probe + preheat complete are typical cavity telemetry.
-    if table.class_id == ApplianceClassId::Oven
-        && trait_id == TraitId::Temperature
+    // Oven / range: meat probe + preheat complete are typical cavity telemetry.
+    if matches!(
+        table.class_id,
+        ApplianceClassId::Oven | ApplianceClassId::Range
+    ) && trait_id == TraitId::Temperature
         && matches!(
             point.id,
             "probe_c" | "probe_target_c" | "probe_connected" | "preheat_complete"
@@ -336,6 +338,42 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "high_temp_alarm"
                 | "door_ajar"
                 | "timer_s"
+        );
+    }
+    // Stream 7 undepened Tier-A deepen: range combo optional telemetry/settings.
+    // Advertise cooktop depth already on COOKTOP_POINTS + OVEN_BASE thin cavity
+    // surface; add RANGE_EXTRA sabbath/eco/heater_on/high_temp_alarm/door_ajar
+    // (not OVEN_DEPTH — timer_s would collide with cooktop zoned timer_s).
+    // Required `surface` / `level` / `residual_heat` already typical via required.
+    if table.class_id == ApplianceClassId::Range {
+        return matches!(
+            point.id,
+            "boost"
+                | "timer_s"
+                | "bridge"
+                | "flame_out"
+                | "ignition_fail"
+                | "power_limit_w"
+                | "keep_warm"
+                | "hotspot_alert"
+                | "timer_active"
+                | "paused"
+                | "surface_c"
+                | "element_fault"
+                | "pan_detect"
+                | "flame_on"
+                | "broil_level"
+                | "convection_fan"
+                | "steam_percent"
+                | "cook_s"
+                | "door_locked_clean"
+                | "element_bake"
+                | "element_broil"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "heater_on"
+                | "high_temp_alarm"
+                | "door_ajar"
         );
     }
     // Stream 7 undepened Tier-A deepen: microwave optional telemetry/settings.
@@ -4892,16 +4930,11 @@ mod tests {
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
 
-        // range / steam_oven / toaster_oven merge OVEN_BASE only — OVEN_DEPTH
-        // must not appear on their static class tables (laundry-style isolation).
-        // Note: `range` already has cooktop `timer_s`; merging OVEN_DEPTH would
-        // duplicate that id (catalog_hygiene), so timer_s absence is only
-        // asserted for steam_oven / toaster_oven.
-        for class_id in [
-            ApplianceClassId::Range,
-            ApplianceClassId::SteamOven,
-            ApplianceClassId::ToasterOven,
-        ] {
+        // steam_oven / toaster_oven merge OVEN_BASE only — OVEN_DEPTH must not
+        // appear on their static class tables (laundry-style isolation).
+        // `range` adds cavity depth via RANGE_EXTRA (not OVEN_DEPTH) and keeps
+        // a single cooktop `timer_s` (merging OVEN_DEPTH would duplicate it).
+        for class_id in [ApplianceClassId::SteamOven, ApplianceClassId::ToasterOven] {
             let table = class_table(class_id).unwrap();
             let ids: Vec<&str> = table.class_points.iter().map(|p| p.id).collect();
             assert!(
@@ -4918,25 +4951,203 @@ mod tests {
                 "heater_on",
                 "high_temp_alarm",
                 "door_ajar",
+                "timer_s",
             ] {
                 assert!(
                     !ids.contains(&depth),
                     "{depth} must not leak from OVEN_DEPTH into {class_id:?} class table"
                 );
             }
-            if !matches!(class_id, ApplianceClassId::Range) {
-                assert!(
-                    !ids.contains(&"timer_s"),
-                    "timer_s must not leak from OVEN_DEPTH into {class_id:?} class table"
-                );
-            } else {
-                assert_eq!(
-                    ids.iter().filter(|&&id| id == "timer_s").count(),
-                    1,
-                    "range must keep a single cooktop timer_s (no OVEN_DEPTH duplicate)"
-                );
-            }
         }
+        let range_table = class_table(ApplianceClassId::Range).unwrap();
+        let range_ids: Vec<&str> = range_table.class_points.iter().map(|p| p.id).collect();
+        assert!(
+            range_ids.contains(&"cook_s"),
+            "range should still merge OVEN_BASE cook_s"
+        );
+        assert!(
+            range_ids.contains(&"door_locked_clean"),
+            "range should still merge OVEN_BASE door_locked_clean"
+        );
+        assert!(
+            range_ids.contains(&"sabbath_mode"),
+            "range should advertise cavity depth via RANGE_EXTRA (not OVEN_DEPTH merge)"
+        );
+        assert_eq!(
+            range_ids.iter().filter(|&&id| id == "timer_s").count(),
+            1,
+            "range must keep a single cooktop timer_s (no OVEN_DEPTH duplicate)"
+        );
+    }
+
+    #[test]
+    fn range_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::Range).unwrap();
+        for id in [
+            // Required composition surface / hob.
+            "class.range.surface",
+            "class.range.level",
+            "class.range.residual_heat",
+            // Cooktop depth (COOKTOP_POINTS composition).
+            "class.range.boost",
+            "class.range.timer_s",
+            "class.range.bridge",
+            "class.range.flame_out",
+            "class.range.ignition_fail",
+            "class.range.power_limit_w",
+            "class.range.keep_warm",
+            "class.range.hotspot_alert",
+            "class.range.timer_active",
+            "class.range.paused",
+            "class.range.surface_c",
+            "class.range.element_fault",
+            "class.range.pan_detect",
+            "class.range.flame_on",
+            // OVEN_BASE thin cavity.
+            "class.range.broil_level",
+            "class.range.convection_fan",
+            "class.range.steam_percent",
+            "class.range.cook_s",
+            "class.range.door_locked_clean",
+            "class.range.element_bake",
+            "class.range.element_broil",
+            // RANGE_EXTRA cavity depth (no timer_s duplicate).
+            "class.range.sabbath_mode",
+            "class.range.eco_mode",
+            "class.range.heater_on",
+            "class.range.high_temp_alarm",
+            "class.range.door_ajar",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical range"
+            );
+        }
+        // Meat probe + preheat via Temperature trait (not class probe_c).
+        let temp = cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Temperature)
+            .unwrap();
+        for id in [
+            "trait.temperature.probe_c",
+            "trait.temperature.probe_target_c",
+            "trait.temperature.probe_connected",
+            "trait.temperature.preheat_complete",
+        ] {
+            assert!(
+                temp.points.iter().any(|p| p.id == id),
+                "missing {id} in typical range temperature trait"
+            );
+        }
+        let probe = temp
+            .points
+            .iter()
+            .find(|p| p.id == "trait.temperature.probe_c")
+            .unwrap();
+        assert_eq!(
+            probe.zones.as_ref().unwrap(),
+            &["hob_1", "hob_2", "hob_3", "hob_4", "oven"].map(str::to_string)
+        );
+        // ChildLock already typical.
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::ChildLock)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.child_lock.child_lock"));
+        // Single cooktop timer_s (zoned) — not a second oven kitchen timer.
+        assert_eq!(
+            cap.class_points
+                .iter()
+                .filter(|p| p.id == "class.range.timer_s")
+                .count(),
+            1
+        );
+        let timer = cap
+            .class_points
+            .iter()
+            .find(|p| p.id == "class.range.timer_s")
+            .unwrap();
+        assert_eq!(
+            timer.zones.as_ref().unwrap(),
+            &["hob_1", "hob_2", "hob_3", "hob_4", "oven"].map(str::to_string)
+        );
+
+        cap.validate_write("class.range.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.range.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.range.boost#hob_1", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.range.timer_s#hob_2", &Value::DurationS(600))
+            .unwrap();
+        cap.validate_write("class.range.keep_warm#hob_1", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.range.power_limit_w", &Value::U32(4800))
+            .unwrap();
+        cap.validate_write("class.range.broil_level", &Value::Enum("high".into()))
+            .unwrap();
+        cap.validate_write("class.range.convection_fan", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.range.steam_percent", &Value::Percent(40.0))
+            .unwrap();
+        cap.validate_write("class.range.cook_s", &Value::DurationS(1800))
+            .unwrap();
+        cap.validate_write("trait.temperature.probe_target_c", &Value::F32(65.0))
+            .unwrap();
+        cap.validate_write("trait.child_lock.child_lock", &Value::Bool(true))
+            .unwrap();
+        let err = cap
+            .validate_write("class.range.heater_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.range.high_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.range.door_ajar", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.range.door_locked_clean", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.range.element_bake", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.range.element_broil", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.range.surface", &Value::Enum("gas".into()))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.range.hotspot_alert#hob_1", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.range.paused", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("trait.temperature.probe_c#oven", &Value::F32(55.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("trait.temperature.probe_connected", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("trait.temperature.preheat_complete", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
     }
 
     #[test]
