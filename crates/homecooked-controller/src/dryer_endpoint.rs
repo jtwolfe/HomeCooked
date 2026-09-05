@@ -7,9 +7,12 @@
 //!
 //! Also exposes catalog cycle points so a TCP client can **start dryer cotton**
 //! (`trait.cycle.start` → [`DryerController::start_dry`]) and read
-//! `trait.cycle.cycle_state` / `trait.cycle.cycle_phase`. Lab-only
-//! `class.dryer.sim_tick` advances one host sim tick (DryOptions / cancel /
-//! pause / typical_capability remain follow-ups). No TLS / OAuth.
+//! `trait.cycle.cycle_state` / `trait.cycle.cycle_phase`. Clients write
+//! DryOptions knobs as adjacent catalog setpoints (`class.dryer.dryness`,
+//! `class.dryer.heat_level`) **before** void `trait.cycle.start` — same order
+//! as washer-dryer-io §7 (maps onto [`DryOptions`] humidity / temp targets).
+//! Lab-only `class.dryer.sim_tick` advances one host sim tick (cancel / pause /
+//! typical_capability remain follow-ups). No TLS / OAuth.
 
 use homecooked_hal::{bridge, ChannelId, HalValue};
 use homecooked_protocol::{
@@ -18,7 +21,7 @@ use homecooked_protocol::{
     WriteOp, WriteRequest, WriteResponse,
 };
 use homecooked_schema::{
-    trait_table, AccessMode, ApplianceClassId, CapabilityModel, CommandArg, ErrorCode,
+    class_table, trait_table, AccessMode, ApplianceClassId, CapabilityModel, CommandArg, ErrorCode,
     PointCapability, TraitCapability, TraitId, Value, ValueRange, ValueType, CATALOG_VERSION,
     DEFAULT_CLASS_VERSION,
 };
@@ -37,6 +40,9 @@ const HEATER_POINT: &str = "class.dryer.heater_enable";
 const DOOR_LOCK_POINT: &str = "class.dryer.door_lock";
 const BLOWER_POINT: &str = "class.dryer.blower";
 const DOOR_LOCK_FB_POINT: &str = "class.dryer.door_lock_fb";
+/// Catalog DryOptions setpoints (written before `trait.cycle.start`).
+const DRYNESS_POINT: &str = "class.dryer.dryness";
+const HEAT_LEVEL_POINT: &str = "class.dryer.heat_level";
 
 const HEATER_CHANNEL: &str = "aout.heater_enable";
 const DOOR_LOCK_CHANNEL: &str = "aout.door_lock";
@@ -56,6 +62,12 @@ pub struct DryerControllerEndpoint {
     device_id: String,
     capability: CapabilityModel,
     controller: DryerController,
+    /// Pending DryOptions applied on the next `trait.cycle.start`.
+    dry_opts: DryOptions,
+    /// Wire token for [`DRYNESS_POINT`] (maps onto [`DryOptions::target_humidity_rh`]).
+    dryness: String,
+    /// Wire token for [`HEAT_LEVEL_POINT`] (maps onto [`DryOptions::target_temp_c`]).
+    heat_level: String,
 }
 
 impl DryerControllerEndpoint {
@@ -70,6 +82,9 @@ impl DryerControllerEndpoint {
             device_id: device_id.into(),
             capability: lab_dryer_capability(),
             controller: DryerController::dryer_cotton_demo()?,
+            dry_opts: DryOptions::default(),
+            dryness: DEFAULT_DRYNESS.into(),
+            heat_level: DEFAULT_HEAT_LEVEL.into(),
         })
     }
 
@@ -294,6 +309,8 @@ impl DryerControllerEndpoint {
                     phase.into()
                 }))
             }
+            DRYNESS_POINT => Ok(Value::Enum(self.dryness.clone())),
+            HEAT_LEVEL_POINT => Ok(Value::Enum(self.heat_level.clone())),
             _ => {
                 let channel = point_to_channel(point_id).ok_or_else(|| {
                     ErrorBody::new(
@@ -329,8 +346,43 @@ impl DryerControllerEndpoint {
                     );
                 }
                 self.controller
-                    .start_dry(DryOptions::default())
+                    .start_dry(self.dry_opts.clone())
                     .map_err(|e| cycle_error_body(&point_id, e))
+            }
+            DRYNESS_POINT => {
+                let token = match &op.value {
+                    Value::Enum(s) => s.as_str(),
+                    _ => {
+                        return Err(ErrorBody::new(ErrorCode::InvalidType, "expected enum")
+                            .at_point(&point_id))
+                    }
+                };
+                let rh = dryness_to_humidity_rh(token).ok_or_else(|| {
+                    ErrorBody::new(ErrorCode::InvalidEnum, format!("unknown dryness {token}"))
+                        .at_point(&point_id)
+                })?;
+                self.dryness = token.into();
+                self.dry_opts.target_humidity_rh = rh;
+                Ok(())
+            }
+            HEAT_LEVEL_POINT => {
+                let token = match &op.value {
+                    Value::Enum(s) => s.as_str(),
+                    _ => {
+                        return Err(ErrorBody::new(ErrorCode::InvalidType, "expected enum")
+                            .at_point(&point_id))
+                    }
+                };
+                let temp = heat_level_to_temp_c(token).ok_or_else(|| {
+                    ErrorBody::new(
+                        ErrorCode::InvalidEnum,
+                        format!("unknown heat_level {token}"),
+                    )
+                    .at_point(&point_id)
+                })?;
+                self.heat_level = token.into();
+                self.dry_opts.target_temp_c = temp;
+                Ok(())
             }
             LAB_TICK_POINT => {
                 if !matches!(op.value, Value::Void) {
@@ -388,10 +440,12 @@ impl RequestHandler for DryerControllerEndpoint {
     }
 }
 
-/// Thin lab capability: HAL-backed dryer heater / door / blower points + cycle start/read.
+/// Thin lab capability: HAL-backed dryer heater / door / blower points + DryOptions
+/// setpoints + cycle start/read.
 pub fn lab_dryer_capability() -> CapabilityModel {
     let mut cap = CapabilityModel::new(ApplianceClassId::Dryer);
     cap.class_version = DEFAULT_CLASS_VERSION;
+    let dryer = class_table(ApplianceClassId::Dryer).expect("dryer class table");
     cap.class_points = vec![
         PointCapability {
             id: HEATER_POINT.into(),
@@ -433,6 +487,15 @@ pub fn lab_dryer_capability() -> CapabilityModel {
             resolution: None,
             zones: None,
         },
+        // Catalog DryOptions knobs (write before trait.cycle.start).
+        PointCapability::from_catalog(
+            DRYNESS_POINT,
+            dryer.class_point("dryness").expect("dryer dryness"),
+        ),
+        PointCapability::from_catalog(
+            HEAT_LEVEL_POINT,
+            dryer.class_point("heat_level").expect("dryer heat_level"),
+        ),
         // Lab-only tick (not catalog): advance host dryer cotton runtime one step.
         PointCapability {
             id: LAB_TICK_POINT.into(),
@@ -470,6 +533,32 @@ pub fn lab_dryer_capability() -> CapabilityModel {
         points: cycle_points,
     });
     cap
+}
+
+/// Defaults match [`DryOptions::default`] humidity / temp targets.
+const DEFAULT_DRYNESS: &str = "cupboard";
+const DEFAULT_HEAT_LEVEL: &str = "medium";
+
+/// Catalog `class.dryer.dryness` → [`DryOptions::target_humidity_rh`].
+fn dryness_to_humidity_rh(token: &str) -> Option<f64> {
+    match token {
+        "iron" => Some(40.0),
+        "cupboard" => Some(25.0),
+        "extra" => Some(15.0),
+        "damp" => Some(50.0),
+        _ => None,
+    }
+}
+
+/// Catalog `class.dryer.heat_level` → [`DryOptions::target_temp_c`].
+fn heat_level_to_temp_c(token: &str) -> Option<f64> {
+    match token {
+        "low" => Some(40.0),
+        "medium" => Some(55.0),
+        "high" => Some(70.0),
+        "air" => Some(25.0),
+        _ => None,
+    }
 }
 
 fn cycle_error_body(point_id: &str, err: Error) -> ErrorBody {
@@ -681,6 +770,71 @@ mod dryer_endpoint_tests {
             ep.handle_request(tick).payload,
             Payload::WriteOk(_)
         ));
+        assert_eq!(ep.controller().cycle_state().as_str(), "running");
+    }
+
+    #[test]
+    fn dry_options_over_wire_applied_on_start() {
+        let mut ep = DryerControllerEndpoint::dryer_lab().unwrap();
+
+        // Defaults advertised / readable before writes.
+        let read_defaults = Envelope::request(
+            Some(ep.device_id().into()),
+            Payload::Read(homecooked_protocol::ReadRequest {
+                points: vec![qid(DRYNESS_POINT), qid(HEAT_LEVEL_POINT)],
+                allow_partial: false,
+            }),
+        );
+        match ep.handle_request(read_defaults).payload {
+            Payload::ReadOk(body) => {
+                assert_eq!(body.values[0].value, Some(Value::Enum("cupboard".into())));
+                assert_eq!(body.values[1].value, Some(Value::Enum("medium".into())));
+            }
+            other => panic!("expected ReadOk defaults, got {other:?}"),
+        }
+
+        for (point, value) in [
+            (DRYNESS_POINT, Value::Enum("extra".into())),
+            (HEAT_LEVEL_POINT, Value::Enum("high".into())),
+        ] {
+            let env = Envelope::request(
+                Some(ep.device_id().into()),
+                Payload::Write(WriteRequest {
+                    writes: vec![WriteOp {
+                        id: qid(point),
+                        value,
+                    }],
+                    dry_run: false,
+                    atomic: false,
+                }),
+            );
+            assert!(
+                matches!(ep.handle_request(env).payload, Payload::WriteOk(_)),
+                "write {point}"
+            );
+        }
+
+        let start = Envelope::request(
+            Some(ep.device_id().into()),
+            Payload::Write(WriteRequest {
+                writes: vec![WriteOp {
+                    id: qid(CYCLE_START_POINT),
+                    value: Value::Void,
+                }],
+                dry_run: false,
+                atomic: false,
+            }),
+        );
+        assert!(matches!(
+            ep.handle_request(start).payload,
+            Payload::WriteOk(_)
+        ));
+
+        let opts = ep.controller().options();
+        assert_eq!(opts.target_humidity_rh, 15.0);
+        assert_eq!(opts.target_temp_c, 70.0);
+        // Host-only tick knobs stay at DryOptions defaults.
+        assert_eq!(opts.max_dry_ticks, DryOptions::default().max_dry_ticks);
         assert_eq!(ep.controller().cycle_state().as_str(), "running");
     }
 }

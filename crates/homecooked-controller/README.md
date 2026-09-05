@@ -47,8 +47,9 @@ lock+blower). Washer and dryer TCP also start cotton/dry via
 `cycle_phase`, plus lab-only `class.washer.sim_tick` /
 `class.dryer.sim_tick`. Washer **CottonOptions** over TCP via adjacent
 catalog writes (`class.washer.wash_temp_c` / `spin_rpm` before void
-`trait.cycle.start`). DryOptions / cancel / pause / typical_capability remain
-follow-up. No GPIO, TLS, or OAuth.
+`trait.cycle.start`). Dryer **DryOptions** via adjacent
+`class.dryer.dryness` / `heat_level` writes before void start. Cancel / pause /
+typical_capability remain follow-up. No GPIO, TLS, or OAuth.
 
 ## Tests
 
