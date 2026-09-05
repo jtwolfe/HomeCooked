@@ -5984,6 +5984,218 @@ mod tests {
     }
 
     #[test]
+    fn washer_dryer_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let wd = sim.spawn(ApplianceClassId::WasherDryer).unwrap();
+
+        assert_eq!(
+            sim.read_value(&wd, "class.washer_dryer.detergent_level_percent")
+                .unwrap(),
+            Value::Percent(80.0)
+        );
+        assert_eq!(
+            sim.read_value(&wd, "class.washer_dryer.unbalance").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wd, "class.washer_dryer.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wd, "class.washer_dryer.eco_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wd, "class.washer_dryer.door_ajar").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wd, "class.washer_dryer.door_locked")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wd, "class.washer_dryer.water_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wd, "class.washer_dryer.overflow_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wd, "class.washer_dryer.detergent_low")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wd, "class.washer_dryer.timer_s").unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&wd, "class.washer_dryer.anti_crease")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wd, "class.washer_dryer.dryness_percent")
+                .unwrap(),
+            Value::Percent(100.0)
+        );
+        assert_eq!(
+            sim.read_value(&wd, "class.washer_dryer.vent_blocked")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wd, "class.washer_dryer.drain_tank")
+                .unwrap(),
+            Value::Enum("ok".into())
+        );
+        assert_eq!(
+            sim.read_value(&wd, "class.washer_dryer.high_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wd, "class.washer_dryer.lint_full").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wd, "class.washer_dryer.dry_after_wash")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wd, "class.washer_dryer.max_dry_s").unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&wd, "trait.time_schedule.delay_start_s")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+
+        sim.write(&wd, "class.washer_dryer.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&wd, "class.washer_dryer.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&wd, "class.washer_dryer.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&wd, "class.washer_dryer.eco_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&wd, "class.washer_dryer.anti_crease", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&wd, "class.washer_dryer.anti_crease")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&wd, "class.washer_dryer.timer_s", Value::DurationS(7200))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&wd, "class.washer_dryer.timer_s").unwrap(),
+            Value::DurationS(7200)
+        );
+        sim.write(&wd, "class.washer_dryer.dry_after_wash", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&wd, "class.washer_dryer.dry_after_wash")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&wd, "class.washer_dryer.max_dry_s", Value::DurationS(5400))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&wd, "class.washer_dryer.max_dry_s").unwrap(),
+            Value::DurationS(5400)
+        );
+        sim.write(
+            &wd,
+            "trait.time_schedule.delay_start_s",
+            Value::DurationS(1800),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&wd, "trait.time_schedule.delay_start_s")
+                .unwrap(),
+            Value::DurationS(1800)
+        );
+
+        let err = sim
+            .write(
+                &wd,
+                "class.washer_dryer.detergent_level_percent",
+                Value::Percent(50.0),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&wd, "class.washer_dryer.unbalance", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &wd,
+                "class.washer_dryer.dryness_percent",
+                Value::Percent(50.0),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&wd, "class.washer_dryer.vent_blocked", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &wd,
+                "class.washer_dryer.drain_tank",
+                Value::Enum("full".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&wd, "class.washer_dryer.door_ajar", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&wd, "class.washer_dryer.door_locked", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &wd,
+                "class.washer_dryer.water_temp_alarm",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&wd, "class.washer_dryer.overflow_alarm", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&wd, "class.washer_dryer.detergent_low", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&wd, "class.washer_dryer.high_temp_alarm", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&wd, "class.washer_dryer.lint_full", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {

@@ -1550,9 +1550,28 @@ const WASHER_DRYER_EXTRA: &[CatalogPoint] = &[
         AccessMode::RW,
         false,
     ),
+    // Stream 7 undepened Tier-A deepen: dryer-specific depth not already on
+    // WASHER_POINTS. Do not merge DRYER_DEPTH — sabbath/eco/door/timer would
+    // duplicate washer laundry ids; advertise those from the washer slice.
+    v(
+        "high_temp_alarm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "lint_full",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
 ];
 
-const WASHER_DRYER_POINT_COUNT: usize = 38;
+const WASHER_DRYER_POINT_COUNT: usize = 40;
 const WASHER_DRYER_MERGED: [CatalogPoint; WASHER_DRYER_POINT_COUNT] =
     concat3(WASHER_POINTS, DRYER_BASE, WASHER_DRYER_EXTRA);
 const WASHER_DRYER_POINTS: &[CatalogPoint] = &WASHER_DRYER_MERGED;

@@ -254,11 +254,11 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             _ => Value::Percent(0.0),
         },
         "detergent_level_percent" => match ctx.identity.class_id {
-            ApplianceClassId::Washer => Value::Percent(80.0),
+            ApplianceClassId::Washer | ApplianceClassId::WasherDryer => Value::Percent(80.0),
             _ => Value::Percent(0.0),
         },
         "dryness_percent" => match ctx.identity.class_id {
-            ApplianceClassId::Dryer => Value::Percent(100.0),
+            ApplianceClassId::Dryer | ApplianceClassId::WasherDryer => Value::Percent(100.0),
             _ => Value::Percent(0.0),
         },
         "hot_setpoint_c" => match ctx.identity.class_id {

@@ -715,13 +715,19 @@ remote, maintenance, audio, safety.
 
 ### Class `washer_dryer`
 
-All of `washer` and `dryer` class points, plus:
+Composition: all of `washer` class points + shared `DRYER_BASE` dryer points +
+combo extras below. Washer deepen ids (sabbath/eco/door/alarms/detergent/timer)
+are inherited from the washer slice; dryer-only `high_temp_alarm` / `lint_full`
+are listed here on the combo EXTRA (not via `DRYER_DEPTH`, which would
+duplicate laundry ids).
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
 | `combo_mode` | enum | — | `wash_only` `dry_only` `wash_and_dry` | r/w | req | |
 | `dry_after_wash` | bool | — | | r/w | opt | Implies `wash_and_dry` |
 | `max_dry_s` | duration_s | second | 0–18000 | r/w | opt | Cap on the dry portion |
+| `high_temp_alarm` | bool | — | | r/e | opt | Drum / exhaust overtemp (dryer-specific; washer uses `water_temp_alarm`) |
+| `lint_full` | bool | — | | r/e | opt | Lint trap full bit (alongside `lint_filter`) |
 
 ---
 
