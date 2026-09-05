@@ -33,7 +33,7 @@ What exists on `main` today:
 | `homecooked-bridge` | Bridge slice: Modbus + Matter + Zigbee + BACnet mock maps |
 | `homecooked-transport` | Lab TCP: length-prefixed JSON envelopes; optional PSK pairing; sim-backed server + client smoke |
 | `homecooked-hub` | Optional lab aggregator: multi-device Simulator behind one TCP port (not required for devices) |
-| `homecooked-conformance` | Light Stream 7 smoke: Tier-A / Tier-B / cotton / kettle procedure / thermal / Modbus / Matter / Zigbee / BACnet / TCP / TCP PSK |
+| `homecooked-conformance` | Light Stream 7 smoke: Tier-A / Tier-B / cotton / kettle procedure / thermal / Modbus / Matter / Zigbee / BACnet / TCP / TCP PSK / hub lab set |
 | CI | rustfmt, clippy (`-D warnings`), `cargo test --workspace`, wasm-pack |
 
 **25 Tier-A + 31 Tier-B classes are statically tabled** (all 56 catalog ids;
@@ -258,7 +258,7 @@ multiple small PRs.
    **Partial (smoke)** — `homecooked-conformance` runs named end-to-end
    scenarios (Tier-A catalog/sim/describe, washer cotton controller, kettle
    procedure, thermal fridge→DHW, Modbus water_heater, Matter/Zigbee/BACnet
-   kettle, TCP kettle, TCP PSK describe/ping). Deeper
+   kettle, TCP kettle, TCP PSK describe/ping, optional lab hub discover/describe). Deeper
    catalog hygiene / major-version / write-denial matrices remain follow-up.
 3. CI runs the conformance suite (or a `cargo test` subset tagged as such).
    **Done (via workspace)** — `cargo test --workspace` includes
@@ -392,3 +392,4 @@ the code that implements them.
 | 0.1.5 | Stream 7 thermal plant UI (`homecooked-wasm` + simulator-web thermal panel) |
 | 0.1.8 | Stream 4 lab TCP PSK pairing (`homecooked-transport`); TLS/OAuth still out of scope |
 | 0.1.9 | Optional lab hub (`homecooked-hub`): multi-device TCP aggregator; devices do not require it |
+| 0.1.10 | Stream 7 conformance: optional lab hub smoke (`hub_lab_set_discover_describe`) |

@@ -1,7 +1,7 @@
 # homecooked-conformance
 
 Light **conformance smoke suite** (Stream 7): exercises catalog ↔ schema ↔
-sim ↔ protocol ↔ TCP (plus controller / procedure / thermal / Modbus + Matter + Zigbee + BACnet bridges)
+sim ↔ protocol ↔ TCP ↔ optional hub (plus controller / procedure / thermal / Modbus + Matter + Zigbee + BACnet bridges)
 end-to-end without a heavy test framework.
 
 Failures are named by scenario so CI output stays actionable.
@@ -35,3 +35,5 @@ Also covered by `cargo test --workspace` (CI).
    kettle on an ephemeral port (`homecooked-transport`)
 10. **tcp_psk_good_secret_describe_ping** — TCP PSK pairing with a good shared
    secret: describe + ping against a sim kettle (`homecooked-transport`)
+11. **hub_lab_set_discover_describe** — optional `LabHub` lab set over TCP:
+   Discover ≥3 devices, describe kettle (`homecooked-hub`)
