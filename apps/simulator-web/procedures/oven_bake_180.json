@@ -1,0 +1,44 @@
+{
+  "id": "oven_bake_180",
+  "name": "Oven bake at 180C",
+  "description": "Set program bake, setpoint 180 °C, start cycle, wait until cavity ≥ 170 °C, then assert.",
+  "catalog_version": "0.1.0",
+  "devices": [
+    { "role": "oven", "class_id": "oven" }
+  ],
+  "steps": [
+    {
+      "id": "program",
+      "action": "write",
+      "target": { "role": "oven", "point": "trait.program.program" },
+      "value": { "type": "enum", "value": "bake" }
+    },
+    {
+      "id": "setpoint",
+      "action": "write",
+      "target": { "role": "oven", "point": "trait.temperature.setpoint_c" },
+      "value": { "type": "f32", "value": 180.0 }
+    },
+    {
+      "id": "start",
+      "action": "command",
+      "target": { "role": "oven", "point": "trait.cycle.start" },
+      "value": { "type": "void" }
+    },
+    {
+      "id": "wait_heat",
+      "action": "wait",
+      "target": { "role": "oven" },
+      "timeout_s": 60,
+      "guards": [
+        { "point": "trait.temperature.current_c", "gte": { "type": "f32", "value": 170.0 } }
+      ]
+    },
+    {
+      "id": "assert_temp",
+      "op": "guard",
+      "target": { "role": "oven" },
+      "guard": { "point": "trait.temperature.current_c", "gte": { "type": "f32", "value": 170.0 } }
+    }
+  ]
+}

@@ -5,7 +5,7 @@ use homecooked_sim::Simulator;
 
 use crate::{
     run, DeviceBindings, FailReason, Procedure, RunStatus, StepAction, DISHWASHER_DHW_PREHEAT_JSON,
-    KETTLE_HEAT_80_JSON, REHEAT_DOMINOS_MICROWAVE_JSON, WASH_THEN_DRY_JSON,
+    KETTLE_HEAT_80_JSON, OVEN_BAKE_180_JSON, REHEAT_DOMINOS_MICROWAVE_JSON, WASH_THEN_DRY_JSON,
 };
 
 fn kettle_bindings(sim: &mut Simulator) -> DeviceBindings {
@@ -16,6 +16,11 @@ fn kettle_bindings(sim: &mut Simulator) -> DeviceBindings {
 fn microwave_bindings(sim: &mut Simulator) -> DeviceBindings {
     let id = sim.spawn(ApplianceClassId::Microwave).unwrap();
     DeviceBindings::new().bind("microwave", id.as_str())
+}
+
+fn oven_bindings(sim: &mut Simulator) -> DeviceBindings {
+    let id = sim.spawn(ApplianceClassId::Oven).unwrap();
+    DeviceBindings::new().bind("oven", id.as_str())
 }
 
 fn laundry_bindings(sim: &mut Simulator) -> DeviceBindings {
@@ -44,6 +49,7 @@ fn bundled_example_constants_parse() {
             "reheat_dominos_microwave",
             "wash_then_dry",
             "dishwasher_dhw_preheat",
+            "oven_bake_180",
         ]
     );
 }
@@ -77,6 +83,54 @@ fn parse_inline_kettle_and_alias_fields() {
     let doc = Procedure::load_json(KETTLE_HEAT_80_JSON).unwrap();
     assert_eq!(doc.steps[3].action, StepAction::Assert);
     assert_eq!(doc.steps[3].guards().len(), 1);
+}
+
+#[test]
+fn parse_oven_bake_180_fixture() {
+    let doc = Procedure::load_json(OVEN_BAKE_180_JSON).unwrap();
+    assert_eq!(doc.id, "oven_bake_180");
+    assert_eq!(doc.name, "Oven bake at 180C");
+    assert_eq!(doc.devices.len(), 1);
+    assert_eq!(doc.devices[0].role, "oven");
+    assert_eq!(doc.steps.len(), 5);
+    assert_eq!(doc.steps[0].id, "program");
+    assert_eq!(doc.steps[0].point(), Some("trait.program.program"));
+    assert_eq!(doc.steps[1].id, "setpoint");
+    assert_eq!(doc.steps[2].action, StepAction::Command);
+    assert_eq!(doc.steps[3].action, StepAction::Wait);
+    assert_eq!(doc.steps[4].action, StepAction::Assert);
+}
+
+#[test]
+fn oven_bake_180_happy_path_against_sim() {
+    let doc = Procedure::load_json(OVEN_BAKE_180_JSON).unwrap();
+    let mut sim = Simulator::new();
+    let bindings = oven_bindings(&mut sim);
+    let result = run(&doc, &mut sim, &bindings);
+    assert!(
+        result.is_completed(),
+        "expected completed, got {:?}",
+        result.status
+    );
+    assert_eq!(result.outcomes.len(), 5);
+    assert!(result.outcomes.iter().all(|o| o.ok));
+
+    let oven = bindings.get("oven").unwrap();
+    let current = sim
+        .read_value(
+            &homecooked_core::DeviceId::new(oven),
+            "trait.temperature.current_c",
+        )
+        .unwrap();
+    let c = current.as_f64().expect("current_c numeric");
+    assert!(c >= 170.0, "current_c={c}");
+    let program = sim
+        .read_value(
+            &homecooked_core::DeviceId::new(oven),
+            "trait.program.program",
+        )
+        .unwrap();
+    assert_eq!(program, homecooked_schema::Value::Enum("bake".into()));
 }
 
 #[test]

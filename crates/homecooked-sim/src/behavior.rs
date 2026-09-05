@@ -1,4 +1,4 @@
-//! Simple per-class simulation: kettle heat, washer/dryer/microwave cycle progress.
+//! Simple per-class simulation: kettle/oven heat, washer/dryer/microwave cycle progress.
 
 use homecooked_core::{DeviceState, RegisteredDevice};
 use homecooked_protocol::WriteOp;
@@ -12,6 +12,8 @@ pub const WASHER_CYCLE_S: u32 = 60;
 pub const DRYER_CYCLE_S: u32 = 30;
 /// Fallback microwave cook duration when `class.microwave.cook_s` is missing.
 pub const DEFAULT_MICROWAVE_COOK_S: u32 = 60;
+/// Degrees celsius per simulated second while the oven bake cycle is running.
+pub const OVEN_HEAT_RATE_C_PER_S: f32 = 10.0;
 
 pub fn apply_writes(dev: &mut RegisteredDevice, writes: &[WriteOp]) {
     for op in writes {
@@ -73,6 +75,11 @@ fn start_cycle(dev: &mut RegisteredDevice) {
             set_enum(&mut dev.state, "trait.power.power_state", "on");
             set_enum(&mut dev.state, "trait.heater.heater_state", "on");
         }
+        ApplianceClassId::Oven => {
+            set_enum(&mut dev.state, "trait.power.power_state", "on");
+            set_enum(&mut dev.state, "trait.heater.heater_state", "on");
+            set_string(&mut dev.state, "trait.cycle.cycle_phase", "heating");
+        }
         _ => {}
     }
 }
@@ -108,6 +115,7 @@ pub fn tick_device(dev: &mut RegisteredDevice, dt_ms: u64) {
         }
         ApplianceClassId::Dryer => tick_dryer(&mut dev.state, dt_ms),
         ApplianceClassId::Microwave => tick_microwave(&mut dev.state, dt_ms),
+        ApplianceClassId::Oven => tick_oven(&mut dev.state, dt_ms),
         _ => {}
     }
 }
@@ -215,6 +223,37 @@ fn tick_microwave(state: &mut DeviceState, dt_ms: u64) {
         set_percent(state, "trait.cycle.progress_percent", 100.0);
         set_string(state, "trait.cycle.cycle_phase", "complete");
         set_enum(state, "trait.power.power_state", "standby");
+    }
+}
+
+fn tick_oven(state: &mut DeviceState, dt_ms: u64) {
+    if !enum_is(state, "trait.cycle.cycle_state", "running") {
+        return;
+    }
+    let mut current = f32_of(state, "trait.temperature.current_c").unwrap_or(20.0);
+    let setpoint = f32_of(state, "trait.temperature.setpoint_c").unwrap_or(180.0);
+    let dt_s = dt_ms as f32 / 1000.0;
+    current = (current + OVEN_HEAT_RATE_C_PER_S * dt_s).min(setpoint);
+    state.insert("trait.temperature.current_c", Value::F32(current));
+    let add_s = (dt_ms / 1000) as u32;
+    if add_s > 0 {
+        let elapsed = duration_of(state, "trait.cycle.elapsed_s").saturating_add(add_s);
+        set_duration(state, "trait.cycle.elapsed_s", elapsed);
+    }
+    if current >= setpoint {
+        set_enum(state, "trait.heater.heater_state", "off");
+        set_enum(state, "trait.cycle.cycle_state", "complete");
+        set_percent(state, "trait.cycle.progress_percent", 100.0);
+        set_duration(state, "trait.cycle.remaining_s", 0);
+        set_string(state, "trait.cycle.cycle_phase", "complete");
+    } else {
+        set_enum(state, "trait.heater.heater_state", "on");
+        set_string(state, "trait.cycle.cycle_phase", "heating");
+        let remaining = ((setpoint - current) / OVEN_HEAT_RATE_C_PER_S).ceil() as u32;
+        set_duration(state, "trait.cycle.remaining_s", remaining);
+        let span = (setpoint - 20.0).max(1.0);
+        let progress = ((current - 20.0) / span * 100.0).clamp(0.0, 99.0);
+        set_percent(state, "trait.cycle.progress_percent", progress);
     }
 }
 

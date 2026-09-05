@@ -222,6 +222,8 @@ AI-generated protocols:
 
 ## 6. Relation to named programs
 
+Bundled oven example `oven_bake_180` writes `trait.program.program = bake` then a cavity setpoint before `start`.
+
 A procedure step may **select** a named program (`trait.program.program = eco`)
 and then `start`, or it may drive fine-grained setpoints when the device
 allows. Prefer named programs when they encode vendor-validated chemistry
@@ -243,3 +245,4 @@ exposes them and the recipe needs them (pizza crisp finish).
 | Version | Notes |
 |---------|--------|
 | 0.1.0 | Initial procedures sketch; recipes as procedures |
+| 0.1.1 | Bundled `oven_bake_180` example (program + setpoint + sim heat wait) |

@@ -20,7 +20,7 @@ use homecooked_hal::ChannelId;
 use homecooked_hub::{LabHub, LAB_KETTLE_ID};
 use homecooked_procedure::{
     run, DeviceBindings, Procedure, DISHWASHER_DHW_PREHEAT_JSON, KETTLE_HEAT_80_JSON,
-    WASH_THEN_DRY_JSON,
+    OVEN_BAKE_180_JSON, WASH_THEN_DRY_JSON,
 };
 use homecooked_protocol::{Envelope, Payload, PingBody, WriteOp};
 use homecooked_schema::{
@@ -261,6 +261,41 @@ pub fn procedure_kettle_happy_path() -> ScenarioResult {
         .ok_or_else(|| err(NAME, format!("current_c not numeric: {current:?}")))?;
     if c < 75.0 {
         return Err(err(NAME, format!("current_c={c}, expected >= 75")));
+    }
+    Ok(())
+}
+
+/// (3c) Oven bake procedure happy path via homecooked-procedure + sim heat tick.
+pub fn procedure_oven_bake_180() -> ScenarioResult {
+    const NAME: &str = "procedure_oven_bake_180";
+    let doc = Procedure::load_json(OVEN_BAKE_180_JSON)
+        .map_err(|e| err(NAME, format!("load procedure: {e}")))?;
+    let mut sim = Simulator::new();
+    let id = sim
+        .spawn(ApplianceClassId::Oven)
+        .map_err(|e| err(NAME, format!("spawn oven: {e}")))?;
+    let bindings = DeviceBindings::new().bind("oven", id.as_str());
+    let result = run(&doc, &mut sim, &bindings);
+    if !result.is_completed() {
+        return Err(err(
+            NAME,
+            format!("expected completed, got {:?}", result.status),
+        ));
+    }
+    let current = sim
+        .read_value(&DeviceId::new(id.as_str()), "trait.temperature.current_c")
+        .map_err(|e| err(NAME, format!("read current_c: {e}")))?;
+    let c = current
+        .as_f64()
+        .ok_or_else(|| err(NAME, format!("current_c not numeric: {current:?}")))?;
+    if c < 170.0 {
+        return Err(err(NAME, format!("current_c={c}, expected >= 170")));
+    }
+    let program = sim
+        .read_value(&DeviceId::new(id.as_str()), "trait.program.program")
+        .map_err(|e| err(NAME, format!("read program: {e}")))?;
+    if program != Value::Enum("bake".into()) {
+        return Err(err(NAME, format!("program={program:?}, expected bake")));
     }
     Ok(())
 }
@@ -1532,6 +1567,7 @@ pub fn all_scenarios() -> &'static [(&'static str, ScenarioFn)] {
         ("write_denial_matrix", write_denial_matrix),
         ("washer_cotton_controller", washer_cotton_controller),
         ("procedure_kettle_happy_path", procedure_kettle_happy_path),
+        ("procedure_oven_bake_180", procedure_oven_bake_180),
         ("procedure_wash_then_dry", procedure_wash_then_dry),
         ("thermal_fridge_dhw_demo", thermal_fridge_dhw_demo),
         (

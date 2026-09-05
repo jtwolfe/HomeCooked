@@ -57,7 +57,7 @@ Open <http://127.0.0.1:8080>.
    field for `thermal_port_attached_reservoir_id` (e.g. `dhw-tank`). Auto-shown
    when the point is present; hidden otherwise (no class-id hardcoding).
 5. Write settings / fire commands (`start`, `power_on`, …).
-6. Use **Tick** or **Auto tick** so simulated behavior (kettle heat, washer / dryer /
+6. Use **Tick** or **Auto tick** so simulated behavior (kettle / oven heat, washer / dryer /
    microwave progress) advances.
 
 Writes that fail capability checks (`out_of_range`, `not_writable`, …) show
@@ -69,7 +69,7 @@ The lower **Procedure** panel loads a bundled recipe or accepts pasted
 procedure JSON, then runs it through `homecooked-procedure` against the
 current simulator world.
 
-1. Pick a sample (**Heat kettle to 80C**, Domino’s microwave, or **Wash then dry**)
+1. Pick a sample (**Heat kettle to 80C**, Domino’s microwave, **Wash then dry**, or **Oven bake at 180C**)
    or paste JSON.
 2. **Load sample** fills the editor (WASM `get_example_procedure`, with a
    fetch fallback to `procedures/*.json`).
@@ -88,6 +88,7 @@ Results show completed/failed status, role bindings, and per-step ok/fail
 The kettle sample is the happy-path demo (sim heats ~5 °C/s). The microwave
 fixture writes cook settings and starts a cycle; sim ticks advance
 `trait.cycle.elapsed_s` toward `class.microwave.cook_s` so the wait step can complete.
+The oven bake sample sets `bake` + 180 °C; sim heats ~10 °C/s while the cycle runs.
 
 ## Thermal plant panel
 
