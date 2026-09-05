@@ -451,6 +451,69 @@ static DRYER_BASE: &[CatalogPoint] = &[
     ),
 ];
 
+/// Dryer-only optional depth (Stream 7 undepened Tier-A). Kept off `DRYER_BASE`
+/// so `washer_dryer` (which already merges washer sabbath/eco/door/timer points)
+/// does not get duplicate class point ids. Reuses tabled `anti_crease` as the
+/// wrinkle-prevent setting rather than inventing a parallel id.
+static DRYER_DEPTH: &[CatalogPoint] = &[
+    s(
+        "sabbath_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    ),
+    s(
+        "eco_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "door_ajar",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "door_locked",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "high_temp_alarm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "lint_full",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "timer_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 86400),
+        AccessMode::RWE,
+        false,
+    ),
+];
+
 const FRIDGE_TRAITS: &[TraitId] = &[
     TraitId::Identity,
     TraitId::Power,
@@ -623,7 +686,7 @@ const DRYER_THERMAL_PORTS: &[HeatPortSpec] = &[HeatPortSpec::new(
     None,
 )];
 
-const DRYER_MERGED: [CatalogPoint; 14] = concat2(DRYER_BASE, THERMAL_PORT_POINTS);
+const DRYER_MERGED: [CatalogPoint; 21] = concat3(DRYER_BASE, DRYER_DEPTH, THERMAL_PORT_POINTS);
 const DRYER_POINTS: &[CatalogPoint] = &DRYER_MERGED;
 
 const FRIDGE_MERGED: [CatalogPoint; 12] = concat2(COLD_CABINET_POINTS, THERMAL_PORT_POINTS);
