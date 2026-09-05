@@ -27,7 +27,7 @@ of truth**; code must track `docs/catalog/` and `docs/standard/`.
   universal control computer (HAL, I/O map, interlocks, cycle runtime);
   path from catalog semantics to real HV hardware (design sketch)
 - [`docs/standard/examples/washer-dryer-io.md`](docs/standard/examples/washer-dryer-io.md)
-  — washer and dryer I/O inventory, sample I/O map, `cotton` cycle outline
+  — washer and dryer I/O inventory, sample maps, washer/dryer `cotton` cycle outlines
 
 ## Workspace
 

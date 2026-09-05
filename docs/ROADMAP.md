@@ -24,8 +24,8 @@ What exists on `main` today:
 | `homecooked-core` | Device registry, capability-enforced read/write |
 | `homecooked-sim` | In-memory devices for the 25 Tier-A static classes |
 | `homecooked-wasm` + `apps/simulator-web` | wasm-bindgen JSON API; simulator-web grouped Tier-A picker (25 classes) + procedure runner + thermal plant panel |
-| `homecooked-io-map` | Chassis I/O map serde + validate |
-| `homecooked-interlock` | Declarative interlock rules (washer heater/spin) |
+| `homecooked-io-map` | Chassis I/O map serde + validate (washer + dryer fragments) |
+| `homecooked-interlock` | Declarative interlock rules (washer heater/spin; dryer heater/motor) |
 | `homecooked-hal` | Firmware HAL sketch + host `MockHal` |
 | `homecooked-procedure` | Procedure documents + sequential runner |
 | `homecooked-controller` | Host controller sim: IoMap + MockHal + interlocks + washer cotton / dryer cycles |
