@@ -221,6 +221,10 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             ApplianceClassId::CoffeeGrinder => Value::Bool(true),
             _ => Value::Bool(false),
         },
+        "die_present" => match ctx.identity.class_id {
+            ApplianceClassId::PastaMaker => Value::Bool(true),
+            _ => Value::Bool(false),
+        },
         "bean_level_percent" => match ctx.identity.class_id {
             ApplianceClassId::CoffeeGrinder => Value::Percent(70.0),
             _ => Value::Percent(0.0),

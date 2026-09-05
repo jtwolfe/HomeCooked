@@ -4928,6 +4928,113 @@ mod tests {
     }
 
     #[test]
+    fn pasta_maker_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let pm = sim.spawn(ApplianceClassId::PastaMaker).unwrap();
+
+        assert_eq!(
+            sim.read_value(&pm, "class.pasta_maker.die").unwrap(),
+            Value::Enum("spaghetti".into())
+        );
+        assert_eq!(
+            sim.read_value(&pm, "class.pasta_maker.jam").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&pm, "class.pasta_maker.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&pm, "class.pasta_maker.eco_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&pm, "class.pasta_maker.motor_on").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&pm, "class.pasta_maker.dough_ready")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&pm, "class.pasta_maker.hopper_empty")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&pm, "class.pasta_maker.die_present")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(
+            sim.read_value(&pm, "class.pasta_maker.overload_trip")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&pm, "class.pasta_maker.timer_s").unwrap(),
+            Value::DurationS(0)
+        );
+
+        sim.write(
+            &pm,
+            "class.pasta_maker.die",
+            Value::Enum("fettuccine".into()),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&pm, "class.pasta_maker.die").unwrap(),
+            Value::Enum("fettuccine".into())
+        );
+        sim.write(&pm, "class.pasta_maker.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&pm, "class.pasta_maker.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&pm, "class.pasta_maker.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&pm, "class.pasta_maker.eco_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&pm, "class.pasta_maker.timer_s", Value::DurationS(300))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&pm, "class.pasta_maker.timer_s").unwrap(),
+            Value::DurationS(300)
+        );
+
+        let err = sim
+            .write(&pm, "class.pasta_maker.jam", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&pm, "class.pasta_maker.motor_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&pm, "class.pasta_maker.dough_ready", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&pm, "class.pasta_maker.hopper_empty", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&pm, "class.pasta_maker.die_present", Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&pm, "class.pasta_maker.overload_trip", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {

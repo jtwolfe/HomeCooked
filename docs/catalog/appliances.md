@@ -1306,9 +1306,15 @@ Electric pasta extruder / mixer.
 `program`, `fault`, `energy`, `safety`.
 
 **Typical controllable settings:** program (`mix`, `extrude`), die type
-(if not sensed), portion.
+(if not sensed), portion; sabbath / eco; delay timer.
 
-**Typical readable state:** mixing / extruding, lid, hopper, jam.
+**Typical readable state:** mixing / extruding, jam, motor on, dough ready,
+hopper empty, die present, overload trip.
+
+**Notes:**
+- Catalog depth: optional class points include sabbath, eco, `motor_on`,
+  `dough_ready`, `hopper_empty`, `die_present`, `overload_trip`, and `timer_s`,
+  plus typical `die` / `jam` (see variables-and-settings).
 
 ### `steam_cooker`
 
