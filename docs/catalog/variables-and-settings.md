@@ -1694,11 +1694,17 @@ No raw gas-valve command.
 | `capacity_remaining` | f32 | — | grains or m³ as advertised | r/e | opt | Unit in capabilities |
 | `capacity_unit` | enum | — | `grain` `m3` | r | opt | |
 | `salt_level` | enum | — | `empty` `low` `ok` `unknown` | r/e | opt | |
-| `bypass` | bool | — | | r/w/e | opt | |
+| `bypass` | bool | — | | r/w/e | opt | Softener valve bypass |
 | `regen_now` | command | void | — | w | opt | |
 | `treated_l` | f32 | liter | 0+ | r | opt | |
+| `sabbath_mode` | bool | — | | r/w/e | opt | Suppress beeps / delay regen display |
+| `eco_mode` | bool | — | | r/w | opt | Salt / water-saving regen profile |
+| `regenerating` | bool | — | | r/e | opt | Regeneration cycle active |
+| `salt_low` | bool | — | | r/e | opt | Salt low alarm (alongside `salt_level`) |
+| `timer_s` | duration_s | second | 0–3600 | r/w/e | opt | Delay start / remaining timer |
 
-Hardness input uses `trait.water.hardness_ppm` / `hardness_gpg`.
+Hardness input uses `trait.water.hardness_ppm` / `hardness_gpg`. Resin bed life
+uses `trait.filter.life_percent` (not a class `resin_life_percent`).
 
 ---
 

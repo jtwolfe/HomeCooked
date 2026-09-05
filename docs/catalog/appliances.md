@@ -1449,18 +1449,24 @@ Whitegoods-adjacent plant in the home.
 Ion-exchange or similar water softener.
 
 **Typical traits:** `identity`, `power`, `connectivity`, `water`, `cycle`,
-`fault`, `energy`, `maintenance`, `time_schedule`.
+`filter`, `fault`, `energy`, `maintenance`, `time_schedule`.
 
 **Typical controllable settings:** hardness input (if not sensed), regeneration
-now, regen schedule / threshold, salt reminder reset.
+now, regen schedule / threshold, salt reminder reset, sabbath, eco, bypass,
+`timer_s`.
 
 **Typical readable state:**
 
 - Softening / regenerating / bypass, remaining capacity (grains or m³)
-- Salt level, water treated volume, valve position, leak
+- Salt level / `salt_low`, water treated volume, valve position, leak
+- Resin / media life via `trait.filter.life_percent`
 
 **Notes:** Bypass may be writable. Do not expose raw brine-valve timing unless
-as a vendor service mode.
+as a vendor service mode. Catalog depth: optional class points include sabbath,
+eco, `regenerating`, `salt_low`, and `timer_s`, plus thin-table
+`capacity_remaining` / `salt_level` / `bypass` / `treated_l`; hardness uses
+`trait.water.hardness_ppm` and resin life uses `trait.filter.life_percent`
+(see variables-and-settings).
 
 ### `water_filter`
 
@@ -1645,7 +1651,7 @@ should consider advertising. Optional traits are in parentheses.
 | `trash_compactor` | identity, power, connectivity, motor, cycle, door_lid, child_lock, fault, energy, safety |
 | `water_heater` | identity, power, connectivity, temperature, heater, water, fault, energy, time_schedule, safety, maintenance |
 | `boiler` | identity, power, connectivity, temperature, heater, water, fault, energy, time_schedule, safety, maintenance |
-| `water_softener` | identity, power, connectivity, water, cycle, fault, energy, maintenance, time_schedule |
+| `water_softener` | identity, power, connectivity, water, cycle, filter, fault, energy, maintenance, time_schedule |
 | `water_filter` | identity, power, connectivity, water, filter, fault, maintenance, (dispense) |
 | `hvac` | identity, power, connectivity, temperature, humidity, fan, filter, fault, energy, time_schedule, zone, safety, maintenance |
 | `dehumidifier` | identity, power, connectivity, humidity, fan, water, filter, fault, energy, time_schedule |

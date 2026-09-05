@@ -188,6 +188,18 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
         "ch_setpoint_c" => Value::F32(60.0),
         "flow_c" => Value::F32(55.0),
         "pressure_bar" => Value::F32(1.5),
+        "capacity_remaining" => match ctx.identity.class_id {
+            ApplianceClassId::WaterSoftener => Value::F32(20_000.0),
+            _ => Value::F32(numeric_default(point)),
+        },
+        "salt_level" => match ctx.identity.class_id {
+            ApplianceClassId::WaterSoftener => Value::Enum("ok".into()),
+            _ => first_enum(point).unwrap_or_else(|| Value::Enum("unknown".into())),
+        },
+        "treated_l" => match ctx.identity.class_id {
+            ApplianceClassId::WaterSoftener => Value::F32(0.0),
+            _ => Value::F32(numeric_default(point)),
+        },
         "brew_setpoint_c" => Value::F32(93.0),
         "shot_ml" => match ctx.identity.class_id {
             ApplianceClassId::EspressoMachine => Value::U16(36),
@@ -391,6 +403,7 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
         },
         "hardness_ppm" => match ctx.identity.class_id {
             ApplianceClassId::SteamOven => Value::U16(120),
+            ApplianceClassId::WaterSoftener => Value::U16(180),
             _ => Value::U16(int_min(point, 0) as u16),
         },
         "surface_c" => match ctx.identity.class_id {
@@ -433,6 +446,7 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             ApplianceClassId::IceMaker => Value::Percent(80.0),
             ApplianceClassId::RangeHood => Value::Percent(75.0),
             ApplianceClassId::WaterDispenser => Value::Percent(85.0),
+            ApplianceClassId::WaterSoftener => Value::Percent(90.0),
             _ => Value::Percent(0.0),
         },
         "current_rh" => match ctx.identity.class_id {

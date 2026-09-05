@@ -5454,6 +5454,161 @@ mod tests {
     }
 
     #[test]
+    fn water_softener_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let softener = sim.spawn(ApplianceClassId::WaterSoftener).unwrap();
+
+        assert_eq!(
+            sim.read_value(&softener, "class.water_softener.capacity_remaining")
+                .unwrap(),
+            Value::F32(20_000.0)
+        );
+        assert_eq!(
+            sim.read_value(&softener, "class.water_softener.salt_level")
+                .unwrap(),
+            Value::Enum("ok".into())
+        );
+        assert_eq!(
+            sim.read_value(&softener, "class.water_softener.bypass")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&softener, "class.water_softener.treated_l")
+                .unwrap(),
+            Value::F32(0.0)
+        );
+        assert_eq!(
+            sim.read_value(&softener, "class.water_softener.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&softener, "class.water_softener.eco_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&softener, "class.water_softener.regenerating")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&softener, "class.water_softener.salt_low")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&softener, "class.water_softener.timer_s")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&softener, "trait.water.hardness_ppm")
+                .unwrap(),
+            Value::U16(180)
+        );
+        assert_eq!(
+            sim.read_value(&softener, "trait.filter.life_percent")
+                .unwrap(),
+            Value::Percent(90.0)
+        );
+
+        sim.write(&softener, "class.water_softener.bypass", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&softener, "class.water_softener.bypass")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(
+            &softener,
+            "class.water_softener.sabbath_mode",
+            Value::Bool(true),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&softener, "class.water_softener.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(
+            &softener,
+            "class.water_softener.eco_mode",
+            Value::Bool(true),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&softener, "class.water_softener.eco_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(
+            &softener,
+            "class.water_softener.timer_s",
+            Value::DurationS(45),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&softener, "class.water_softener.timer_s")
+                .unwrap(),
+            Value::DurationS(45)
+        );
+        sim.write(&softener, "trait.water.hardness_ppm", Value::U16(250))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&softener, "trait.water.hardness_ppm")
+                .unwrap(),
+            Value::U16(250)
+        );
+
+        let err = sim
+            .write(
+                &softener,
+                "class.water_softener.capacity_remaining",
+                Value::F32(1000.0),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &softener,
+                "class.water_softener.salt_level",
+                Value::Enum("low".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &softener,
+                "class.water_softener.treated_l",
+                Value::F32(10.0),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &softener,
+                "class.water_softener.regenerating",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &softener,
+                "class.water_softener.salt_low",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&softener, "trait.filter.life_percent", Value::Percent(50.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {
