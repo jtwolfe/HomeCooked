@@ -188,3 +188,4 @@ ordinary HomeCooked reads/writes on vendor or experimental points.
 | Version | Notes |
 |---------|--------|
 | 0.1.0 | Initial thermal / hydraulic coupling sketch |
+| 0.1.0+ | First executable plant slice in `homecooked-thermal` (types, registry, offer/accept, tick). Sketch text unchanged; types remain experimental / not catalog ids. |

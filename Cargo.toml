@@ -11,6 +11,7 @@ members = [
     "crates/homecooked-hal",
     "crates/homecooked-procedure",
     "crates/homecooked-controller",
+    "crates/homecooked-thermal",
 ]
 
 [workspace.package]
