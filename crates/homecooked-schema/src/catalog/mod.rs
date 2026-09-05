@@ -760,6 +760,20 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "timer_s"
         );
     }
+    // Stream 7 catalog depth: dehydrator optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::Dehydrator {
+        return matches!(
+            point.id,
+            "sabbath_mode"
+                | "eco_mode"
+                | "heater_on"
+                | "fan_on"
+                | "high_temp_alarm"
+                | "door_ajar"
+                | "timer_s"
+                | "tray_count"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -3016,6 +3030,55 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.bread_maker.lid_open", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn dehydrator_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::Dehydrator).unwrap();
+        for id in [
+            "class.dehydrator.cook_s",
+            "class.dehydrator.sabbath_mode",
+            "class.dehydrator.eco_mode",
+            "class.dehydrator.heater_on",
+            "class.dehydrator.fan_on",
+            "class.dehydrator.high_temp_alarm",
+            "class.dehydrator.door_ajar",
+            "class.dehydrator.timer_s",
+            "class.dehydrator.tray_count",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical dehydrator"
+            );
+        }
+        cap.validate_write("class.dehydrator.cook_s", &Value::DurationS(28800))
+            .unwrap();
+        cap.validate_write("class.dehydrator.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.dehydrator.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.dehydrator.timer_s", &Value::DurationS(3600))
+            .unwrap();
+        let err = cap
+            .validate_write("class.dehydrator.heater_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.dehydrator.fan_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.dehydrator.high_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.dehydrator.door_ajar", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.dehydrator.tray_count", &Value::U8(8))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }
