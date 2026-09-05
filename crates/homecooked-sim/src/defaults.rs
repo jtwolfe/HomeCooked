@@ -246,7 +246,11 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             _ => Value::Bool(false),
         },
         "bowl_present" => match ctx.identity.class_id {
-            ApplianceClassId::FoodProcessor => Value::Bool(true),
+            ApplianceClassId::FoodProcessor | ApplianceClassId::StandMixer => Value::Bool(true),
+            _ => Value::Bool(false),
+        },
+        "head_down" => match ctx.identity.class_id {
+            ApplianceClassId::StandMixer => Value::Bool(true),
             _ => Value::Bool(false),
         },
         "lid_locked" => match ctx.identity.class_id {

@@ -1340,10 +1340,16 @@ Filter life via `trait.filter.life_percent`. Hot-water lock via
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `speed_level` | u8 | — | 0–10 | r/w | req | |
-| `bowl_present` | bool | — | | r/e | opt | |
-| `head_down` | bool | — | | r/e | opt | Interlock |
-| `mass_g` | f32 | gram | | r/e | opt | Bowl scale |
+| `speed_level` | u8 | — | 0–10 | r/w | req | Planetary drive speed |
+| `bowl_present` | bool | — | | r/e | opt | Mixing bowl seated / locked |
+| `head_down` | bool | — | | r/e | opt | Mixer head lowered interlock |
+| `mass_g` | f32 | gram | | r/e | opt | Bowl scale reading |
+| `attachment` | enum | — | `unknown` `beater` `dough_hook` `whisk` | r | opt | Sensed tool attachment |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving motor duty |
+| `motor_on` | bool | — | | r/e | opt | Drive motor active |
+| `overload_trip` | bool | — | | r/e | opt | Stall / thermal overload trip |
+| `timer_s` | duration_s | second | 0–3600 | r/w/e | opt | Timed mix / remaining |
 
 Head up → `safety_interlock` on start.
 

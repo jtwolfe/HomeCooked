@@ -685,6 +685,21 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "timer_s"
         );
     }
+    // Stream 7 catalog depth: stand mixer optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::StandMixer {
+        return matches!(
+            point.id,
+            "bowl_present"
+                | "head_down"
+                | "mass_g"
+                | "attachment"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "motor_on"
+                | "overload_trip"
+                | "timer_s"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -2687,6 +2702,63 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.food_processor.overload_trip", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn stand_mixer_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::StandMixer).unwrap();
+        for id in [
+            "class.stand_mixer.speed_level",
+            "class.stand_mixer.bowl_present",
+            "class.stand_mixer.head_down",
+            "class.stand_mixer.mass_g",
+            "class.stand_mixer.attachment",
+            "class.stand_mixer.sabbath_mode",
+            "class.stand_mixer.eco_mode",
+            "class.stand_mixer.motor_on",
+            "class.stand_mixer.overload_trip",
+            "class.stand_mixer.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical stand_mixer"
+            );
+        }
+        cap.validate_write("class.stand_mixer.speed_level", &Value::U8(6))
+            .unwrap();
+        cap.validate_write("class.stand_mixer.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.stand_mixer.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.stand_mixer.timer_s", &Value::DurationS(90))
+            .unwrap();
+        let err = cap
+            .validate_write(
+                "class.stand_mixer.attachment",
+                &Value::Enum("beater".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.stand_mixer.bowl_present", &Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.stand_mixer.head_down", &Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.stand_mixer.mass_g", &Value::F32(100.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.stand_mixer.motor_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.stand_mixer.overload_trip", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }
