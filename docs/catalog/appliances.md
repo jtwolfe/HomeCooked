@@ -763,6 +763,15 @@ variables.
 - Power-share: a write that exceeds the cabinet cap is accepted and clamped, or
   rejected `out_of_range` if the device advertises strict mode. Devices must
   document which.
+- Catalog depth: advertise cooktop optional depth already on `COOKTOP_POINTS`
+  composition (keep_warm/hotspot/timer_active/paused/surface_c/element_fault/
+  pan_detect/flame_on + boost/timer/bridge/flame_out/ignition_fail/
+  power_limit_w) and thin INDUCTION_HOB_EXTRA surface (pan_size/power_w/
+  limiter_active/cookware_ok/temp_mode/flex_group); add EXTRA sabbath_mode /
+  eco_mode / power_share / auto_boost / overtemp_alarm. Do **not** redeclare
+  cooktop zoned `timer_s` / `pan_detect` / `residual_heat` (id collisions).
+  Child lock via typical `child_lock` trait. Required `pan_present` stays
+  distinct from cooktop `pan_detect`.
 
 ### `warming_drawer`
 

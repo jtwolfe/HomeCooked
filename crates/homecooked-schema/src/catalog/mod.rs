@@ -376,6 +376,42 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "door_ajar"
         );
     }
+    // Stream 7 undepened Tier-A deepen: induction_hob optional telemetry/settings.
+    // Advertise cooktop depth already on COOKTOP_POINTS + thin INDUCTION_HOB_EXTRA
+    // (pan_size/power_w/limiter/cookware/temp_mode/flex); add EXTRA sabbath/eco/
+    // power_share/auto_boost/overtemp. Required level/residual_heat/pan_present
+    // already typical. ChildLock already on HOB_TRAITS. Do not redeclare cooktop
+    // timer_s / pan_detect / residual_heat on EXTRA (id collisions).
+    if table.class_id == ApplianceClassId::InductionHob {
+        return matches!(
+            point.id,
+            "boost"
+                | "timer_s"
+                | "bridge"
+                | "flame_out"
+                | "ignition_fail"
+                | "power_limit_w"
+                | "keep_warm"
+                | "hotspot_alert"
+                | "timer_active"
+                | "paused"
+                | "surface_c"
+                | "element_fault"
+                | "pan_detect"
+                | "flame_on"
+                | "pan_size"
+                | "power_w"
+                | "limiter_active"
+                | "cookware_ok"
+                | "temp_mode"
+                | "flex_group"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "power_share"
+                | "auto_boost"
+                | "overtemp_alarm"
+        );
+    }
     // Stream 7 undepened Tier-A deepen: microwave optional telemetry/settings.
     // Advertise thin-table power_w/defrost_g/turntable/inverter; add depth
     // sabbath/eco/door_ajar/magnetron_on/high_temp_alarm/timer_s. Do not
@@ -5146,6 +5182,158 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("trait.temperature.preheat_complete", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn induction_hob_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::InductionHob).unwrap();
+        for id in [
+            // Required composition.
+            "class.induction_hob.level",
+            "class.induction_hob.residual_heat",
+            "class.induction_hob.pan_present",
+            // Cooktop depth (COOKTOP_POINTS composition).
+            "class.induction_hob.boost",
+            "class.induction_hob.timer_s",
+            "class.induction_hob.bridge",
+            "class.induction_hob.flame_out",
+            "class.induction_hob.ignition_fail",
+            "class.induction_hob.power_limit_w",
+            "class.induction_hob.keep_warm",
+            "class.induction_hob.hotspot_alert",
+            "class.induction_hob.timer_active",
+            "class.induction_hob.paused",
+            "class.induction_hob.surface_c",
+            "class.induction_hob.element_fault",
+            "class.induction_hob.pan_detect",
+            "class.induction_hob.flame_on",
+            // Thin INDUCTION_HOB_EXTRA surface.
+            "class.induction_hob.pan_size",
+            "class.induction_hob.power_w",
+            "class.induction_hob.limiter_active",
+            "class.induction_hob.cookware_ok",
+            "class.induction_hob.temp_mode",
+            "class.induction_hob.flex_group",
+            // New EXTRA depth.
+            "class.induction_hob.sabbath_mode",
+            "class.induction_hob.eco_mode",
+            "class.induction_hob.power_share",
+            "class.induction_hob.auto_boost",
+            "class.induction_hob.overtemp_alarm",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical induction_hob"
+            );
+        }
+        // ChildLock already typical on HOB_TRAITS.
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::ChildLock)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.child_lock.child_lock"));
+        // Single cooktop timer_s (zoned) — no duplicate induction timer id.
+        assert_eq!(
+            cap.class_points
+                .iter()
+                .filter(|p| p.id == "class.induction_hob.timer_s")
+                .count(),
+            1
+        );
+        let timer = cap
+            .class_points
+            .iter()
+            .find(|p| p.id == "class.induction_hob.timer_s")
+            .unwrap();
+        assert_eq!(
+            timer.zones.as_ref().unwrap(),
+            &["hob_1", "hob_2", "hob_3", "hob_4"].map(str::to_string)
+        );
+        let pan_detect = cap
+            .class_points
+            .iter()
+            .find(|p| p.id == "class.induction_hob.pan_detect")
+            .unwrap();
+        assert_eq!(
+            pan_detect.zones.as_ref().unwrap(),
+            &["hob_1", "hob_2", "hob_3", "hob_4"].map(str::to_string)
+        );
+        // pan_present (induction) stays distinct from cooktop pan_detect.
+        assert!(cap
+            .class_points
+            .iter()
+            .any(|p| p.id == "class.induction_hob.pan_present"));
+
+        cap.validate_write("class.induction_hob.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.induction_hob.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.induction_hob.power_share", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.induction_hob.auto_boost", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.induction_hob.temp_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write(
+            "class.induction_hob.flex_group",
+            &Value::String("hob_2".into()),
+        )
+        .unwrap();
+        cap.validate_write("class.induction_hob.boost#hob_1", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.induction_hob.timer_s#hob_2", &Value::DurationS(600))
+            .unwrap();
+        cap.validate_write("class.induction_hob.keep_warm#hob_1", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.induction_hob.power_limit_w", &Value::U32(4800))
+            .unwrap();
+        cap.validate_write("trait.child_lock.child_lock", &Value::Bool(true))
+            .unwrap();
+        let err = cap
+            .validate_write("class.induction_hob.overtemp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.induction_hob.limiter_active", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.induction_hob.cookware_ok", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.induction_hob.pan_present#hob_1", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.induction_hob.pan_detect#hob_1", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write(
+                "class.induction_hob.residual_heat#hob_1",
+                &Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.induction_hob.paused", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.induction_hob.power_w#hob_1", &Value::U16(1200))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write(
+                "class.induction_hob.pan_size#hob_1",
+                &Value::Enum("medium".into()),
+            )
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }

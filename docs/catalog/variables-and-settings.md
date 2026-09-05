@@ -1114,10 +1114,25 @@ All `cooktop` points plus:
 | `pan_present` | bool | — | | r/e | req | **zoned** |
 | `pan_size` | enum | — | `none` `small` `medium` `large` `unknown` | r/e | opt | |
 | `power_w` | u16 | watt | 0–4000 | r/e | opt | Per zone |
-| `limiter_active` | bool | — | | r/e | opt | Power share |
+| `limiter_active` | bool | — | | r/e | opt | Power share active telemetry |
 | `cookware_ok` | bool | — | | r/e | opt | |
 | `temp_mode` | bool | — | | r/w | opt | Simulated pan temp vs power level |
 | `flex_group` | string | — | zone id or empty | r/w | opt | Partner zone |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving power duty |
+| `power_share` | bool | — | | r/w | opt | Enable inter-zone power sharing |
+| `auto_boost` | bool | — | | r/w | opt | Auto-boost when pan detected |
+| `overtemp_alarm` | bool | — | | r/e | opt | Coil / inverter overtemp |
+
+Also advertises composed cooktop depth (`boost` / zoned `timer_s` / `bridge` /
+`keep_warm` / `hotspot_alert` / `timer_active` / `paused` / `surface_c` /
+`element_fault` / `pan_detect` / `flame_on` / `flame_out` / `ignition_fail` /
+`power_limit_w`). Do **not** add a second class `timer_s` / `pan_detect` /
+`residual_heat` on EXTRA. Child lock via `trait.child_lock.child_lock`.
+
+Optional depth (ninth undepened Tier-A deepen): EXTRA sabbath/eco/power_share/
+auto_boost/overtemp; typical reuses cooktop composition + thin induction
+surface. Required `pan_present` stays distinct from cooktop `pan_detect`.
 
 Writing `level` with `pan_present=false` is accepted; device times out and
 emits `pan_missing`.
