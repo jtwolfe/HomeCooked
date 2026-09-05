@@ -4014,6 +4014,8 @@ const STAND_MIXER_TRAITS: &[TraitId] = &[
     TraitId::Lighting,
 ];
 
+const STAND_MIXER_ATTACHMENT: &[&str] = &["unknown", "beater", "dough_hook", "whisk"];
+
 static STAND_MIXER_POINTS: &[CatalogPoint] = &[
     s(
         "speed_level",
@@ -4045,6 +4047,54 @@ static STAND_MIXER_POINTS: &[CatalogPoint] = &[
         Some(Unit::Gram),
         None,
         AccessMode::RE,
+        false,
+    ),
+    v(
+        "attachment",
+        ValueType::Enum,
+        None,
+        en(STAND_MIXER_ATTACHMENT),
+        AccessMode::R,
+        false,
+    ),
+    s(
+        "sabbath_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    ),
+    s(
+        "eco_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "motor_on",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "overload_trip",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "timer_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 3600),
+        AccessMode::RWE,
         false,
     ),
 ];

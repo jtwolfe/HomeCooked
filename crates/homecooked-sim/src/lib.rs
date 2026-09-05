@@ -3790,6 +3790,149 @@ mod tests {
     }
 
     #[test]
+    fn stand_mixer_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let stand_mixer = sim.spawn(ApplianceClassId::StandMixer).unwrap();
+
+        assert_eq!(
+            sim.read_value(&stand_mixer, "class.stand_mixer.speed_level")
+                .unwrap(),
+            Value::U8(0)
+        );
+        assert_eq!(
+            sim.read_value(&stand_mixer, "class.stand_mixer.bowl_present")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(
+            sim.read_value(&stand_mixer, "class.stand_mixer.head_down")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(
+            sim.read_value(&stand_mixer, "class.stand_mixer.mass_g")
+                .unwrap(),
+            Value::F32(0.0)
+        );
+        assert_eq!(
+            sim.read_value(&stand_mixer, "class.stand_mixer.attachment")
+                .unwrap(),
+            Value::Enum("unknown".into())
+        );
+        assert_eq!(
+            sim.read_value(&stand_mixer, "class.stand_mixer.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&stand_mixer, "class.stand_mixer.eco_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&stand_mixer, "class.stand_mixer.motor_on")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&stand_mixer, "class.stand_mixer.overload_trip")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&stand_mixer, "class.stand_mixer.timer_s")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+
+        sim.write(&stand_mixer, "class.stand_mixer.speed_level", Value::U8(7))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&stand_mixer, "class.stand_mixer.speed_level")
+                .unwrap(),
+            Value::U8(7)
+        );
+        sim.write(
+            &stand_mixer,
+            "class.stand_mixer.sabbath_mode",
+            Value::Bool(true),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&stand_mixer, "class.stand_mixer.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(
+            &stand_mixer,
+            "class.stand_mixer.eco_mode",
+            Value::Bool(true),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&stand_mixer, "class.stand_mixer.eco_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(
+            &stand_mixer,
+            "class.stand_mixer.timer_s",
+            Value::DurationS(45),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&stand_mixer, "class.stand_mixer.timer_s")
+                .unwrap(),
+            Value::DurationS(45)
+        );
+
+        let err = sim
+            .write(
+                &stand_mixer,
+                "class.stand_mixer.attachment",
+                Value::Enum("beater".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &stand_mixer,
+                "class.stand_mixer.bowl_present",
+                Value::Bool(false),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &stand_mixer,
+                "class.stand_mixer.head_down",
+                Value::Bool(false),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&stand_mixer, "class.stand_mixer.mass_g", Value::F32(250.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &stand_mixer,
+                "class.stand_mixer.motor_on",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &stand_mixer,
+                "class.stand_mixer.overload_trip",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {

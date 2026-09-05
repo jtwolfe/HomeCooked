@@ -1068,6 +1068,10 @@ stall, remaining.
 
 **Notes:** Head-up or missing bowl is `safety_interlock`. Smart scales on the
 bowl are a vendor extension or optional `mass_g` read.
+- Catalog depth: optional class points include `bowl_present`, `head_down`,
+  `mass_g`, `attachment`, sabbath, eco, `motor_on`, `overload_trip`, and
+  `timer_s` (see variables-and-settings). Required `speed_level` remains the
+  primary speed control.
 
 ### `juicer`
 
