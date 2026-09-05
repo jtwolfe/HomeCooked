@@ -128,6 +128,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "homecooked-hub"
+version = "0.1.0"
+dependencies = [
+ "homecooked-core",
+ "homecooked-protocol",
+ "homecooked-schema",
+ "homecooked-sim",
+ "homecooked-transport",
+]
+
+[[package]]
 name = "homecooked-interlock"
 version = "0.1.0"
 dependencies = [
