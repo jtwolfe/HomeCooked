@@ -49,6 +49,7 @@ is **0.1.0** (peers are rejected only on protocol **major** mismatch).
 | `homecooked-thermal` | [`crates/homecooked-thermal`](crates/homecooked-thermal) | Thermal plant slice: reservoirs, heat ports, offer/accept, tick transfer ([thermal-plant.md](docs/standard/thermal-plant.md)) |
 | `homecooked-bridge` | [`crates/homecooked-bridge`](crates/homecooked-bridge) | Fabric bridges: Modbus + Matter + Zigbee + BACnet mock adapters ([bridges.md](docs/standard/bridges.md)) |
 | `homecooked-transport` | [`crates/homecooked-transport`](crates/homecooked-transport) | Lab TCP transport for protocol envelopes (length-prefixed JSON + optional PSK); sim-backed server + client ([overview.md](docs/standard/overview.md) §6) |
+| `homecooked-hub` | [`crates/homecooked-hub`](crates/homecooked-hub) | Optional lab hub: multi-device sim registry behind one TCP listener (not required for devices) |
 | `homecooked-conformance` | [`crates/homecooked-conformance`](crates/homecooked-conformance) | Light Stream 7 conformance smoke (catalog↔schema↔sim↔protocol↔TCP) |
 | simulator-web | [`apps/simulator-web`](apps/simulator-web) | Static HTML/JS UI: full catalog picker (Tier-A ∪ Tier-B), procedure runner, thermal plant panel |
 
@@ -104,6 +105,18 @@ preamble; not a TLS substitute). See
 ```bash
 cargo test -p homecooked-transport
 cargo run -p homecooked-transport --example homecooked-tcp-demo
+```
+
+
+## Lab hub (optional)
+
+Aggregate multiple sim devices on one TCP port for multi-appliance labs.
+**Devices do not need a hub** — single-device transport is enough. See
+[`crates/homecooked-hub`](crates/homecooked-hub).
+
+```bash
+cargo test -p homecooked-hub
+cargo run -p homecooked-hub --example hub_demo
 ```
 
 ## Contributing

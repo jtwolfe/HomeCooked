@@ -32,6 +32,7 @@ What exists on `main` today:
 | `homecooked-thermal` | First executable thermal plant slice (types, registry, offer/accept, tick) |
 | `homecooked-bridge` | Bridge slice: Modbus + Matter + Zigbee + BACnet mock maps |
 | `homecooked-transport` | Lab TCP: length-prefixed JSON envelopes; optional PSK pairing; sim-backed server + client smoke |
+| `homecooked-hub` | Optional lab aggregator: multi-device Simulator behind one TCP port (not required for devices) |
 | `homecooked-conformance` | Light Stream 7 smoke: Tier-A / Tier-B / cotton / kettle procedure / thermal / Modbus / Matter / Zigbee / BACnet / TCP / TCP PSK |
 | CI | rustfmt, clippy (`-D warnings`), `cargo test --workspace`, wasm-pack |
 
@@ -42,7 +43,8 @@ Thermal has `homecooked-thermal` (plant slice; catalog/sim ports still open).
 Bridges have `homecooked-bridge` (Modbus + Matter + Zigbee + BACnet mock; real
 serial/TCP Modbus, CHIP SDK, zigbee2mqtt, real BACnet stack still open);
 control-system has HAL + controller-sim + io-map/interlock crates (TCP lab
-smoke + optional PSK in `homecooked-transport`; TLS/OAuth still out of scope);
+smoke + optional PSK in `homecooked-transport`; optional multi-device hub in
+`homecooked-hub` — not required for devices; TLS/OAuth still out of scope);
 procedures has `homecooked-procedure`.
 
 Rough completeness: docs + thin protocol/sim spine ≈ **~30%** of the 75%
@@ -156,6 +158,12 @@ multiple small PRs.
    (interlock-gated actuator via wire) remains a thin follow-up; host
    controller unit tests already cover cotton and dryer cycles + interlock
    denies (incl. dryer heat blocked when door unlocked).
+
+4. ~~Optional multi-device lab hub~~ **Done (thin)** — `homecooked-hub`
+   wraps `Simulator` / `DeviceHub`, reuses `homecooked-transport` TCP + optional
+   PSK, and provides a kettle+washer+fridge lab set + `hub_demo`. **The hub is
+   an optional aggregator for labs; devices do not require it.** No cloud auth,
+   TLS, or hub UI.
 
 **Definition of done**
 
@@ -383,3 +391,4 @@ the code that implements them.
 | 0.1.7 | Stream 4 dryer cotton cycle (`homecooked-controller` + dryer io_map/interlocks) |
 | 0.1.5 | Stream 7 thermal plant UI (`homecooked-wasm` + simulator-web thermal panel) |
 | 0.1.8 | Stream 4 lab TCP PSK pairing (`homecooked-transport`); TLS/OAuth still out of scope |
+| 0.1.9 | Optional lab hub (`homecooked-hub`): multi-device TCP aggregator; devices do not require it |

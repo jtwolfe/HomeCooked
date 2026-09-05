@@ -1,0 +1,20 @@
+[package]
+name = "homecooked-hub"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description = "Optional lab hub: aggregate multiple HomeCooked sim devices behind one TCP listener"
+readme = "README.md"
+
+[dependencies]
+homecooked-core = { path = "../homecooked-core" }
+homecooked-protocol = { path = "../homecooked-protocol" }
+homecooked-schema = { path = "../homecooked-schema" }
+homecooked-sim = { path = "../homecooked-sim" }
+homecooked-transport = { path = "../homecooked-transport" }
+
+[[example]]
+name = "hub_demo"
+path = "examples/hub_demo.rs"
