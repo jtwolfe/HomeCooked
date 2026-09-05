@@ -10,7 +10,7 @@ of truth**; code must track `docs/catalog/` and `docs/standard/`.
 
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — ~75% of §2 in-scope bar **met in spirit**
   (lab/software depth; catalog optional depth improved via deepen series incl.
-  `beverage_cooler` / `kegerator` / `warming_drawer` / `pizza_oven` / `electric_grill` / `electric_smoker` / `espresso_machine`; not catalog-complete — 23/31 Tier-B still thin); Tier-A/B classes, workstreams,
+  `beverage_cooler` / `kegerator` / `warming_drawer` / `pizza_oven` / `electric_grill` / `electric_smoker` / `espresso_machine` / `drip_coffee_maker`; not catalog-complete — 22/31 Tier-B still thin); Tier-A/B classes, workstreams,
   `thermal_offer` + dryer cycle TCP called out; definitions of done
 - [`docs/catalog/appliances.md`](docs/catalog/appliances.md) — appliance classes
   (ids, settings, state, composition, safety notes)

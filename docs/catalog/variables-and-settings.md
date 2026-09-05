@@ -1214,11 +1214,18 @@ optional and safety-gated (`remote_brew_enabled` bool, r/w, opt).
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `cups` | u8 | — | 1–12 | r/w | opt | |
-| `strength` | enum | — | `mild` `normal` `strong` | r/w | opt | |
+| `cups` | u8 | — | 1–12 | r/w | opt | Batch size |
+| `strength` | enum | — | `mild` `normal` `strong` | r/w | opt | Brew strength |
 | `keep_warm_s` | duration_s | second | 0–7200 | r/w | opt | 0 = off |
-| `carafe_present` | bool | — | | r/e | opt | |
-| `bloom` | bool | — | | r/w | opt | |
+| `carafe_present` | bool | — | | r/e | opt | Carafe / pot detect |
+| `bloom` | bool | — | | r/w | opt | Pre-infusion bloom |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving keep-warm duty |
+| `heater_on` | bool | — | | r/e | opt | Keep-warm plate active |
+| `high_temp_alarm` | bool | — | | r/e | opt | Overtemp / too-hot plate |
+| `water_tank_empty` | bool | — | | r/e | opt | Tank empty / inhibit brew |
+| `descaling_needed` | bool | — | | r/e | opt | Descale due indicator |
+| `timer_s` | duration_s | second | 0–7200 | r/w/e | opt | Delayed brew / countdown |
 
 ---
 

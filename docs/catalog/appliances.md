@@ -925,6 +925,10 @@ keep-warm remaining, descale.
 
 **Notes:** Carafe-missing should inhibit brew (`safety_interlock` or `busy`).
 Cold-brew pitchers without heaters are out of core catalog.
+- Catalog depth: optional class points include `cups`, `strength`, `keep_warm_s`,
+  `carafe_present`, sabbath, eco, `heater_on`, `high_temp_alarm`,
+  `water_tank_empty`, `descaling_needed`, and `timer_s` (see
+  variables-and-settings).
 
 ### `coffee_grinder`
 

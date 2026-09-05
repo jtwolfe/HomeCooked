@@ -581,6 +581,23 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "timer_s"
         );
     }
+    // Stream 7 catalog depth: drip_coffee_maker optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::DripCoffeeMaker {
+        return matches!(
+            point.id,
+            "cups"
+                | "strength"
+                | "keep_warm_s"
+                | "carafe_present"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "heater_on"
+                | "high_temp_alarm"
+                | "water_tank_empty"
+                | "descaling_needed"
+                | "timer_s"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -2215,6 +2232,79 @@ mod tests {
         let err = cap
             .validate_write(
                 "class.espresso_machine.descaling_needed",
+                &Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn drip_coffee_maker_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::DripCoffeeMaker).unwrap();
+        for id in [
+            "class.drip_coffee_maker.cups",
+            "class.drip_coffee_maker.strength",
+            "class.drip_coffee_maker.keep_warm_s",
+            "class.drip_coffee_maker.carafe_present",
+            "class.drip_coffee_maker.sabbath_mode",
+            "class.drip_coffee_maker.eco_mode",
+            "class.drip_coffee_maker.heater_on",
+            "class.drip_coffee_maker.high_temp_alarm",
+            "class.drip_coffee_maker.water_tank_empty",
+            "class.drip_coffee_maker.descaling_needed",
+            "class.drip_coffee_maker.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical drip_coffee_maker"
+            );
+        }
+        cap.validate_write("class.drip_coffee_maker.cups", &Value::U8(8))
+            .unwrap();
+        cap.validate_write(
+            "class.drip_coffee_maker.strength",
+            &Value::Enum("strong".into()),
+        )
+        .unwrap();
+        cap.validate_write(
+            "class.drip_coffee_maker.keep_warm_s",
+            &Value::DurationS(1800),
+        )
+        .unwrap();
+        cap.validate_write("class.drip_coffee_maker.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.drip_coffee_maker.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.drip_coffee_maker.timer_s", &Value::DurationS(600))
+            .unwrap();
+        let err = cap
+            .validate_write(
+                "class.drip_coffee_maker.carafe_present",
+                &Value::Bool(false),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.drip_coffee_maker.heater_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write(
+                "class.drip_coffee_maker.high_temp_alarm",
+                &Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write(
+                "class.drip_coffee_maker.water_tank_empty",
+                &Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write(
+                "class.drip_coffee_maker.descaling_needed",
                 &Value::Bool(true),
             )
             .unwrap_err();
