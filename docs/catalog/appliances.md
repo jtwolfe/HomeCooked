@@ -309,8 +309,8 @@ Dedicated frozen-food cabinet (upright or chest).
 - Catalog depth: freezer-only extras (`fast_freeze`, `door_ajar`, `ice_buildup`,
   `low_temp_alarm`, `anti_sweat`, `fast_freeze_remaining_s`, `frost_clean_needed`)
   are merged onto shared cold-cabinet points (vacation/sabbath/eco/defrost/
-  compressor/high_temp/power_fail) without changing `fridge_freezer` or adding
-  thermal ports (fridge owns condenser ports).
+  compressor/high_temp/power_fail) without adding thermal ports (fridge owns
+  condenser ports). Combo units deepen via `fridge_freezer` dual-zone extras.
 - Medical / laboratory freezers are out of core catalog (vendor class) because
   alarm and validation requirements differ.
 - Drawer freezers still use this class; multiple drawers are `zone`s.
@@ -326,13 +326,17 @@ French-door, and multi-door cabinets.
 **Typical controllable settings:**
 
 - Per-zone setpoints and super-cool / super-freeze
-- Convertible-zone mode (`fridge` / `freezer` / `off`)
+- Convertible-zone mode (`fridge` / `freezer` / `off` / `bar`)
+- Fast freeze (freezer compartment), vacation / sabbath / eco
 - Ice maker, crushed/cubed, water dispense temperature (if chilled)
-- Sabbath, vacation, door alarm, lights, eco
+- Lights
 
 **Typical readable state:**
 
-- Per-zone temperatures and door states
+- Per-zone temperatures and per-side door ajar (`door_ajar_fridge` /
+  `door_ajar_freezer`)
+- Per-side high-temp alarms + shared chassis high-temp / compressor / defrost
+- Freezer-side ice / frost buildup
 - Ice production state, dispenser tray, drip tray
 - Filter life, energy, faults per loop if dual-evaporator
 
@@ -341,6 +345,12 @@ French-door, and multi-door cabinets.
 - Always model compartments as `zone`s (`fridge`, `freezer`, `convertible`,
   `bar`, `pantry`, `crisper`). Do not flatten two setpoints into one variable.
 - Dual independent appliances in one kitchen are two devices, not this class.
+- Catalog depth: dual-zone extras (`door_ajar_fridge`, `door_ajar_freezer`,
+  `fast_freeze`, `ice_buildup`, `high_temp_alarm_fridge`,
+  `high_temp_alarm_freezer`, `convertible_zone_mode`) merge onto shared
+  cold-cabinet points without attaching thermal ports (fridge owns condenser
+  ports) and without copying freezer-only `anti_sweat` / `frost_clean_needed` /
+  `fast_freeze_remaining_s` / single `door_ajar`.
 
 ### `wine_cooler`
 
