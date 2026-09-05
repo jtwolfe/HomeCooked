@@ -7,8 +7,9 @@ use std::thread;
 use std::time::Duration;
 
 use homecooked_bridge::{
-    Bridge, ForeignRaw, ForeignRef, MatterAttrValue, MatterBridge, MatterRaw, ModbusBridge,
-    PointRef, ZigbeeAttrValue, ZigbeeBridge, ZigbeeRaw,
+    BacnetBridge, BacnetObjectType, BacnetPropValue, BacnetProperty, BacnetRaw, Bridge, ForeignRaw,
+    ForeignRef, MatterAttrValue, MatterBridge, MatterRaw, ModbusBridge, PointRef, ZigbeeAttrValue,
+    ZigbeeBridge, ZigbeeRaw,
 };
 use homecooked_controller::{Controller, CottonOptions, CyclePhase, CycleState, WasherState};
 use homecooked_core::DeviceId;
@@ -487,6 +488,90 @@ pub fn zigbee_kettle_roundtrip() -> ScenarioResult {
     Ok(())
 }
 
+/// (5d) BACnet kettle roundtrip via mock device bridge.
+pub fn bacnet_kettle_roundtrip() -> ScenarioResult {
+    const NAME: &str = "bacnet_kettle_roundtrip";
+    let mut bridge =
+        BacnetBridge::kettle_example().map_err(|e| err(NAME, format!("kettle_example: {e}")))?;
+
+    let setpoint = PointRef::new("kettle-lab-1", "trait.temperature.setpoint_c")
+        .map_err(|e| err(NAME, e.to_string()))?;
+    let prop = ForeignRef::bacnet(
+        "kettle-lab-1",
+        1,
+        BacnetObjectType::AnalogValue,
+        1,
+        BacnetProperty::PresentValue,
+    )
+    .map_err(|e| err(NAME, e.to_string()))?;
+    let bv = ForeignRef::bacnet(
+        "kettle-lab-1",
+        1,
+        BacnetObjectType::BinaryValue,
+        1,
+        BacnetProperty::PresentValue,
+    )
+    .map_err(|e| err(NAME, e.to_string()))?;
+    let power = PointRef::new("kettle-lab-1", "trait.power.power_state")
+        .map_err(|e| err(NAME, e.to_string()))?;
+
+    let translated = bridge
+        .write_foreign(&prop, ForeignRaw::Bacnet(BacnetRaw::Int16(6000)))
+        .map_err(|e| err(NAME, format!("write_foreign setpoint: {e}")))?;
+    if translated != Value::F32(60.0) {
+        return Err(err(
+            NAME,
+            format!("translated prop write={translated:?}, expected F32(60)"),
+        ));
+    }
+    let read_sp = bridge
+        .read_point(&setpoint)
+        .map_err(|e| err(NAME, format!("read setpoint: {e}")))?;
+    if read_sp != Value::F32(60.0) {
+        return Err(err(
+            NAME,
+            format!("setpoint after foreign write={read_sp:?}"),
+        ));
+    }
+
+    bridge
+        .write_point(&setpoint, &Value::F32(42.0))
+        .map_err(|e| err(NAME, format!("write setpoint: {e}")))?;
+    let stored = bridge.prop_store().read(
+        BacnetObjectType::AnalogValue,
+        1,
+        BacnetProperty::PresentValue,
+    );
+    if stored != Some(BacnetPropValue::Int16(4200)) {
+        return Err(err(
+            NAME,
+            format!("prop after HC write={stored:?}, expected Int16(4200)"),
+        ));
+    }
+
+    bridge
+        .write_foreign(&bv, ForeignRaw::Bacnet(BacnetRaw::Bool(false)))
+        .map_err(|e| err(NAME, format!("write bv off: {e}")))?;
+    let off = bridge
+        .read_point(&power)
+        .map_err(|e| err(NAME, format!("read power: {e}")))?;
+    if off != Value::Enum("off".into()) {
+        return Err(err(NAME, format!("power after bv false={off:?}")));
+    }
+    bridge
+        .write_point(&power, &Value::Enum("on".into()))
+        .map_err(|e| err(NAME, format!("write power on: {e}")))?;
+    if bridge.prop_store().read(
+        BacnetObjectType::BinaryValue,
+        1,
+        BacnetProperty::PresentValue,
+    ) != Some(BacnetPropValue::Bool(true))
+    {
+        return Err(err(NAME, "binary_value expected true after power on"));
+    }
+    Ok(())
+}
+
 fn qid(s: &str) -> Result<QualifiedPointId, ScenarioError> {
     QualifiedPointId::parse(s)
         .map_err(|e| err("tcp_kettle_discover_describe_read_write", e.to_string()))
@@ -613,6 +698,7 @@ pub fn all_scenarios() -> &'static [(&'static str, ScenarioFn)] {
         ),
         ("matter_kettle_roundtrip", matter_kettle_roundtrip),
         ("zigbee_kettle_roundtrip", zigbee_kettle_roundtrip),
+        ("bacnet_kettle_roundtrip", bacnet_kettle_roundtrip),
         (
             "tcp_kettle_discover_describe_read_write",
             tcp_kettle_discover_describe_read_write,

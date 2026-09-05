@@ -169,11 +169,17 @@ so those assets can appear beside kitchen devices in one client. Mapping tips:
   attribute store. Example:
   [`kettle_zigbee_map.yaml`](../../crates/homecooked-bridge/examples/kettle_zigbee_map.yaml).
   Cluster IDs are **illustrative lab constants**.
-- **BACnet** compiles as a stub that returns a clear unsupported error.
+- **BACnet** is implemented as a **thin mock device** (no BACnet/IP or MS/TP
+  stack): YAML/JSON device instance + object type/instance + property → point
+  map and an in-memory property store. Example:
+  [`kettle_bacnet_map.yaml`](../../crates/homecooked-bridge/examples/kettle_bacnet_map.yaml)
+  (BinaryValue + AnalogInput/AnalogValue present-value mapped to kettle
+  `trait.power.power_state` / `trait.temperature.*`). Object types are
+  **illustrative lab constants**.
 
 See the crate [`README`](../../crates/homecooked-bridge/README.md). Real
-plant buses, pairing, mesh administration, and production Matter / Zigbee
-stacks stay out of scope (§5).
+plant buses, pairing, mesh administration, and production Matter / Zigbee /
+BACnet stacks stay out of scope (§5).
 
 ---
 
@@ -185,3 +191,4 @@ stacks stay out of scope (§5).
 | 0.1.1 | First crate slice: Modbus mock adapter + Zigbee/Matter/BACnet stubs |
 | 0.1.2 | Matter mock bridge (in-memory attributes + kettle map); Zigbee/BACnet remain stubs |
 | 0.1.3 | Zigbee mock bridge (in-memory attributes + kettle map); BACnet remains stub |
+| 0.1.4 | BACnet mock bridge (in-memory properties + kettle map); no BACnet stack |

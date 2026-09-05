@@ -29,6 +29,11 @@ pub enum Error {
         cluster_id: u32,
         attribute_id: u32,
     },
+    DuplicateBacnetProperty {
+        object_type: String,
+        object_instance: u32,
+        property: String,
+    },
     UnmappedPoint {
         device_id: String,
         point_id: String,
@@ -46,6 +51,11 @@ pub enum Error {
         endpoint: u16,
         cluster_id: u32,
         attribute_id: u32,
+    },
+    UnmappedBacnetProperty {
+        object_type: String,
+        object_instance: u32,
+        property: String,
     },
     DeviceMismatch {
         expected: String,
@@ -111,6 +121,14 @@ impl fmt::Display for Error {
                 f,
                 "duplicate Zigbee attribute ep{endpoint}/cluster={cluster_id:#x}/attr={attribute_id:#x}"
             ),
+            Self::DuplicateBacnetProperty {
+                object_type,
+                object_instance,
+                property,
+            } => write!(
+                f,
+                "duplicate BACnet property {object_type}/{object_instance}/{property}"
+            ),
             Self::UnmappedPoint {
                 device_id,
                 point_id,
@@ -133,6 +151,14 @@ impl fmt::Display for Error {
             } => write!(
                 f,
                 "unmapped Zigbee attribute ep{endpoint}/cluster={cluster_id:#x}/attr={attribute_id:#x}"
+            ),
+            Self::UnmappedBacnetProperty {
+                object_type,
+                object_instance,
+                property,
+            } => write!(
+                f,
+                "unmapped BACnet property {object_type}/{object_instance}/{property}"
             ),
             Self::DeviceMismatch { expected, actual } => {
                 write!(f, "device mismatch: expected {expected}, got {actual}")

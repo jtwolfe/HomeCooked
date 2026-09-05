@@ -115,11 +115,12 @@ impl<B: PointBackend> MatterBridge<B> {
     fn raw_to_attr(entry: &MatterEntry, raw: ForeignRaw) -> Result<MatterAttrValue, Error> {
         match raw {
             ForeignRaw::Matter(m) => entry.encode_raw(m),
-            ForeignRaw::Register(_) | ForeignRaw::Coil(_) | ForeignRaw::Zigbee(_) => {
-                Err(Error::InvalidRaw {
-                    detail: "non-matter raw is not valid for matter bridge".into(),
-                })
-            }
+            ForeignRaw::Register(_)
+            | ForeignRaw::Coil(_)
+            | ForeignRaw::Zigbee(_)
+            | ForeignRaw::Bacnet(_) => Err(Error::InvalidRaw {
+                detail: "non-matter raw is not valid for matter bridge".into(),
+            }),
         }
     }
 }

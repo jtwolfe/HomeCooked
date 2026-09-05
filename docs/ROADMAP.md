@@ -30,9 +30,9 @@ What exists on `main` today:
 | `homecooked-procedure` | Procedure documents + sequential runner |
 | `homecooked-controller` | Host controller sim: IoMap + MockHal + interlocks + washer cotton cycle |
 | `homecooked-thermal` | First executable thermal plant slice (types, registry, offer/accept, tick) |
-| `homecooked-bridge` | Bridge slice: Modbus + Matter + Zigbee mock maps; BACnet stub |
+| `homecooked-bridge` | Bridge slice: Modbus + Matter + Zigbee + BACnet mock maps |
 | `homecooked-transport` | Lab TCP: length-prefixed JSON envelopes; sim-backed server + client smoke |
-| `homecooked-conformance` | Light Stream 7 smoke: Tier-A / cotton / kettle procedure / thermal / Modbus / Matter / Zigbee / TCP |
+| `homecooked-conformance` | Light Stream 7 smoke: Tier-A / cotton / kettle procedure / thermal / Modbus / Matter / Zigbee / BACnet / TCP |
 | CI | rustfmt, clippy (`-D warnings`), `cargo test --workspace`, wasm-pack |
 
 **25 Tier-A classes are fully tabled** (see §4).
@@ -40,8 +40,8 @@ What exists on `main` today:
 `list_all_class_ids` already covers the full appliances index; most classes are
 ids-only (no static tables / sim yet). Thermal has `homecooked-thermal` (plant
 slice; catalog/sim ports still open). Bridges have `homecooked-bridge`
-(Modbus + Matter + Zigbee mock; real serial/TCP Modbus, CHIP SDK, zigbee2mqtt,
-BACnet still open); control-system has HAL + controller-sim + io-map/interlock crates
+(Modbus + Matter + Zigbee + BACnet mock; real serial/TCP Modbus, CHIP SDK,
+zigbee2mqtt, real BACnet stack still open); control-system has HAL + controller-sim + io-map/interlock crates
 (TCP lab smoke in `homecooked-transport`; auth still out of scope); procedures has `homecooked-procedure`.
 
 Rough completeness: docs + thin protocol/sim spine ≈ **~30%** of the 75%
@@ -190,9 +190,9 @@ multiple small PRs.
    current temp, power state) through a YAML/JSON register map. Tests cover
    foreign → HomeCooked and HomeCooked → register.
 3. ~~Stubs (compile + clear “unimplemented”) for the other bridge families.~~
-   **Done** — `BacnetBridge` returns `Error::UnsupportedFabric`. **Matter**
-   and **Zigbee** are no longer stubs: mock fabric/network + kettle maps
-   (see below).
+   **Done** — Matter, Zigbee, and BACnet are no longer stubs: each has a mock
+   map + in-memory store + kettle roundtrip (see below). Real fabric SDKs
+   remain follow-up.
 
 4. ~~Thin Matter mock (no CHIP SDK).~~ **Done** — `MatterBridge` with
    YAML/JSON endpoint/cluster/attribute map, in-memory attribute store, and
@@ -203,13 +203,18 @@ multiple small PRs.
    same map/store pattern and kettle roundtrip tests. No zigbee2mqtt / ZCL
    SDK dependency.
 
+6. ~~Thin BACnet mock (no BACnet stack).~~ **Done** — `BacnetBridge` with
+   YAML/JSON device-instance + object type/instance + property map,
+   in-memory property store, and kettle BinaryValue / Analog* roundtrip
+   tests. No BACnet/IP or MS/TP dependency.
+
 **Definition of done**
 
 - One bridge crate or module with tests against a fake peer or recorded
   fixtures; stubs documented in README / bridges doc.
-  **Met** for Modbus + Matter + Zigbee mock — see `crates/homecooked-bridge`.
-  Real serial/TCP Modbus, CHIP / Matter SDK, zigbee2mqtt, and BACnet remain
-  follow-up.
+  **Met** for Modbus + Matter + Zigbee + BACnet mock — see
+  `crates/homecooked-bridge`. Real serial/TCP Modbus, CHIP / Matter SDK,
+  zigbee2mqtt, and BACnet stacks remain follow-up.
 
 ### Stream 7 — WASM UI + conformance suite
 
@@ -237,7 +242,7 @@ multiple small PRs.
    protocol major-version rejection, representative write denials.
    **Partial (smoke)** — `homecooked-conformance` runs named end-to-end
    scenarios (Tier-A catalog/sim/describe, washer cotton controller, kettle
-   procedure, thermal fridge→DHW, Modbus water_heater, Matter kettle, Zigbee
+   procedure, thermal fridge→DHW, Modbus water_heater, Matter/Zigbee/BACnet kettle
    kettle, TCP kettle). Deeper
    catalog hygiene / major-version / write-denial matrices remain follow-up.
 3. CI runs the conformance suite (or a `cargo test` subset tagged as such).
@@ -330,4 +335,5 @@ the code that implements them.
 | 0.1.3 | Stream 7 procedure UI slice (`homecooked-wasm` + simulator-web runner panel) |
 | 0.1.4 | Stream 6 Matter mock bridge (`homecooked-bridge` kettle map; no CHIP SDK) |
 | 0.1.5 | Stream 6 Zigbee mock bridge + microwave sim cook-time advance |
+| 0.1.6 | Stream 6 BACnet mock bridge (`homecooked-bridge` kettle map; no BACnet stack) |
 | 0.1.5 | Stream 7 thermal plant UI (`homecooked-wasm` + simulator-web thermal panel) |

@@ -1,7 +1,7 @@
 # homecooked-conformance
 
 Light **conformance smoke suite** (Stream 7): exercises catalog ↔ schema ↔
-sim ↔ protocol ↔ TCP (plus controller / procedure / thermal / Modbus + Matter + Zigbee bridges)
+sim ↔ protocol ↔ TCP (plus controller / procedure / thermal / Modbus + Matter + Zigbee + BACnet bridges)
 end-to-end without a heavy test framework.
 
 Failures are named by scenario so CI output stays actionable.
@@ -29,5 +29,7 @@ Also covered by `cargo test --workspace` (CI).
 6. **matter_kettle_roundtrip** — Matter mock fabric ↔ HomeCooked kettle points
 7. **zigbee_kettle_roundtrip** — Zigbee mock network ↔ HomeCooked kettle points
    via `homecooked-bridge` (illustrative cluster IDs; no zigbee2mqtt)
-8. **tcp_kettle_discover_describe_read_write** — TCP client against a sim
+8. **bacnet_kettle_roundtrip** — BACnet mock device ↔ HomeCooked kettle points
+   via `homecooked-bridge` (illustrative object types; no BACnet stack)
+9. **tcp_kettle_discover_describe_read_write** — TCP client against a sim
    kettle on an ephemeral port (`homecooked-transport`)
