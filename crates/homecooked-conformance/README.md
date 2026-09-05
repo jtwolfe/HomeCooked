@@ -59,5 +59,8 @@ Also covered by `cargo test --workspace` (CI).
 12b. **controller_tcp_washer_cotton** — TCP client against washer
    `ControllerEndpoint`: prepare interlocks, `trait.cycle.start` cotton,
    assert `cycle_state=running` + active `cycle_phase`; lab ticks keep running
+12c. **controller_tcp_dryer_cycle** — TCP client against dryer
+   `DryerControllerEndpoint`: `trait.cycle.start` dry, assert
+   `cycle_state=running` + active `cycle_phase`; lab ticks keep running
 13. **hub_lab_set_discover_describe** — optional `LabHub` lab set over TCP:
    Discover ≥3 devices, describe kettle (`homecooked-hub`)

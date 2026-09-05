@@ -42,10 +42,11 @@ in tests.
 [`DryerControllerEndpoint`](src/dryer_endpoint.rs) map small washer/dryer
 capabilities onto MockHal so clients over `homecooked-transport` get
 `safety_interlock` on denied actuator writes (washer: water+lock; dryer:
-lock+blower). Washer TCP also starts cotton via `trait.cycle.start` and
-exposes readable `trait.cycle.cycle_state` / `cycle_phase`, plus lab-only
-`class.washer.sim_tick`. CottonOptions / cancel / pause / typical_capability /
-dryer cycle-over-TCP remain follow-up. No GPIO, TLS, or OAuth.
+lock+blower). Washer and dryer TCP also start cotton/dry via
+`trait.cycle.start` and expose readable `trait.cycle.cycle_state` /
+`cycle_phase`, plus lab-only `class.washer.sim_tick` /
+`class.dryer.sim_tick`. CottonOptions / DryOptions / cancel / pause /
+typical_capability remain follow-up. No GPIO, TLS, or OAuth.
 
 ## Tests
 
@@ -61,4 +62,4 @@ cargo test -p homecooked-controller --test tcp_interlock
 
 Stream 4 in [`docs/ROADMAP.md`](../../docs/ROADMAP.md): HAL sketch (done) →
 **controller-sim (washer + dryer)** → TCP lab smoke (`homecooked-transport`) →
-**controller-sim-over-TCP** lab smoke (washer + dryer interlock deny; washer cotton start/phase).
+**controller-sim-over-TCP** lab smoke (washer + dryer interlock deny; washer/dryer cycle start/phase).

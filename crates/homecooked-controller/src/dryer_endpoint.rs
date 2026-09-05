@@ -5,8 +5,11 @@
 //! interlocks). Denied heater commands surface as
 //! [`ErrorCode::SafetyInterlock`].
 //!
-//! Not a full catalog device-role: cycle start / typical_capability depth
-//! remain follow-ups. No TLS / OAuth.
+//! Also exposes catalog cycle points so a TCP client can **start dryer cotton**
+//! (`trait.cycle.start` → [`DryerController::start_dry`]) and read
+//! `trait.cycle.cycle_state` / `trait.cycle.cycle_phase`. Lab-only
+//! `class.dryer.sim_tick` advances one host sim tick (DryOptions / cancel /
+//! pause / typical_capability remain follow-ups). No TLS / OAuth.
 
 use homecooked_hal::{bridge, ChannelId, HalValue};
 use homecooked_protocol::{
@@ -15,11 +18,13 @@ use homecooked_protocol::{
     WriteOp, WriteRequest, WriteResponse,
 };
 use homecooked_schema::{
-    AccessMode, ApplianceClassId, CapabilityModel, ErrorCode, PointCapability, TraitCapability,
-    TraitId, Value, ValueType, CATALOG_VERSION, DEFAULT_CLASS_VERSION,
+    trait_table, AccessMode, ApplianceClassId, CapabilityModel, CommandArg, ErrorCode,
+    PointCapability, TraitCapability, TraitId, Value, ValueRange, ValueType, CATALOG_VERSION,
+    DEFAULT_CLASS_VERSION,
 };
 use homecooked_transport::RequestHandler;
 
+use crate::cycle::DryOptions;
 use crate::dryer_controller::DryerController;
 use crate::error::Error;
 use crate::plant;
@@ -37,6 +42,13 @@ const HEATER_CHANNEL: &str = "aout.heater_enable";
 const DOOR_LOCK_CHANNEL: &str = "aout.door_lock";
 const BLOWER_CHANNEL: &str = "aout.blower";
 const DOOR_LOCK_FB_CHANNEL: &str = "din.door_lock_fb";
+
+/// Catalog cycle points (host controller naming).
+const CYCLE_START_POINT: &str = "trait.cycle.start";
+const CYCLE_STATE_POINT: &str = "trait.cycle.cycle_state";
+const CYCLE_PHASE_POINT: &str = "trait.cycle.cycle_phase";
+/// Lab-only class point: one host [`DryerController::tick`] (not a catalog point).
+const LAB_TICK_POINT: &str = "class.dryer.sim_tick";
 
 /// Dryer controller exposed as a single HomeCooked device (lab / smoke).
 #[derive(Debug)]
@@ -271,30 +283,65 @@ impl DryerControllerEndpoint {
     }
 
     fn read_point(&self, point_id: &str) -> Result<Value, ErrorBody> {
-        let channel = point_to_channel(point_id).ok_or_else(|| {
-            ErrorBody::new(
-                ErrorCode::UnknownVariable,
-                format!("unknown point {point_id}"),
-            )
-            .at_point(point_id)
-        })?;
-        let id = ChannelId::new(channel)
-            .map_err(|e| ErrorBody::new(ErrorCode::Internal, e.to_string()).at_point(point_id))?;
-        let raw = self
-            .controller
-            .hal()
-            .get(&id)
-            .map_err(|e| {
-                ErrorBody::new(ErrorCode::Internal, format!("hal get {channel}: {e}"))
+        match point_id {
+            CYCLE_STATE_POINT => Ok(Value::Enum(self.controller.cycle_state().as_str().into())),
+            CYCLE_PHASE_POINT => {
+                let phase = self.controller.phase().as_str();
+                // Catalog phase is empty when idle; advertise a stable idle token.
+                Ok(Value::String(if phase.is_empty() {
+                    "idle".into()
+                } else {
+                    phase.into()
+                }))
+            }
+            _ => {
+                let channel = point_to_channel(point_id).ok_or_else(|| {
+                    ErrorBody::new(
+                        ErrorCode::UnknownVariable,
+                        format!("unknown point {point_id}"),
+                    )
                     .at_point(point_id)
-            })?
-            .clone();
-        hal_to_value(&raw)
+                })?;
+                let id = ChannelId::new(channel).map_err(|e| {
+                    ErrorBody::new(ErrorCode::Internal, e.to_string()).at_point(point_id)
+                })?;
+                let raw = self
+                    .controller
+                    .hal()
+                    .get(&id)
+                    .map_err(|e| {
+                        ErrorBody::new(ErrorCode::Internal, format!("hal get {channel}: {e}"))
+                            .at_point(point_id)
+                    })?
+                    .clone();
+                hal_to_value(&raw)
+            }
+        }
     }
 
     fn apply_write(&mut self, op: &WriteOp) -> Result<(), ErrorBody> {
         let point_id = op.id.to_string();
         match point_id.as_str() {
+            CYCLE_START_POINT => {
+                if !matches!(op.value, Value::Void) {
+                    return Err(
+                        ErrorBody::new(ErrorCode::InvalidType, "expected void").at_point(&point_id)
+                    );
+                }
+                self.controller
+                    .start_dry(DryOptions::default())
+                    .map_err(|e| cycle_error_body(&point_id, e))
+            }
+            LAB_TICK_POINT => {
+                if !matches!(op.value, Value::Void) {
+                    return Err(
+                        ErrorBody::new(ErrorCode::InvalidType, "expected void").at_point(&point_id)
+                    );
+                }
+                self.controller
+                    .tick()
+                    .map_err(|e| cycle_error_body(&point_id, e))
+            }
             HEATER_POINT | DOOR_LOCK_POINT | BLOWER_POINT => {
                 let channel = point_to_channel(&point_id).expect("mapped above");
                 let hv = value_to_hal(&op.value).ok_or_else(|| {
@@ -341,7 +388,7 @@ impl RequestHandler for DryerControllerEndpoint {
     }
 }
 
-/// Thin lab capability: HAL-backed dryer heater / door / blower points.
+/// Thin lab capability: HAL-backed dryer heater / door / blower points + cycle start/read.
 pub fn lab_dryer_capability() -> CapabilityModel {
     let mut cap = CapabilityModel::new(ApplianceClassId::Dryer);
     cap.class_version = DEFAULT_CLASS_VERSION;
@@ -386,13 +433,53 @@ pub fn lab_dryer_capability() -> CapabilityModel {
             resolution: None,
             zones: None,
         },
+        // Lab-only tick (not catalog): advance host dryer cotton runtime one step.
+        PointCapability {
+            id: LAB_TICK_POINT.into(),
+            value_type: ValueType::Command,
+            unit: None,
+            access: AccessMode::W,
+            required: false,
+            range: Some(ValueRange::CommandArg {
+                arg: CommandArg::Void,
+            }),
+            resolution: None,
+            zones: None,
+        },
     ];
     cap.traits.push(TraitCapability {
         trait_id: TraitId::DoorLid,
         trait_version: DEFAULT_CLASS_VERSION,
         points: Vec::new(),
     });
+    // Catalog cycle points: start dryer cotton + observe state/phase over TCP.
+    let cycle = trait_table(TraitId::Cycle).expect("cycle trait table");
+    let mut cycle_points = Vec::new();
+    for id in ["start", "cycle_state", "cycle_phase"] {
+        let p = cycle
+            .point(id)
+            .unwrap_or_else(|| panic!("missing trait.cycle.{id}"));
+        cycle_points.push(PointCapability::from_catalog(
+            format!("trait.cycle.{id}"),
+            p,
+        ));
+    }
+    cap.traits.push(TraitCapability {
+        trait_id: TraitId::Cycle,
+        trait_version: DEFAULT_CLASS_VERSION,
+        points: cycle_points,
+    });
     cap
+}
+
+fn cycle_error_body(point_id: &str, err: Error) -> ErrorBody {
+    let msg = err.to_string();
+    let code = match &err {
+        Error::Cycle(m) if m.contains("already running") => ErrorCode::Busy,
+        Error::Cycle(m) if m.contains("door") => ErrorCode::SafetyInterlock,
+        _ => ErrorCode::Internal,
+    };
+    ErrorBody::new(code, msg).at_point(point_id)
 }
 
 fn point_to_channel(point_id: &str) -> Option<&'static str> {
@@ -519,5 +606,81 @@ mod dryer_endpoint_tests {
                 .map(|c| c.value.clone()),
             Some(HalValue::Bool(true))
         );
+    }
+
+    #[test]
+    fn dry_start_and_phase_via_handle() {
+        let mut ep = DryerControllerEndpoint::dryer_lab().unwrap();
+        let idle = Envelope::request(
+            Some(ep.device_id().into()),
+            Payload::Read(homecooked_protocol::ReadRequest {
+                points: vec![qid(CYCLE_STATE_POINT), qid(CYCLE_PHASE_POINT)],
+                allow_partial: false,
+            }),
+        );
+        match ep.handle_request(idle).payload {
+            Payload::ReadOk(body) => {
+                assert_eq!(body.values[0].value, Some(Value::Enum("idle".into())));
+                assert_eq!(body.values[1].value, Some(Value::String("idle".into())));
+            }
+            other => panic!("expected ReadOk idle, got {other:?}"),
+        }
+
+        let start = Envelope::request(
+            Some(ep.device_id().into()),
+            Payload::Write(WriteRequest {
+                writes: vec![WriteOp {
+                    id: qid(CYCLE_START_POINT),
+                    value: Value::Void,
+                }],
+                dry_run: false,
+                atomic: false,
+            }),
+        );
+        assert!(matches!(
+            ep.handle_request(start).payload,
+            Payload::WriteOk(_)
+        ));
+        assert_eq!(ep.controller().cycle_state().as_str(), "running");
+
+        let running = Envelope::request(
+            Some(ep.device_id().into()),
+            Payload::Read(homecooked_protocol::ReadRequest {
+                points: vec![qid(CYCLE_STATE_POINT), qid(CYCLE_PHASE_POINT)],
+                allow_partial: false,
+            }),
+        );
+        match ep.handle_request(running).payload {
+            Payload::ReadOk(body) => {
+                assert_eq!(body.values[0].value, Some(Value::Enum("running".into())));
+                let phase = body.values[1].value.as_ref().unwrap();
+                match phase {
+                    Value::String(s) => assert!(
+                        s == "heating" || s == "drying" || s == "cooling" || !s.is_empty(),
+                        "unexpected phase {s}"
+                    ),
+                    other => panic!("expected string phase, got {other:?}"),
+                }
+            }
+            other => panic!("expected ReadOk running, got {other:?}"),
+        }
+
+        // One lab tick should keep cycle running (phase may stay heating while locking).
+        let tick = Envelope::request(
+            Some(ep.device_id().into()),
+            Payload::Write(WriteRequest {
+                writes: vec![WriteOp {
+                    id: qid(LAB_TICK_POINT),
+                    value: Value::Void,
+                }],
+                dry_run: false,
+                atomic: false,
+            }),
+        );
+        assert!(matches!(
+            ep.handle_request(tick).payload,
+            Payload::WriteOk(_)
+        ));
+        assert_eq!(ep.controller().cycle_state().as_str(), "running");
     }
 }

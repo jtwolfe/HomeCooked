@@ -1,6 +1,6 @@
 # HomeCooked roadmap — ~75% project completeness
 
-Version **0.1.38**. Planning doc for a long flesh-out of the catalog, control
+Version **0.1.39**. Planning doc for a long flesh-out of the catalog, control
 stack, and simulator. It does **not** freeze APIs; crate and YAML shapes may
 evolve with the code that implements each stream.
 
@@ -28,18 +28,18 @@ What exists on `main` today (Done highlights called out):
 | `homecooked-interlock` | Declarative interlock rules (washer heater/spin; dryer heater/motor) |
 | `homecooked-hal` | Firmware HAL sketch + host `MockHal` |
 | `homecooked-procedure` | Procedure documents + sequential runner; Domino's microwave + wash-then-dry + oven bake + coffee brew + air fryer cook + thin `thermal_wait` / `wait_dhw_reservoir` fixtures |
-| `homecooked-controller` | Host controller sim: IoMap + MockHal + interlocks + washer cotton / **dryer cycle**; **lab TCP endpoints** (`ControllerEndpoint` + `DryerControllerEndpoint` interlock deny; washer **cotton start** + readable phase/state + lab tick) — **Done** |
+| `homecooked-controller` | Host controller sim: IoMap + MockHal + interlocks + washer cotton / **dryer cycle**; **lab TCP endpoints** (`ControllerEndpoint` + `DryerControllerEndpoint` interlock deny; washer/dryer **cycle start** + readable phase/state + lab tick) — **Done** |
 | `homecooked-thermal` | First executable thermal plant slice (types, registry, offer/accept, tick); re-exports schema thermal vocabulary; plant **runtime** still crate-local (not promoted with ClassTable `HeatPortSpec`) |
 | `homecooked-bridge` | **Modbus + Matter + Zigbee + BACnet mocks** (no real serial/TCP/CHIP/z2m/BACnet stacks) — **Done** |
 | `homecooked-transport` | Lab TCP JSON envelopes; **optional PSK pairing**; sim-backed server + **pluggable `RequestHandler`**; malformed frame table tests — **Done** |
 | `homecooked-hub` | Optional multi-device lab TCP aggregator (**not required for devices**) — **Done** |
-| `homecooked-conformance` | Stream 7 smoke: Tier-A / Tier-B / `catalog_hygiene` / `write_denial_matrix` / cotton / kettle + oven bake + coffee brew + air fryer cook + wash-then-dry procedures / thermal / `procedure_thermal_wait_dhw` / `water_heater_thermal_ports` / Modbus / Matter / Zigbee / BACnet / TCP / TCP PSK / `controller_tcp_washer_interlock` / `controller_tcp_dryer_interlock` / `controller_tcp_washer_cotton` / hub lab set |
+| `homecooked-conformance` | Stream 7 smoke: Tier-A / Tier-B / `catalog_hygiene` / `write_denial_matrix` / cotton / kettle + oven bake + coffee brew + air fryer cook + wash-then-dry procedures / thermal / `procedure_thermal_wait_dhw` / `water_heater_thermal_ports` / Modbus / Matter / Zigbee / BACnet / TCP / TCP PSK / `controller_tcp_washer_interlock` / `controller_tcp_dryer_interlock` / `controller_tcp_washer_cotton` / `controller_tcp_dryer_cycle` / hub lab set |
 | CI | rustfmt, clippy (`-D warnings`), `cargo test --workspace`, wasm-pack |
 
 **Done (thin / lab depth):** Tier-A+B **56** static tables + sim; dryer controller
 cycle; bridge family mocks; lab TCP + PSK; optional hub (in conformance suite);
 simulator-web blob-load; procedure library (kettle + Domino's + wash-then-dry +
-`oven_bake_180` + `coffee_brew_espresso` + `air_fryer_cook_200`); controller-sim-over-TCP interlock smoke (washer + dryer) + washer cotton start/phase;
+`oven_bake_180` + `coffee_brew_espresso` + `air_fryer_cook_200`); controller-sim-over-TCP interlock smoke (washer + dryer) + washer/dryer cycle start/phase;
 catalog `thermal_port_*` on `water_heater` / `fridge` / `hvac` / `dishwasher` / `dryer` + sim UI chips;
 schema thermal vocabulary + `ClassTable.thermal_ports` (`HeatPortSpec`) + wasm/UI heat-port specs;
 optional-point depth on `wine_cooler` + `ice_maker`; `write_denial_matrix` + `catalog_hygiene` conformance.
@@ -50,12 +50,12 @@ optional-point depth on `wine_cooler` + `ice_maker`; `write_denial_matrix` + `ca
 crate-local); **real bridge SDKs** (Modbus serial/TCP or Matter/CHIP — mocks only
 today); TLS (still out of scope for lab transport); fuller Tier-B / catalog optional
 depth beyond `wine_cooler` + `ice_maker`; procedure⇄thermal **offer/negotiate-as-steps**
-(and fuller wasm/UI wiring; thin `thermal_wait` is present); dryer **cycle-over-TCP**;
-**CottonOptions** (and cancel/pause / typical_capability) over the wire.
+(and fuller wasm/UI wiring; thin `thermal_wait` is present); **CottonOptions** /
+**DryOptions** (and cancel/pause / typical_capability) over the wire.
 
 Rough completeness: foundation + Tier-A/B tables + procedure library (kettle /
 Domino's / wash-then-dry / oven / coffee / air fryer + thin `thermal_wait`) +
-HAL / controller TCP (washer+dryer interlock + washer cotton start/phase) +
+HAL / controller TCP (washer+dryer interlock + washer/dryer cycle start/phase) +
 hub-in-suite + thermal-port surface (5 classes + UI + schema vocabulary /
 `ClassTable.HeatPortSpec` + wasm heat-port chips) + bridge mocks + write-denial
 matrix + early catalog depth (`wine_cooler` / `ice_maker`) ≈ **~75% of the §2
@@ -67,7 +67,7 @@ calling the target **substantially achieved** is honest — not that every §2 b
 is production-complete. This is **not** IEC certification, production firmware,
 or a shipping commercial appliance. Remaining work is depth beyond the lab bar
 (real bridge SDK, full plant runtime schema promotion, TLS, richer procedure⇄thermal
-steps, dryer cycle-over-TCP, CottonOptions over wire, more class depth).
+steps, CottonOptions/DryOptions over wire, more class depth).
 
 ---
 
@@ -124,9 +124,9 @@ production firmware:
 - **TLS** — lab TCP stays cleartext (+ optional PSK); TLS/OAuth remain out of
   scope for the lab path.
 - **Richer controller-over-TCP** — interlock smoke for washer+dryer is done;
-  washer cotton **start + readable phase/state** (+ lab tick) over TCP landed
-  (#60); **CottonOptions** over the wire / cancel / pause / typical_capability /
-  **dryer cycle-over-TCP** remain optional follow-up (still thin / beyond).
+  washer cotton + dryer cycle **start + readable phase/state** (+ lab tick) over
+  TCP landed; **CottonOptions** / **DryOptions** over the wire / cancel / pause /
+  typical_capability remain optional follow-up (still thin / beyond).
 
 ---
 
@@ -203,7 +203,7 @@ multiple small PRs.
    dryer Idle→Heat/Dry→Cool→Done on MockHal with class interlocks
    (`washer_rules` / `dryer_rules`); thin lab device-role via
    `ControllerEndpoint` / `DryerControllerEndpoint` (TCP interlock smoke);
-   fuller typical_capability / cycle-over-TCP still follow-up.
+   fuller typical_capability / options-over-wire still follow-up.
 3. ~~TCP transport for the existing protocol envelope (one peer = one sim
    controller).~~ **Done (lab smoke)** — `homecooked-transport`: length-prefixed
    JSON framing, sim-backed TCP server + client, integration tests for
@@ -215,9 +215,9 @@ multiple small PRs.
    TCP write of washer heater succeeds when water+lock (deny when dry);
    dryer heater succeeds when lock+blower (deny when door unlocked) as
    `safety_interlock`. Host unit tests still cover cotton/dryer cycles.
-   Washer cotton start + `cycle_state`/`cycle_phase` (+ lab tick) over TCP
-   landed; typical_capability / CottonOptions / cancel / dryer cycle-over-TCP
-   remain optional follow-up.
+   Washer cotton + dryer cycle start + `cycle_state`/`cycle_phase` (+ lab tick)
+   over TCP landed; typical_capability / CottonOptions / DryOptions / cancel /
+   pause remain optional follow-up.
 
 4. ~~Optional multi-device lab hub~~ **Done (thin)** — `homecooked-hub`
    wraps `Simulator` / `DeviceHub`, reuses `homecooked-transport` TCP + optional
@@ -232,7 +232,7 @@ multiple small PRs.
   ~~Controller-sim + interlock path over TCP~~ **Met (lab smoke)** —
   `homecooked-controller` `tcp_interlock` + conformance
   `controller_tcp_washer_interlock` / `controller_tcp_dryer_interlock` /
-  `controller_tcp_washer_cotton`.
+  `controller_tcp_washer_cotton` / `controller_tcp_dryer_cycle`.
 - No claim of production firmware, TLS, OAuth, or certified safety path.
   Lab PSK is a shared-secret handshake only (cleartext over cleartext TCP).
 
@@ -523,3 +523,4 @@ the code that implements them.
 | 0.1.36 | Stream 7: wasm `list_heat_port_specs(class_id)` exposes `ClassTable.thermal_ports`; simulator-web read-only Catalog heat ports chips alongside live `thermal_port_*` panel |
 | 0.1.37 | Stream 4: washer controller TCP cotton start (`trait.cycle.start` + readable `cycle_state`/`cycle_phase` + `class.washer.sim_tick`); conformance `controller_tcp_washer_cotton`; CottonOptions/cancel/dryer cycle-over-TCP deferred |
 | 0.1.38 | Current-state refresh: **~75% of the §2 in-scope bar met in spirit** for lab/software depth; cite PRs #54–#60 (thermal vocab + HeatPortSpec + UI, Tier-B wine_cooler/ice_maker, cotton-over-TCP); Still open reframed as beyond/thin (real bridge SDKs, plant runtime schema, TLS, fuller Tier-B, procedure offer/negotiate, dryer cycle-over-TCP, CottonOptions over wire); no IEC / production-firmware claim |
+| 0.1.39 | Stream 4: dryer controller TCP cycle start (`trait.cycle.start` + readable `cycle_state`/`cycle_phase` + `class.dryer.sim_tick`); conformance `controller_tcp_dryer_cycle`; CottonOptions/DryOptions/cancel/pause deferred |
