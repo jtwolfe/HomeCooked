@@ -1,4 +1,4 @@
-//! Simple per-class simulation: kettle heat, washer/microwave cycle progress.
+//! Simple per-class simulation: kettle heat, washer/dryer/microwave cycle progress.
 
 use homecooked_core::{DeviceState, RegisteredDevice};
 use homecooked_protocol::WriteOp;
@@ -8,6 +8,8 @@ use homecooked_schema::{ApplianceClassId, Value};
 pub const KETTLE_HEAT_RATE_C_PER_S: f32 = 5.0;
 /// Stub washer cycle length.
 pub const WASHER_CYCLE_S: u32 = 60;
+/// Stub dryer cycle length (shorter than washer for laundry demos).
+pub const DRYER_CYCLE_S: u32 = 30;
 /// Fallback microwave cook duration when `class.microwave.cook_s` is missing.
 pub const DEFAULT_MICROWAVE_COOK_S: u32 = 60;
 
@@ -51,6 +53,10 @@ fn start_cycle(dev: &mut RegisteredDevice) {
         ApplianceClassId::Washer | ApplianceClassId::WasherDryer => {
             set_duration(&mut dev.state, "trait.cycle.remaining_s", WASHER_CYCLE_S);
             set_string(&mut dev.state, "trait.cycle.cycle_phase", "fill");
+        }
+        ApplianceClassId::Dryer => {
+            set_duration(&mut dev.state, "trait.cycle.remaining_s", DRYER_CYCLE_S);
+            set_string(&mut dev.state, "trait.cycle.cycle_phase", "heating");
         }
         ApplianceClassId::Microwave => {
             let cook = duration_of(&dev.state, "class.microwave.cook_s");
@@ -100,6 +106,7 @@ pub fn tick_device(dev: &mut RegisteredDevice, dt_ms: u64) {
         ApplianceClassId::Washer | ApplianceClassId::WasherDryer => {
             tick_washer(&mut dev.state, dt_ms)
         }
+        ApplianceClassId::Dryer => tick_dryer(&mut dev.state, dt_ms),
         ApplianceClassId::Microwave => tick_microwave(&mut dev.state, dt_ms),
         _ => {}
     }
@@ -156,6 +163,30 @@ fn tick_washer(state: &mut DeviceState, dt_ms: u64) {
     }
 }
 
+fn tick_dryer(state: &mut DeviceState, dt_ms: u64) {
+    if !enum_is(state, "trait.cycle.cycle_state", "running") {
+        return;
+    }
+    let add_s = (dt_ms / 1000) as u32;
+    if add_s == 0 {
+        return;
+    }
+    let elapsed = duration_of(state, "trait.cycle.elapsed_s").saturating_add(add_s);
+    let total = DRYER_CYCLE_S.max(1);
+    let elapsed = elapsed.min(total);
+    let remaining = total.saturating_sub(elapsed);
+    let progress = (elapsed as f32 / total as f32) * 100.0;
+    set_duration(state, "trait.cycle.elapsed_s", elapsed);
+    set_duration(state, "trait.cycle.remaining_s", remaining);
+    set_percent(state, "trait.cycle.progress_percent", progress.min(100.0));
+    set_string(state, "trait.cycle.cycle_phase", dryer_phase(progress));
+    if elapsed >= total {
+        set_enum(state, "trait.cycle.cycle_state", "complete");
+        set_percent(state, "trait.cycle.progress_percent", 100.0);
+        set_string(state, "trait.cycle.cycle_phase", "complete");
+    }
+}
+
 fn tick_microwave(state: &mut DeviceState, dt_ms: u64) {
     if !enum_is(state, "trait.cycle.cycle_state", "running") {
         return;
@@ -196,6 +227,20 @@ fn washer_phase(progress: f32) -> &'static str {
         "rinse"
     } else if progress < 95.0 {
         "spin"
+    } else {
+        "complete"
+    }
+}
+
+fn dryer_phase(progress: f32) -> &'static str {
+    if progress < 20.0 {
+        "heating"
+    } else if progress < 70.0 {
+        "drying"
+    } else if progress < 90.0 {
+        "cooling"
+    } else if progress < 100.0 {
+        "anti_crease"
     } else {
         "complete"
     }

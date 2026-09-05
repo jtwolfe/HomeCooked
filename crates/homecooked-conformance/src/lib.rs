@@ -15,7 +15,9 @@ use homecooked_controller::{Controller, CottonOptions, CyclePhase, CycleState, W
 use homecooked_core::DeviceId;
 use homecooked_hal::ChannelId;
 use homecooked_hub::{LabHub, LAB_KETTLE_ID};
-use homecooked_procedure::{run, DeviceBindings, Procedure, KETTLE_HEAT_80_JSON};
+use homecooked_procedure::{
+    run, DeviceBindings, Procedure, KETTLE_HEAT_80_JSON, WASH_THEN_DRY_JSON,
+};
 use homecooked_protocol::{Envelope, Payload, PingBody, WriteOp};
 use homecooked_schema::{
     typical_capability, ApplianceClassId, QualifiedPointId, Value, TIER_A_CLASS_IDS,
@@ -252,6 +254,49 @@ pub fn procedure_kettle_happy_path() -> ScenarioResult {
         .ok_or_else(|| err(NAME, format!("current_c not numeric: {current:?}")))?;
     if c < 75.0 {
         return Err(err(NAME, format!("current_c={c}, expected >= 75")));
+    }
+    Ok(())
+}
+
+/// (3b) Multi-device wash-then-dry procedure via homecooked-procedure + sim.
+pub fn procedure_wash_then_dry() -> ScenarioResult {
+    const NAME: &str = "procedure_wash_then_dry";
+    let doc = Procedure::load_json(WASH_THEN_DRY_JSON)
+        .map_err(|e| err(NAME, format!("load procedure: {e}")))?;
+    let mut sim = Simulator::new();
+    let washer = sim
+        .spawn(ApplianceClassId::Washer)
+        .map_err(|e| err(NAME, format!("spawn washer: {e}")))?;
+    let dryer = sim
+        .spawn(ApplianceClassId::Dryer)
+        .map_err(|e| err(NAME, format!("spawn dryer: {e}")))?;
+    let bindings = DeviceBindings::new()
+        .bind("washer", washer.as_str())
+        .bind("dryer", dryer.as_str());
+    let result = run(&doc, &mut sim, &bindings);
+    if !result.is_completed() {
+        return Err(err(
+            NAME,
+            format!("expected completed, got {:?}", result.status),
+        ));
+    }
+    let washer_state = sim
+        .read_value(&DeviceId::new(washer.as_str()), "trait.cycle.cycle_state")
+        .map_err(|e| err(NAME, format!("read washer cycle_state: {e}")))?;
+    let dryer_state = sim
+        .read_value(&DeviceId::new(dryer.as_str()), "trait.cycle.cycle_state")
+        .map_err(|e| err(NAME, format!("read dryer cycle_state: {e}")))?;
+    if washer_state != Value::Enum("complete".into()) {
+        return Err(err(
+            NAME,
+            format!("washer cycle_state={washer_state:?}, expected complete"),
+        ));
+    }
+    if dryer_state != Value::Enum("complete".into()) {
+        return Err(err(
+            NAME,
+            format!("dryer cycle_state={dryer_state:?}, expected complete"),
+        ));
     }
     Ok(())
 }
@@ -877,6 +922,7 @@ pub fn all_scenarios() -> &'static [(&'static str, ScenarioFn)] {
         ("tier_b_catalog_sim_describe", tier_b_catalog_sim_describe),
         ("washer_cotton_controller", washer_cotton_controller),
         ("procedure_kettle_happy_path", procedure_kettle_happy_path),
+        ("procedure_wash_then_dry", procedure_wash_then_dry),
         ("thermal_fridge_dhw_demo", thermal_fridge_dhw_demo),
         (
             "modbus_water_heater_roundtrip",

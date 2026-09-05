@@ -510,6 +510,11 @@ function listExampleProcedures() {
         name: "Reheat 2 Domino's supreme slices (microwave)",
         class_hints: ["microwave"],
       },
+      {
+        id: "wash_then_dry",
+        name: "Wash then dry (laundry)",
+        class_hints: ["washer", "dryer"],
+      },
     ];
   }
 }

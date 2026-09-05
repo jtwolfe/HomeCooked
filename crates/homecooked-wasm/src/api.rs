@@ -430,7 +430,7 @@ impl WasmApi {
         serde_json::to_string(&items).expect("ExampleProcedureInfo serializes")
     }
 
-    /// Full JSON for a bundled example id (`kettle_heat_80`, `reheat_dominos_microwave`).
+    /// Full JSON for a bundled example id (`kettle_heat_80`, `reheat_dominos_microwave`, `wash_then_dry`).
     pub fn get_example_procedure(id: &str) -> Result<String, ApiError> {
         BUNDLED_EXAMPLE_PROCEDURES
             .iter()
@@ -1099,15 +1099,18 @@ mod tests {
     }
 
     #[test]
-    fn list_example_procedures_includes_kettle_and_dominos() {
+    fn list_example_procedures_includes_kettle_dominos_and_laundry() {
         let items: Vec<ExampleProcedureInfo> =
             serde_json::from_str(&WasmApi::list_example_procedures()).unwrap();
-        assert_eq!(items.len(), 2);
+        assert_eq!(items.len(), 3);
         assert_eq!(items[0].id, "kettle_heat_80");
         assert_eq!(items[0].name, "Heat kettle to 80C");
         assert!(items[0].class_hints.iter().any(|c| c == "kettle"));
         assert_eq!(items[1].id, "reheat_dominos_microwave");
         assert!(items[1].class_hints.iter().any(|c| c == "microwave"));
+        assert_eq!(items[2].id, "wash_then_dry");
+        assert!(items[2].class_hints.iter().any(|c| c == "washer"));
+        assert!(items[2].class_hints.iter().any(|c| c == "dryer"));
     }
 
     #[test]
@@ -1124,6 +1127,15 @@ mod tests {
             serde_json::from_str(&WasmApi::parse_procedure(&mw).unwrap()).unwrap();
         assert_eq!(summary.id, "reheat_dominos_microwave");
         assert_eq!(summary.step_count, 5);
+
+        let laundry = WasmApi::get_example_procedure("wash_then_dry").unwrap();
+        let summary: ProcedureSummary =
+            serde_json::from_str(&WasmApi::parse_procedure(&laundry).unwrap()).unwrap();
+        assert_eq!(summary.id, "wash_then_dry");
+        assert_eq!(summary.step_count, 9);
+        assert_eq!(summary.devices.len(), 2);
+        assert_eq!(summary.devices[0].role, "washer");
+        assert_eq!(summary.devices[1].role, "dryer");
 
         let err = WasmApi::get_example_procedure("not_a_recipe").unwrap_err();
         assert_eq!(err.code, ErrorCode::InvalidRequest);
@@ -1198,6 +1210,45 @@ mod tests {
         // Final cancel/`idle_cycle` resets elapsed_s; wait step already required >= 45.
         assert_eq!(state["trait.cycle.cycle_state"]["value"], "idle");
         assert_eq!(state["trait.cycle.elapsed_s"]["value"], 0);
+    }
+
+    #[test]
+    fn run_wash_then_dry_procedure_auto_spawns_and_completes() {
+        let mut api = WasmApi::new();
+        let json = WasmApi::get_example_procedure("wash_then_dry").unwrap();
+        let raw = api.run_procedure(&json).unwrap();
+        let result: ProcedureRunOut = serde_json::from_str(&raw).unwrap();
+
+        assert_eq!(
+            result.status, "completed",
+            "wash_then_dry run failed: {:?}",
+            result.fail_reason
+        );
+        assert!(result.failed_step_id.is_none());
+        assert!(result.fail_reason.is_none());
+        assert_eq!(result.outcomes.len(), 9);
+        assert!(result.outcomes.iter().all(|o| o.ok));
+        assert_eq!(result.outcomes[0].step_id, "wash_spin");
+        assert_eq!(result.outcomes[3].step_id, "wash_wait");
+        assert_eq!(result.outcomes[6].step_id, "dry_start");
+        assert_eq!(result.outcomes[7].step_id, "dry_wait");
+
+        assert_eq!(result.bindings.len(), 2);
+        assert_eq!(result.bindings[0].role, "washer");
+        assert_eq!(result.bindings[0].class_id, ApplianceClassId::Washer);
+        assert!(result.bindings[0].spawned);
+        assert!(result.bindings[0].device_id.starts_with("sim-washer-"));
+        assert_eq!(result.bindings[1].role, "dryer");
+        assert_eq!(result.bindings[1].class_id, ApplianceClassId::Dryer);
+        assert!(result.bindings[1].spawned);
+        assert!(result.bindings[1].device_id.starts_with("sim-dryer-"));
+
+        let washer_state: serde_json::Value =
+            serde_json::from_str(&api.get_state(&result.bindings[0].device_id).unwrap()).unwrap();
+        let dryer_state: serde_json::Value =
+            serde_json::from_str(&api.get_state(&result.bindings[1].device_id).unwrap()).unwrap();
+        assert_eq!(washer_state["trait.cycle.cycle_state"]["value"], "complete");
+        assert_eq!(dryer_state["trait.cycle.cycle_state"]["value"], "complete");
     }
 
     #[test]
