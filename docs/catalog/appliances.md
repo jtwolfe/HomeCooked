@@ -800,8 +800,13 @@ wood-tray heater, probe targets, delay start.
 **Typical readable state:** cabinet temp, probe temps, smoke generating, door,
 element, water pan (optional).
 
-**Notes:** Pellet grills are vendor-adjacent; if they expose PID temp + pellet
-auger they may still use this class with a `fuel_level` vendor variable.
+**Notes:**
+
+- Pellet grills are vendor-adjacent; if they expose PID temp + pellet auger they
+  may still use this class with a `fuel_level` vendor variable.
+- Catalog depth: optional class points include `chamber_c`, `smoke_on`,
+  `fuel_percent`, `water_pan`, sabbath, eco, `heater_on`, `high_temp_alarm`,
+  `door_ajar`, and `timer_s` (see variables-and-settings).
 
 ---
 

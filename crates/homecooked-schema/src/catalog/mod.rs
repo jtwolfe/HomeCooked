@@ -548,6 +548,22 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "timer_s"
         );
     }
+    // Stream 7 catalog depth: electric_smoker optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::ElectricSmoker {
+        return matches!(
+            point.id,
+            "chamber_c"
+                | "smoke_on"
+                | "fuel_percent"
+                | "water_pan"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "heater_on"
+                | "high_temp_alarm"
+                | "door_ajar"
+                | "timer_s"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -2062,6 +2078,63 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.electric_grill.lid_open", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn electric_smoker_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::ElectricSmoker).unwrap();
+        for id in [
+            "class.electric_smoker.chamber_c",
+            "class.electric_smoker.smoke_on",
+            "class.electric_smoker.fuel_percent",
+            "class.electric_smoker.water_pan",
+            "class.electric_smoker.sabbath_mode",
+            "class.electric_smoker.eco_mode",
+            "class.electric_smoker.heater_on",
+            "class.electric_smoker.high_temp_alarm",
+            "class.electric_smoker.door_ajar",
+            "class.electric_smoker.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical electric_smoker"
+            );
+        }
+        cap.validate_write("class.electric_smoker.smoke_on", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.electric_smoker.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.electric_smoker.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.electric_smoker.timer_s", &Value::DurationS(900))
+            .unwrap();
+        let err = cap
+            .validate_write("class.electric_smoker.chamber_c", &Value::F32(100.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.electric_smoker.fuel_percent", &Value::Percent(50.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write(
+                "class.electric_smoker.water_pan",
+                &Value::Enum("empty".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.electric_smoker.heater_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.electric_smoker.high_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.electric_smoker.door_ajar", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }

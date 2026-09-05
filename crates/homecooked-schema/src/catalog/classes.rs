@@ -3174,6 +3174,14 @@ const ELECTRIC_SMOKER_TRAITS: &[TraitId] = &[
 const WATER_PAN: &[&str] = &["ok", "empty", "missing", "na"];
 
 static ELECTRIC_SMOKER_POINTS: &[CatalogPoint] = &[
+    v(
+        "chamber_c",
+        ValueType::F32,
+        Some(Unit::Celsius),
+        None,
+        AccessMode::RE,
+        false,
+    ),
     s(
         "smoke_on",
         ValueType::Bool,
@@ -3196,6 +3204,54 @@ static ELECTRIC_SMOKER_POINTS: &[CatalogPoint] = &[
         None,
         en(WATER_PAN),
         AccessMode::RE,
+        false,
+    ),
+    s(
+        "sabbath_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    ),
+    s(
+        "eco_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "heater_on",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "high_temp_alarm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "door_ajar",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "timer_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 10800),
+        AccessMode::RWE,
         false,
     ),
 ];
