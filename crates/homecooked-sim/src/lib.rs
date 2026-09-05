@@ -6916,6 +6916,195 @@ mod tests {
     }
 
     #[test]
+    fn oven_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let oven = sim.spawn(ApplianceClassId::Oven).unwrap();
+
+        assert_eq!(
+            sim.read_value(&oven, "class.oven.broil_level").unwrap(),
+            Value::Enum("low".into())
+        );
+        assert_eq!(
+            sim.read_value(&oven, "class.oven.convection_fan").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&oven, "class.oven.steam_percent").unwrap(),
+            Value::Percent(0.0)
+        );
+        assert_eq!(
+            sim.read_value(&oven, "class.oven.cook_s").unwrap(),
+            Value::DurationS(600)
+        );
+        assert_eq!(
+            sim.read_value(&oven, "class.oven.door_locked_clean")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&oven, "class.oven.element_bake").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&oven, "class.oven.element_broil").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&oven, "class.oven.sabbath_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&oven, "class.oven.eco_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&oven, "class.oven.heater_on").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&oven, "class.oven.high_temp_alarm").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&oven, "class.oven.door_ajar").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&oven, "class.oven.timer_s").unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&oven, "trait.temperature.probe_c").unwrap(),
+            Value::F32(0.0)
+        );
+        assert_eq!(
+            sim.read_value(&oven, "trait.temperature.probe_target_c")
+                .unwrap(),
+            Value::F32(0.0)
+        );
+        assert_eq!(
+            sim.read_value(&oven, "trait.temperature.probe_connected")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&oven, "trait.temperature.preheat_complete")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&oven, "trait.child_lock.child_lock")
+                .unwrap(),
+            Value::Bool(false)
+        );
+
+        sim.write(&oven, "class.oven.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&oven, "class.oven.sabbath_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&oven, "class.oven.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&oven, "class.oven.eco_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&oven, "class.oven.timer_s", Value::DurationS(900))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&oven, "class.oven.timer_s").unwrap(),
+            Value::DurationS(900)
+        );
+        sim.write(&oven, "class.oven.broil_level", Value::Enum("high".into()))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&oven, "class.oven.broil_level").unwrap(),
+            Value::Enum("high".into())
+        );
+        sim.write(&oven, "class.oven.convection_fan", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&oven, "class.oven.convection_fan").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&oven, "class.oven.steam_percent", Value::Percent(25.0))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&oven, "class.oven.steam_percent").unwrap(),
+            Value::Percent(25.0)
+        );
+        sim.write(&oven, "class.oven.cook_s", Value::DurationS(2400))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&oven, "class.oven.cook_s").unwrap(),
+            Value::DurationS(2400)
+        );
+        sim.write(&oven, "trait.temperature.probe_target_c", Value::F32(71.0))
+            .unwrap();
+        assert!(
+            (f32_val(
+                &sim.read_value(&oven, "trait.temperature.probe_target_c")
+                    .unwrap()
+            ) - 71.0)
+                .abs()
+                < f32::EPSILON
+        );
+        sim.write(&oven, "trait.child_lock.child_lock", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&oven, "trait.child_lock.child_lock")
+                .unwrap(),
+            Value::Bool(true)
+        );
+
+        let err = sim
+            .write(&oven, "class.oven.heater_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&oven, "class.oven.high_temp_alarm", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&oven, "class.oven.door_ajar", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&oven, "class.oven.door_locked_clean", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&oven, "class.oven.element_bake", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&oven, "class.oven.element_broil", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&oven, "trait.temperature.probe_c", Value::F32(55.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &oven,
+                "trait.temperature.probe_connected",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &oven,
+                "trait.temperature.preheat_complete",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn dishwasher_thermal_port_read_write() {
         let mut sim = Simulator::new();
         let id = sim.spawn(ApplianceClassId::Dishwasher).unwrap();

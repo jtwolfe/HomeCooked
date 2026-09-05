@@ -970,16 +970,30 @@ On ovens, `trait.program.program` **is** the cooking mode.
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `broil_level` | enum | — | `low` `high` | r/w | opt | |
-| `convection_fan` | bool | — | | r/w | opt | |
-| `steam_percent` | percent | percent | 0–100 | r/w | opt | Hybrid steam assist |
-| `cook_s` | duration_s | second | 0–43200 | r/w | opt | 0 = no timer |
-| `door_locked_clean` | bool | — | | r/e | opt | Pyro lock |
-| `element_bake` | bool | — | | r/e | opt | |
-| `element_broil` | bool | — | | r/e | opt | |
+| `broil_level` | enum | — | `low` `high` | r/w | opt | Broil intensity (typical) |
+| `convection_fan` | bool | — | | r/w | opt | Convection fan enable (typical) |
+| `steam_percent` | percent | percent | 0–100 | r/w | opt | Hybrid steam assist (typical) |
+| `cook_s` | duration_s | second | 0–43200 | r/w | opt | Cook duration; 0 = no timer (typical) |
+| `door_locked_clean` | bool | — | | r/e | opt | Pyro / self-clean lock (typical) |
+| `element_bake` | bool | — | | r/e | opt | Bake element energizing (typical) |
+| `element_broil` | bool | — | | r/e | opt | Broil element energizing (typical) |
+| `sabbath_mode` | bool | — | | r/w/e | opt | Suppress beeps / delay display |
+| `eco_mode` | bool | — | | r/w | opt | Prefer lower average power |
+| `heater_on` | bool | — | | r/e | opt | Aggregate heater telemetry (not element control) |
+| `high_temp_alarm` | bool | — | | r/e | opt | Cavity overtemp alarm |
+| `door_ajar` | bool | — | | r/e | opt | Door ajar bit (distinct from pyro `door_locked_clean`) |
+| `timer_s` | duration_s | second | 0–86400 | r/w/e | opt | Kitchen timer (distinct from `cook_s`) |
 
 Self-clean: `program=self_clean` or `pyrolytic` then `cycle.start`. Mid-clean
-setpoint writes → `busy`.
+setpoint writes → `busy`. Meat probe via `trait.temperature.probe_c` /
+`probe_target_c` / `probe_connected`; preheat via `preheat_complete`.
+
+Optional depth (seventh undepened Tier-A deepen): sabbath/eco/heater_on/
+high_temp_alarm/door_ajar/timer_s on oven-only `OVEN_DEPTH` (kept off
+`OVEN_BASE` so `range` / `steam_oven` / `toaster_oven` composition stays
+unpolluted); typical also advertises thin-table broil/convection/steam/cook/
+door_locked_clean/elements + Temperature probe/preheat points. Child lock
+already typical.
 
 ---
 

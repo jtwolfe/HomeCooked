@@ -611,6 +611,14 @@ cavities (`steam_oven`).
 - Double wall ovens: one device, two `zone`s (`upper`, `lower`), each with oven
   variables.
 - Gas ovens add ignition / flame-out faults; still this class.
+- Catalog depth: optional sabbath/eco/heater_on/high_temp_alarm/door_ajar/
+  timer_s on oven-only `OVEN_DEPTH` (not merged into `range` / `steam_oven` /
+  `toaster_oven`); typical also advertises thin-table broil_level /
+  convection_fan / steam_percent / cook_s / door_locked_clean / element_bake /
+  element_broil plus Temperature `probe_c` / `probe_target_c` /
+  `probe_connected` / `preheat_complete`. Self-clean remains program tokens
+  `self_clean` / `pyrolytic` + pyro lock `door_locked_clean` (no parallel
+  `self_clean` class bool). Child lock via typical `child_lock` trait.
 
 ### `steam_oven`
 

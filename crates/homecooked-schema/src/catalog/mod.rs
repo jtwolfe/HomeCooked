@@ -187,6 +187,16 @@ fn extra_typical_trait_point(table: &ClassTable, trait_id: TraitId, point: &Cata
     {
         return true;
     }
+    // Oven: meat probe + preheat complete are typical cavity telemetry.
+    if table.class_id == ApplianceClassId::Oven
+        && trait_id == TraitId::Temperature
+        && matches!(
+            point.id,
+            "probe_c" | "probe_target_c" | "probe_connected" | "preheat_complete"
+        )
+    {
+        return true;
+    }
     // Wine cooler: humidity target is typical when the cabinet actively humidifies.
     if table.class_id == ApplianceClassId::WineCooler
         && trait_id == TraitId::Humidity
@@ -304,6 +314,30 @@ fn extra_typical_trait_point(table: &ClassTable, trait_id: TraitId, point: &Cata
 
 /// Optional class points that the typical model still advertises for demos.
 fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
+    // Stream 7 undepened Tier-A deepen: oven optional telemetry/settings.
+    // Advertise thin-table broil/convection/steam/cook/door_locked_clean/elements;
+    // add OVEN_DEPTH sabbath/eco/heater_on/high_temp_alarm/door_ajar/timer_s.
+    // Depth stays off OVEN_BASE so range/steam_oven/toaster_oven composition
+    // is unchanged. Self-clean via program tokens + door_locked_clean (no
+    // parallel self_clean class bool). Meat probe via Temperature trait.
+    if table.class_id == ApplianceClassId::Oven {
+        return matches!(
+            point.id,
+            "broil_level"
+                | "convection_fan"
+                | "steam_percent"
+                | "cook_s"
+                | "door_locked_clean"
+                | "element_bake"
+                | "element_broil"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "heater_on"
+                | "high_temp_alarm"
+                | "door_ajar"
+                | "timer_s"
+        );
+    }
     // Stream 7 undepened Tier-A deepen: microwave optional telemetry/settings.
     // Advertise thin-table power_w/defrost_g/turntable/inverter; add depth
     // sabbath/eco/door_ajar/magnetron_on/high_temp_alarm/timer_s. Do not
@@ -4750,6 +4784,159 @@ mod tests {
             .validate_write("class.microwave.high_temp_alarm", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn oven_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::Oven).unwrap();
+        for id in [
+            // Thin-table optional advertised in typical.
+            "class.oven.broil_level",
+            "class.oven.convection_fan",
+            "class.oven.steam_percent",
+            "class.oven.cook_s",
+            "class.oven.door_locked_clean",
+            "class.oven.element_bake",
+            "class.oven.element_broil",
+            // OVEN_DEPTH points.
+            "class.oven.sabbath_mode",
+            "class.oven.eco_mode",
+            "class.oven.heater_on",
+            "class.oven.high_temp_alarm",
+            "class.oven.door_ajar",
+            "class.oven.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical oven"
+            );
+        }
+        // Meat probe + preheat via Temperature trait (not class probe_c).
+        let temp = cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Temperature)
+            .unwrap();
+        for id in [
+            "trait.temperature.probe_c",
+            "trait.temperature.probe_target_c",
+            "trait.temperature.probe_connected",
+            "trait.temperature.preheat_complete",
+        ] {
+            assert!(
+                temp.points.iter().any(|p| p.id == id),
+                "missing {id} in typical oven temperature trait"
+            );
+        }
+        // ChildLock already typical.
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::ChildLock)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.child_lock.child_lock"));
+        cap.validate_write("class.oven.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.oven.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.oven.timer_s", &Value::DurationS(3600))
+            .unwrap();
+        cap.validate_write("class.oven.broil_level", &Value::Enum("high".into()))
+            .unwrap();
+        cap.validate_write("class.oven.convection_fan", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.oven.steam_percent", &Value::Percent(40.0))
+            .unwrap();
+        cap.validate_write("class.oven.cook_s", &Value::DurationS(1800))
+            .unwrap();
+        cap.validate_write("trait.temperature.probe_target_c", &Value::F32(65.0))
+            .unwrap();
+        cap.validate_write("trait.child_lock.child_lock", &Value::Bool(true))
+            .unwrap();
+        let err = cap
+            .validate_write("class.oven.heater_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.oven.high_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.oven.door_ajar", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.oven.door_locked_clean", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.oven.element_bake", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.oven.element_broil", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("trait.temperature.probe_c", &Value::F32(55.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("trait.temperature.probe_connected", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("trait.temperature.preheat_complete", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+
+        // range / steam_oven / toaster_oven merge OVEN_BASE only — OVEN_DEPTH
+        // must not appear on their static class tables (laundry-style isolation).
+        // Note: `range` already has cooktop `timer_s`; merging OVEN_DEPTH would
+        // duplicate that id (catalog_hygiene), so timer_s absence is only
+        // asserted for steam_oven / toaster_oven.
+        for class_id in [
+            ApplianceClassId::Range,
+            ApplianceClassId::SteamOven,
+            ApplianceClassId::ToasterOven,
+        ] {
+            let table = class_table(class_id).unwrap();
+            let ids: Vec<&str> = table.class_points.iter().map(|p| p.id).collect();
+            assert!(
+                ids.contains(&"cook_s"),
+                "{class_id:?} should still merge OVEN_BASE cook_s"
+            );
+            assert!(
+                ids.contains(&"door_locked_clean"),
+                "{class_id:?} should still merge OVEN_BASE door_locked_clean"
+            );
+            for depth in [
+                "sabbath_mode",
+                "eco_mode",
+                "heater_on",
+                "high_temp_alarm",
+                "door_ajar",
+            ] {
+                assert!(
+                    !ids.contains(&depth),
+                    "{depth} must not leak from OVEN_DEPTH into {class_id:?} class table"
+                );
+            }
+            if !matches!(class_id, ApplianceClassId::Range) {
+                assert!(
+                    !ids.contains(&"timer_s"),
+                    "timer_s must not leak from OVEN_DEPTH into {class_id:?} class table"
+                );
+            } else {
+                assert_eq!(
+                    ids.iter().filter(|&&id| id == "timer_s").count(),
+                    1,
+                    "range must keep a single cooktop timer_s (no OVEN_DEPTH duplicate)"
+                );
+            }
+        }
     }
 
     #[test]

@@ -1233,7 +1233,12 @@ const OVEN_PROGRAMS: &[&str] = &[
 
 const BROIL_LEVEL: &[&str] = &["low", "high"];
 
-const OVEN_POINTS: &[CatalogPoint] = &[
+/// Thin oven cavity surface (broil/convection/steam assist/cook timer + pyro
+/// lock + element telemetry). Depth points live in `OVEN_DEPTH` so optional
+/// Tier-A deepen does not pollute `range` / `steam_oven` / `toaster_oven`
+/// composition (they merge `OVEN_BASE` only — same isolation pattern as
+/// `DRYER_DEPTH` vs `DRYER_BASE`).
+static OVEN_BASE: &[CatalogPoint] = &[
     s(
         "broil_level",
         ValueType::Enum,
@@ -1291,6 +1296,66 @@ const OVEN_POINTS: &[CatalogPoint] = &[
         false,
     ),
 ];
+
+/// Oven-only optional depth (Stream 7 undepened Tier-A). Heated-cavity template
+/// (sabbath/eco/heater_on/alarms/door/timer) like `pizza_oven`. Kept off
+/// `OVEN_BASE` so `range` / `steam_oven` / `toaster_oven` do not inherit
+/// laundry-style duplicate points. Reuses thin-table `door_locked_clean` for
+/// self-clean / pyro lock (program token `self_clean` / `pyrolytic`); meat
+/// probe via Temperature trait `probe_*` (not a parallel class id).
+static OVEN_DEPTH: &[CatalogPoint] = &[
+    s(
+        "sabbath_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    ),
+    s(
+        "eco_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "heater_on",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "high_temp_alarm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "door_ajar",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "timer_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 86400),
+        AccessMode::RWE,
+        false,
+    ),
+];
+
+const OVEN_MERGED: [CatalogPoint; 13] = concat2(OVEN_BASE, OVEN_DEPTH);
+const OVEN_POINTS: &[CatalogPoint] = &OVEN_MERGED;
 
 const HOB_TRAITS: &[TraitId] = &[
     TraitId::Identity,
@@ -2488,7 +2553,7 @@ const STEAM_OVEN_EXTRA: &[CatalogPoint] = &[
     ),
 ];
 
-const STEAM_OVEN_MERGED: [CatalogPoint; 18] = concat2(OVEN_POINTS, STEAM_OVEN_EXTRA);
+const STEAM_OVEN_MERGED: [CatalogPoint; 18] = concat2(OVEN_BASE, STEAM_OVEN_EXTRA);
 const STEAM_OVEN_POINTS: &[CatalogPoint] = &STEAM_OVEN_MERGED;
 
 const STEAM_OVEN_PROGRAMS: &[&str] = &[
@@ -2600,7 +2665,7 @@ const TOASTER_OVEN_EXTRA: &[CatalogPoint] = &[
     ),
 ];
 
-const TOASTER_OVEN_MERGED: [CatalogPoint; 17] = concat2(OVEN_POINTS, TOASTER_OVEN_EXTRA);
+const TOASTER_OVEN_MERGED: [CatalogPoint; 17] = concat2(OVEN_BASE, TOASTER_OVEN_EXTRA);
 const TOASTER_OVEN_POINTS: &[CatalogPoint] = &TOASTER_OVEN_MERGED;
 
 const RANGE_TRAITS: &[TraitId] = &[
@@ -2636,7 +2701,7 @@ const RANGE_SURFACE_POINTS: &[CatalogPoint] = &[v(
     true,
 )];
 
-const RANGE_MERGED: [CatalogPoint; 26] = concat3(COOKTOP_POINTS, OVEN_POINTS, RANGE_SURFACE_POINTS);
+const RANGE_MERGED: [CatalogPoint; 26] = concat3(COOKTOP_POINTS, OVEN_BASE, RANGE_SURFACE_POINTS);
 const RANGE_POINTS: &[CatalogPoint] = &RANGE_MERGED;
 
 const COFFEE_TRAITS: &[TraitId] = &[
