@@ -284,12 +284,21 @@ button.cmd {
   font-weight: 600;
 }
 
+.catalog-heat-ports,
 .thermal-port-panel {
   margin: 0 0 1rem;
   padding: 0.7rem 0.8rem 0.85rem;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: #fffaf3;
+}
+
+.catalog-heat-ports {
+  background: #f8fafc;
+}
+
+.catalog-heat-ports .highlights {
+  margin-top: 0;
 }
 
 .thermal-port-head {

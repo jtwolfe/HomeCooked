@@ -51,13 +51,17 @@ Open <http://127.0.0.1:8080>.
 3. Inspect identity (class id is highlighted in the device header), a few
    key telemetry chips (power / temperature / cycle when present),
    variables, and settings.
-4. For classes that advertise `thermal_port_id` (`water_heater` / `fridge` /
-   `hvac` / `dishwasher` / `dryer`), a compact **Thermal port** panel shows catalog `thermal_port_*`
-   telemetry (id, direction, media, max power, attached reservoir) and a write
-   field for `thermal_port_attached_reservoir_id` (e.g. `dhw-tank`). Auto-shown
-   when the point is present; hidden otherwise (no class-id hardcoding).
-5. Write settings / fire commands (`start`, `power_on`, …).
-6. Use **Tick** or **Auto tick** so simulated behavior (kettle / oven / air fryer heat, washer / dryer /
+4. For classes with `ClassTable.thermal_ports`, a read-only **Catalog heat ports**
+   line shows static `HeatPortSpec` chips (port_id, direction, media, max_power_w)
+   from wasm `list_heat_port_specs(class_id)`.
+5. For classes that advertise `thermal_port_id` (`water_heater` / `fridge` /
+   `hvac` / `dishwasher` / `dryer`), a compact **Thermal port** panel shows live
+   catalog `thermal_port_*` telemetry (id, direction, media, max power, attached
+   reservoir) and a write field for `thermal_port_attached_reservoir_id`
+   (e.g. `dhw-tank`). Auto-shown when the point is present; hidden otherwise
+   (no class-id hardcoding). Does not replace the Catalog heat ports line.
+6. Write settings / fire commands (`start`, `power_on`, …).
+7. Use **Tick** or **Auto tick** so simulated behavior (kettle / oven / air fryer heat, washer / dryer /
    microwave progress) advances.
 
 Writes that fail capability checks (`out_of_range`, `not_writable`, …) show
