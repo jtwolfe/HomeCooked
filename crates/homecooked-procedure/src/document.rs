@@ -27,6 +27,9 @@ pub const OVEN_BAKE_180_JSON: &str = include_str!("../examples/oven_bake_180.jso
 /// Coffee brew happy-path: power on, program espresso, wait until boiler ≥ 85 °C.
 pub const COFFEE_BREW_ESPRESSO_JSON: &str = include_str!("../examples/coffee_brew_espresso.json");
 
+/// Air fryer cook happy-path: program fries, setpoint 200 °C, wait until ≥ 190 °C.
+pub const AIR_FRYER_COOK_200_JSON: &str = include_str!("../examples/air_fryer_cook_200.json");
+
 /// Wait on plant DHW reservoir temperature (procedure⇄thermal thin bridge).
 pub const WAIT_DHW_RESERVOIR_JSON: &str = include_str!("../examples/wait_dhw_reservoir.json");
 
@@ -38,6 +41,7 @@ pub const BUNDLED_EXAMPLE_PROCEDURES: &[(&str, &str)] = &[
     ("dishwasher_dhw_preheat", DISHWASHER_DHW_PREHEAT_JSON),
     ("oven_bake_180", OVEN_BAKE_180_JSON),
     ("coffee_brew_espresso", COFFEE_BREW_ESPRESSO_JSON),
+    ("air_fryer_cook_200", AIR_FRYER_COOK_200_JSON),
     ("wait_dhw_reservoir", WAIT_DHW_RESERVOIR_JSON),
 ];
 

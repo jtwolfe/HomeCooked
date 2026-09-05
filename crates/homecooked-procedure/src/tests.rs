@@ -9,7 +9,7 @@ use homecooked_thermal::{
 
 use crate::{
     run, run_with_config, DeviceBindings, FailReason, Procedure, RunConfig, RunStatus,
-    SimulatorBackend, StepAction, ThermalCmp, COFFEE_BREW_ESPRESSO_JSON,
+    SimulatorBackend, StepAction, ThermalCmp, AIR_FRYER_COOK_200_JSON, COFFEE_BREW_ESPRESSO_JSON,
     DISHWASHER_DHW_PREHEAT_JSON, KETTLE_HEAT_80_JSON, OVEN_BAKE_180_JSON,
     REHEAT_DOMINOS_MICROWAVE_JSON, WAIT_DHW_RESERVOIR_JSON, WASH_THEN_DRY_JSON,
 };
@@ -32,6 +32,11 @@ fn oven_bindings(sim: &mut Simulator) -> DeviceBindings {
 fn coffee_bindings(sim: &mut Simulator) -> DeviceBindings {
     let id = sim.spawn(ApplianceClassId::CoffeeMachine).unwrap();
     DeviceBindings::new().bind("coffee_machine", id.as_str())
+}
+
+fn air_fryer_bindings(sim: &mut Simulator) -> DeviceBindings {
+    let id = sim.spawn(ApplianceClassId::AirFryer).unwrap();
+    DeviceBindings::new().bind("air_fryer", id.as_str())
 }
 
 fn laundry_bindings(sim: &mut Simulator) -> DeviceBindings {
@@ -62,6 +67,7 @@ fn bundled_example_constants_parse() {
             "dishwasher_dhw_preheat",
             "oven_bake_180",
             "coffee_brew_espresso",
+            "air_fryer_cook_200",
             "wait_dhw_reservoir",
         ]
     );
@@ -193,6 +199,54 @@ fn coffee_brew_espresso_happy_path_against_sim() {
         )
         .unwrap();
     assert_eq!(program, homecooked_schema::Value::Enum("espresso".into()));
+}
+
+#[test]
+fn parse_air_fryer_cook_200_fixture() {
+    let doc = Procedure::load_json(AIR_FRYER_COOK_200_JSON).unwrap();
+    assert_eq!(doc.id, "air_fryer_cook_200");
+    assert_eq!(doc.name, "Air fryer cook at 200C");
+    assert_eq!(doc.devices.len(), 1);
+    assert_eq!(doc.devices[0].role, "air_fryer");
+    assert_eq!(doc.steps.len(), 5);
+    assert_eq!(doc.steps[0].id, "program");
+    assert_eq!(doc.steps[0].point(), Some("trait.program.program"));
+    assert_eq!(doc.steps[1].id, "setpoint");
+    assert_eq!(doc.steps[2].action, StepAction::Command);
+    assert_eq!(doc.steps[3].action, StepAction::Wait);
+    assert_eq!(doc.steps[4].action, StepAction::Assert);
+}
+
+#[test]
+fn air_fryer_cook_200_happy_path_against_sim() {
+    let doc = Procedure::load_json(AIR_FRYER_COOK_200_JSON).unwrap();
+    let mut sim = Simulator::new();
+    let bindings = air_fryer_bindings(&mut sim);
+    let result = run(&doc, &mut sim, &bindings);
+    assert!(
+        result.is_completed(),
+        "expected completed, got {:?}",
+        result.status
+    );
+    assert_eq!(result.outcomes.len(), 5);
+    assert!(result.outcomes.iter().all(|o| o.ok));
+
+    let air = bindings.get("air_fryer").unwrap();
+    let current = sim
+        .read_value(
+            &homecooked_core::DeviceId::new(air),
+            "trait.temperature.current_c",
+        )
+        .unwrap();
+    let c = current.as_f64().expect("current_c numeric");
+    assert!(c >= 190.0, "current_c={c}");
+    let program = sim
+        .read_value(
+            &homecooked_core::DeviceId::new(air),
+            "trait.program.program",
+        )
+        .unwrap();
+    assert_eq!(program, homecooked_schema::Value::Enum("fries".into()));
 }
 
 #[test]

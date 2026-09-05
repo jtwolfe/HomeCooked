@@ -19,9 +19,9 @@ use homecooked_core::DeviceId;
 use homecooked_hal::ChannelId;
 use homecooked_hub::{LabHub, LAB_KETTLE_ID};
 use homecooked_procedure::{
-    run, DeviceBindings, Procedure, SimulatorBackend, COFFEE_BREW_ESPRESSO_JSON,
-    DISHWASHER_DHW_PREHEAT_JSON, KETTLE_HEAT_80_JSON, OVEN_BAKE_180_JSON, WAIT_DHW_RESERVOIR_JSON,
-    WASH_THEN_DRY_JSON,
+    run, DeviceBindings, Procedure, SimulatorBackend, AIR_FRYER_COOK_200_JSON,
+    COFFEE_BREW_ESPRESSO_JSON, DISHWASHER_DHW_PREHEAT_JSON, KETTLE_HEAT_80_JSON,
+    OVEN_BAKE_180_JSON, WAIT_DHW_RESERVOIR_JSON, WASH_THEN_DRY_JSON,
 };
 use homecooked_protocol::{Envelope, Payload, PingBody, WriteOp};
 use homecooked_schema::{
@@ -332,6 +332,41 @@ pub fn procedure_coffee_brew_espresso() -> ScenarioResult {
         .map_err(|e| err(NAME, format!("read program: {e}")))?;
     if program != Value::Enum("espresso".into()) {
         return Err(err(NAME, format!("program={program:?}, expected espresso")));
+    }
+    Ok(())
+}
+
+/// (3e) Air fryer cook procedure happy path via homecooked-procedure + sim heat tick.
+pub fn procedure_air_fryer_cook_200() -> ScenarioResult {
+    const NAME: &str = "procedure_air_fryer_cook_200";
+    let doc = Procedure::load_json(AIR_FRYER_COOK_200_JSON)
+        .map_err(|e| err(NAME, format!("load procedure: {e}")))?;
+    let mut sim = Simulator::new();
+    let id = sim
+        .spawn(ApplianceClassId::AirFryer)
+        .map_err(|e| err(NAME, format!("spawn air_fryer: {e}")))?;
+    let bindings = DeviceBindings::new().bind("air_fryer", id.as_str());
+    let result = run(&doc, &mut sim, &bindings);
+    if !result.is_completed() {
+        return Err(err(
+            NAME,
+            format!("expected completed, got {:?}", result.status),
+        ));
+    }
+    let current = sim
+        .read_value(&DeviceId::new(id.as_str()), "trait.temperature.current_c")
+        .map_err(|e| err(NAME, format!("read current_c: {e}")))?;
+    let c = current
+        .as_f64()
+        .ok_or_else(|| err(NAME, format!("current_c not numeric: {current:?}")))?;
+    if c < 190.0 {
+        return Err(err(NAME, format!("current_c={c}, expected >= 190")));
+    }
+    let program = sim
+        .read_value(&DeviceId::new(id.as_str()), "trait.program.program")
+        .map_err(|e| err(NAME, format!("read program: {e}")))?;
+    if program != Value::Enum("fries".into()) {
+        return Err(err(NAME, format!("program={program:?}, expected fries")));
     }
     Ok(())
 }
@@ -1737,6 +1772,7 @@ pub fn all_scenarios() -> &'static [(&'static str, ScenarioFn)] {
             "procedure_coffee_brew_espresso",
             procedure_coffee_brew_espresso,
         ),
+        ("procedure_air_fryer_cook_200", procedure_air_fryer_cook_200),
         ("procedure_wash_then_dry", procedure_wash_then_dry),
         ("thermal_fridge_dhw_demo", thermal_fridge_dhw_demo),
         (
