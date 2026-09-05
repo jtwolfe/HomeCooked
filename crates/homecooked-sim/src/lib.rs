@@ -4019,6 +4019,130 @@ mod tests {
     }
 
     #[test]
+    fn rice_cooker_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let rice = sim.spawn(ApplianceClassId::RiceCooker).unwrap();
+
+        assert_eq!(
+            sim.read_value(&rice, "class.rice_cooker.texture").unwrap(),
+            Value::Enum("normal".into())
+        );
+        assert_eq!(
+            sim.read_value(&rice, "class.rice_cooker.bowl_present")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(
+            sim.read_value(&rice, "class.rice_cooker.keep_warm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&rice, "class.rice_cooker.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&rice, "class.rice_cooker.eco_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&rice, "class.rice_cooker.heater_on")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&rice, "class.rice_cooker.high_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&rice, "class.rice_cooker.lid_open").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&rice, "class.rice_cooker.timer_s").unwrap(),
+            Value::DurationS(0)
+        );
+        assert!(
+            (f32_val(
+                &sim.read_value(&rice, "class.rice_cooker.water_ratio")
+                    .unwrap()
+            ) - 1.5)
+                .abs()
+                < f32::EPSILON
+        );
+
+        sim.write(
+            &rice,
+            "class.rice_cooker.texture",
+            Value::Enum("firm".into()),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&rice, "class.rice_cooker.texture").unwrap(),
+            Value::Enum("firm".into())
+        );
+        sim.write(&rice, "class.rice_cooker.keep_warm", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&rice, "class.rice_cooker.keep_warm")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&rice, "class.rice_cooker.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&rice, "class.rice_cooker.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&rice, "class.rice_cooker.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&rice, "class.rice_cooker.eco_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&rice, "class.rice_cooker.timer_s", Value::DurationS(1800))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&rice, "class.rice_cooker.timer_s").unwrap(),
+            Value::DurationS(1800)
+        );
+        sim.write(&rice, "class.rice_cooker.water_ratio", Value::F32(2.0))
+            .unwrap();
+        assert!(
+            (f32_val(
+                &sim.read_value(&rice, "class.rice_cooker.water_ratio")
+                    .unwrap()
+            ) - 2.0)
+                .abs()
+                < f32::EPSILON
+        );
+
+        let err = sim
+            .write(&rice, "class.rice_cooker.bowl_present", Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&rice, "class.rice_cooker.heater_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &rice,
+                "class.rice_cooker.high_temp_alarm",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&rice, "class.rice_cooker.lid_open", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {

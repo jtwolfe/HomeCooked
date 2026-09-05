@@ -714,6 +714,22 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "timer_s"
         );
     }
+    // Stream 7 catalog depth: rice_cooker optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::RiceCooker {
+        return matches!(
+            point.id,
+            "texture"
+                | "bowl_present"
+                | "keep_warm"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "heater_on"
+                | "high_temp_alarm"
+                | "lid_open"
+                | "timer_s"
+                | "water_ratio"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -2820,6 +2836,56 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.juicer.overload_trip", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn rice_cooker_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::RiceCooker).unwrap();
+        for id in [
+            "class.rice_cooker.texture",
+            "class.rice_cooker.bowl_present",
+            "class.rice_cooker.keep_warm",
+            "class.rice_cooker.sabbath_mode",
+            "class.rice_cooker.eco_mode",
+            "class.rice_cooker.heater_on",
+            "class.rice_cooker.high_temp_alarm",
+            "class.rice_cooker.lid_open",
+            "class.rice_cooker.timer_s",
+            "class.rice_cooker.water_ratio",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical rice_cooker"
+            );
+        }
+        cap.validate_write("class.rice_cooker.texture", &Value::Enum("firm".into()))
+            .unwrap();
+        cap.validate_write("class.rice_cooker.keep_warm", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.rice_cooker.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.rice_cooker.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.rice_cooker.timer_s", &Value::DurationS(3600))
+            .unwrap();
+        cap.validate_write("class.rice_cooker.water_ratio", &Value::F32(1.5))
+            .unwrap();
+        let err = cap
+            .validate_write("class.rice_cooker.bowl_present", &Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.rice_cooker.heater_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.rice_cooker.high_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.rice_cooker.lid_open", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }

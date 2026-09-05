@@ -1105,8 +1105,12 @@ not full pressure multi-cookers.
 **Typical readable state:** cooking / steaming / keep-warm / idle, remaining
 (estimate), lid, bowl present, boil-dry.
 
-**Notes:** Pressure rice cookers that expose pressure cook programs should use
-`multi_cooker` instead.
+**Notes:**
+- Pressure rice cookers that expose pressure cook programs should use
+  `multi_cooker` instead.
+- Catalog depth: optional class points include `texture`, `bowl_present`,
+  `keep_warm`, sabbath, eco, `heater_on`, `high_temp_alarm`, `lid_open`,
+  `timer_s`, and `water_ratio` (see variables-and-settings).
 
 ### `slow_cooker`
 
