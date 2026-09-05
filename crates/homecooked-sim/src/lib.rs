@@ -2944,6 +2944,168 @@ mod tests {
     }
 
     #[test]
+    fn drip_coffee_maker_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let drip = sim.spawn(ApplianceClassId::DripCoffeeMaker).unwrap();
+
+        assert_eq!(
+            sim.read_value(&drip, "class.drip_coffee_maker.cups")
+                .unwrap(),
+            Value::U8(8)
+        );
+        assert_eq!(
+            sim.read_value(&drip, "class.drip_coffee_maker.strength")
+                .unwrap(),
+            Value::Enum("normal".into())
+        );
+        assert_eq!(
+            sim.read_value(&drip, "class.drip_coffee_maker.keep_warm_s")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&drip, "class.drip_coffee_maker.carafe_present")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(
+            sim.read_value(&drip, "class.drip_coffee_maker.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&drip, "class.drip_coffee_maker.eco_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&drip, "class.drip_coffee_maker.heater_on")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&drip, "class.drip_coffee_maker.high_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&drip, "class.drip_coffee_maker.water_tank_empty")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&drip, "class.drip_coffee_maker.descaling_needed")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&drip, "class.drip_coffee_maker.timer_s")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+
+        sim.write(&drip, "class.drip_coffee_maker.cups", Value::U8(10))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&drip, "class.drip_coffee_maker.cups")
+                .unwrap(),
+            Value::U8(10)
+        );
+        sim.write(
+            &drip,
+            "class.drip_coffee_maker.strength",
+            Value::Enum("strong".into()),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&drip, "class.drip_coffee_maker.strength")
+                .unwrap(),
+            Value::Enum("strong".into())
+        );
+        sim.write(
+            &drip,
+            "class.drip_coffee_maker.keep_warm_s",
+            Value::DurationS(2400),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&drip, "class.drip_coffee_maker.keep_warm_s")
+                .unwrap(),
+            Value::DurationS(2400)
+        );
+        sim.write(
+            &drip,
+            "class.drip_coffee_maker.sabbath_mode",
+            Value::Bool(true),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&drip, "class.drip_coffee_maker.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&drip, "class.drip_coffee_maker.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&drip, "class.drip_coffee_maker.eco_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(
+            &drip,
+            "class.drip_coffee_maker.timer_s",
+            Value::DurationS(900),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&drip, "class.drip_coffee_maker.timer_s")
+                .unwrap(),
+            Value::DurationS(900)
+        );
+
+        let err = sim
+            .write(
+                &drip,
+                "class.drip_coffee_maker.carafe_present",
+                Value::Bool(false),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &drip,
+                "class.drip_coffee_maker.heater_on",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &drip,
+                "class.drip_coffee_maker.high_temp_alarm",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &drip,
+                "class.drip_coffee_maker.water_tank_empty",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &drip,
+                "class.drip_coffee_maker.descaling_needed",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {

@@ -193,6 +193,18 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             ApplianceClassId::EspressoMachine => Value::U16(36),
             _ => Value::U16(int_min(point, 0) as u16),
         },
+        "cups" => match ctx.identity.class_id {
+            ApplianceClassId::DripCoffeeMaker => Value::U8(8),
+            _ => Value::U8(int_min(point, 0) as u8),
+        },
+        "strength" => match ctx.identity.class_id {
+            ApplianceClassId::DripCoffeeMaker => Value::Enum("normal".into()),
+            _ => first_enum(point).unwrap_or_else(|| Value::Enum("unknown".into())),
+        },
+        "carafe_present" => match ctx.identity.class_id {
+            ApplianceClassId::DripCoffeeMaker => Value::Bool(true),
+            _ => Value::Bool(false),
+        },
         "boiler_c" => Value::F32(20.0),
         "heat_level" => Value::Enum("low".into()),
         "water_empty" => Value::Bool(false),
