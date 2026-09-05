@@ -47,13 +47,8 @@ is **0.1.0** (peers are rejected only on protocol **major** mismatch).
 
 `list_all_class_ids` covers the full class index in
 `docs/catalog/appliances.md`. Static capability tables (and therefore
-simulated devices) cover the encoded Tier-A batch: laundry (`washer`,
-`dryer`, `washer_dryer`), cold (`fridge`, `freezer`, `fridge_freezer`,
-`wine_cooler`, `ice_maker`), wash/cook already tabled (`dishwasher`,
-`microwave`, `oven`, `induction_hob`, `kettle`, `air_fryer`), plus
-utility/climate/vent (`water_heater`, `hvac`, `dehumidifier`,
-`range_hood`). Remaining Tier-A cooking classes are listed in
-[`docs/ROADMAP.md`](docs/ROADMAP.md) §4 (25 ids total).
+simulated devices) cover all **25 Tier-A** class ids listed in
+[`docs/ROADMAP.md`](docs/ROADMAP.md) §4.
 
 ## Tests
 

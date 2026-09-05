@@ -66,6 +66,10 @@ const fn append_points<const N: usize>(
     i
 }
 
+const fn concat2<const N: usize>(a: &[CatalogPoint], b: &[CatalogPoint]) -> [CatalogPoint; N] {
+    concat3(a, b, &[])
+}
+
 const fn concat3<const N: usize>(
     a: &[CatalogPoint],
     b: &[CatalogPoint],
@@ -709,7 +713,7 @@ const OVEN_PROGRAMS: &[&str] = &[
 
 const BROIL_LEVEL: &[&str] = &["low", "high"];
 
-static OVEN_POINTS: &[CatalogPoint] = &[
+const OVEN_POINTS: &[CatalogPoint] = &[
     s(
         "broil_level",
         ValueType::Enum,
@@ -785,7 +789,7 @@ const HOB_OPTIONAL_TRAITS: &[TraitId] = &[TraitId::Lighting];
 const HOB_ZONES: &[&str] = &["hob_1", "hob_2", "hob_3", "hob_4"];
 const PAN_SIZE: &[&str] = &["none", "small", "medium", "large", "unknown"];
 
-static INDUCTION_HOB_POINTS: &[CatalogPoint] = &[
+const COOKTOP_POINTS: &[CatalogPoint] = &[
     CatalogPoint::setting(
         "level",
         ValueType::U8,
@@ -841,6 +845,9 @@ static INDUCTION_HOB_POINTS: &[CatalogPoint] = &[
     ),
     cmd("pause_all", Some(CatalogRange::CommandVoid), false),
     cmd("resume_all", Some(CatalogRange::CommandVoid), false),
+];
+
+const INDUCTION_HOB_EXTRA: &[CatalogPoint] = &[
     CatalogPoint::variable(
         "pan_present",
         ValueType::Bool,
@@ -901,6 +908,9 @@ static INDUCTION_HOB_POINTS: &[CatalogPoint] = &[
         false,
     ),
 ];
+
+const INDUCTION_HOB_MERGED: [CatalogPoint; 17] = concat2(COOKTOP_POINTS, INDUCTION_HOB_EXTRA);
+const INDUCTION_HOB_POINTS: &[CatalogPoint] = &INDUCTION_HOB_MERGED;
 
 const KETTLE_TRAITS: &[TraitId] = &[
     TraitId::Identity,
@@ -1528,6 +1538,418 @@ static RANGE_HOOD_POINTS: &[CatalogPoint] = &[
     ),
 ];
 
+const STEAM_OVEN_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::DoorLid,
+    TraitId::Temperature,
+    TraitId::Cycle,
+    TraitId::Program,
+    TraitId::Heater,
+    TraitId::Fan,
+    TraitId::Lighting,
+    TraitId::ChildLock,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Remote,
+    TraitId::TimeSchedule,
+    TraitId::Safety,
+    TraitId::Audio,
+    TraitId::Water,
+    TraitId::Humidity,
+    TraitId::Filter,
+];
+
+const STEAM_MODE: &[&str] = &[
+    "steam",
+    "combi",
+    "convection",
+    "sous_vide",
+    "reheat",
+    "descale",
+];
+const WATER_TANK: &[&str] = &["ok", "low", "empty", "missing"];
+
+const STEAM_OVEN_EXTRA: &[CatalogPoint] = &[
+    s(
+        "steam_mode",
+        ValueType::Enum,
+        None,
+        en(STEAM_MODE),
+        AccessMode::RW,
+        true,
+    ),
+    s(
+        "humidity_set_percent",
+        ValueType::Percent,
+        Some(Unit::Percent),
+        num(0.0, 100.0),
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "water_tank",
+        ValueType::Enum,
+        None,
+        en(WATER_TANK),
+        AccessMode::RE,
+        true,
+    ),
+];
+
+const STEAM_OVEN_MERGED: [CatalogPoint; 10] = concat2(OVEN_POINTS, STEAM_OVEN_EXTRA);
+const STEAM_OVEN_POINTS: &[CatalogPoint] = &STEAM_OVEN_MERGED;
+
+const TOASTER_OVEN_PROGRAMS: &[&str] = &[
+    "toast",
+    "bake",
+    "broil",
+    "air_fry",
+    "keep_warm",
+    "convection",
+];
+const CRUMB_TRAY: &[&str] = &["ok", "missing", "unknown"];
+
+const TOASTER_OVEN_EXTRA: &[CatalogPoint] = &[
+    s(
+        "toast_shade",
+        ValueType::U8,
+        None,
+        int(1, 7),
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "crumb_tray",
+        ValueType::Enum,
+        None,
+        en(CRUMB_TRAY),
+        AccessMode::RE,
+        false,
+    ),
+];
+
+const TOASTER_OVEN_MERGED: [CatalogPoint; 9] = concat2(OVEN_POINTS, TOASTER_OVEN_EXTRA);
+const TOASTER_OVEN_POINTS: &[CatalogPoint] = &TOASTER_OVEN_MERGED;
+
+const RANGE_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::ChildLock,
+    TraitId::Heater,
+    TraitId::Zone,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Safety,
+    TraitId::DoorLid,
+    TraitId::Temperature,
+    TraitId::Cycle,
+    TraitId::Program,
+    TraitId::Fan,
+    TraitId::Lighting,
+    TraitId::Remote,
+    TraitId::TimeSchedule,
+    TraitId::Audio,
+];
+
+const RANGE_ZONES: &[&str] = &["hob_1", "hob_2", "hob_3", "hob_4", "oven"];
+const RANGE_SURFACE: &[&str] = &["gas", "electric", "radiant", "induction", "mixed"];
+
+const RANGE_SURFACE_POINTS: &[CatalogPoint] = &[v(
+    "surface",
+    ValueType::Enum,
+    None,
+    en(RANGE_SURFACE),
+    AccessMode::R,
+    true,
+)];
+
+const RANGE_MERGED: [CatalogPoint; 18] = concat3(COOKTOP_POINTS, OVEN_POINTS, RANGE_SURFACE_POINTS);
+const RANGE_POINTS: &[CatalogPoint] = &RANGE_MERGED;
+
+const COFFEE_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Water,
+    TraitId::Temperature,
+    TraitId::Cycle,
+    TraitId::Program,
+    TraitId::ChildLock,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Maintenance,
+    TraitId::Filter,
+    TraitId::Audio,
+];
+
+const COFFEE_OPTIONAL_TRAITS: &[TraitId] = &[TraitId::Lighting];
+
+const COFFEE_PROGRAMS: &[&str] = &[
+    "espresso",
+    "double_espresso",
+    "americano",
+    "lungo",
+    "cappuccino",
+    "latte",
+    "macchiato",
+    "hot_water",
+    "steam",
+    "rinse",
+    "descale",
+    "custom",
+];
+
+const COFFEE_STRENGTH: &[&str] = &["mild", "normal", "strong", "extra"];
+const DRIP_TRAY: &[&str] = &["ok", "full", "missing"];
+const GROUNDS_BIN: &[&str] = &["ok", "full", "missing"];
+
+static COFFEE_MACHINE_POINTS: &[CatalogPoint] = &[
+    s(
+        "strength",
+        ValueType::Enum,
+        None,
+        en(COFFEE_STRENGTH),
+        AccessMode::RW,
+        false,
+    ),
+    s(
+        "volume_ml",
+        ValueType::U16,
+        Some(Unit::Milliliter),
+        int(15, 400),
+        AccessMode::RW,
+        false,
+    ),
+    s(
+        "milk_ml",
+        ValueType::U16,
+        Some(Unit::Milliliter),
+        int(0, 400),
+        AccessMode::RW,
+        false,
+    ),
+    s(
+        "grind_level",
+        ValueType::U8,
+        None,
+        int(1, 16),
+        AccessMode::RW,
+        false,
+    ),
+    s(
+        "cups",
+        ValueType::U8,
+        None,
+        int(1, 2),
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "water_tank",
+        ValueType::Enum,
+        None,
+        en(WATER_TANK),
+        AccessMode::RE,
+        true,
+    ),
+    v(
+        "drip_tray",
+        ValueType::Enum,
+        None,
+        en(DRIP_TRAY),
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "grounds_bin",
+        ValueType::Enum,
+        None,
+        en(GROUNDS_BIN),
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "milk_present",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "capsule_present",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "boiler_c",
+        ValueType::F32,
+        Some(Unit::Celsius),
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "brew_pressure_bar",
+        ValueType::F32,
+        Some(Unit::Bar),
+        num(0.0, 20.0),
+        AccessMode::RE,
+        false,
+    ),
+];
+
+const SOUS_VIDE_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Temperature,
+    TraitId::Cycle,
+    TraitId::Heater,
+    TraitId::Fan,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::TimeSchedule,
+    TraitId::Safety,
+    TraitId::Audio,
+];
+
+static SOUS_VIDE_POINTS: &[CatalogPoint] = &[
+    v(
+        "low_water",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        true,
+    ),
+    v(
+        "circulating",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "cook_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 259200),
+        AccessMode::RW,
+        false,
+    ),
+];
+
+const MULTI_COOKER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Temperature,
+    TraitId::Cycle,
+    TraitId::Program,
+    TraitId::Heater,
+    TraitId::DoorLid,
+    TraitId::ChildLock,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::TimeSchedule,
+    TraitId::Safety,
+    TraitId::Audio,
+];
+
+const MULTI_COOKER_PROGRAMS: &[&str] = &[
+    "pressure",
+    "saute",
+    "slow",
+    "steam",
+    "rice",
+    "yogurt",
+    "sous_vide",
+    "keep_warm",
+    "sterilize",
+    "custom",
+];
+
+const MULTI_COOKER_PHASES: &[&str] = &[
+    "preheat",
+    "pressurizing",
+    "at_pressure",
+    "cooking",
+    "venting",
+    "keep_warm",
+    "safe_to_open",
+];
+
+const PRESSURE_BAND: &[&str] = &["low", "high"];
+const FLOAT_VALVE: &[&str] = &["down", "up"];
+
+static MULTI_COOKER_POINTS: &[CatalogPoint] = &[
+    s(
+        "pressure_band",
+        ValueType::Enum,
+        None,
+        en(PRESSURE_BAND),
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "pressure_kpa",
+        ValueType::F32,
+        Some(Unit::Kilopascal),
+        num(0.0, 150.0),
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "lid_locked",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        true,
+    ),
+    v(
+        "float_valve",
+        ValueType::Enum,
+        None,
+        en(FLOAT_VALVE),
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "safe_to_open",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        true,
+    ),
+    s(
+        "remote_vent_enabled",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    cmd("vent", Some(CatalogRange::CommandVoid), false),
+    v(
+        "burn_detected",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+];
+
 /// Roadmap §4 Tier-A class set (25 ids). Tables land in batches.
 pub const TIER_A_CLASS_IDS: &[ApplianceClassId] = &[
     ApplianceClassId::Washer,
@@ -1557,27 +1979,8 @@ pub const TIER_A_CLASS_IDS: &[ApplianceClassId] = &[
     ApplianceClassId::WineCooler,
 ];
 
-/// Classes with a static `ClassTable` in this crate (PR1 batch + original nine).
-pub const STATIC_CLASS_IDS: &[ApplianceClassId] = &[
-    ApplianceClassId::Washer,
-    ApplianceClassId::Dryer,
-    ApplianceClassId::WasherDryer,
-    ApplianceClassId::Fridge,
-    ApplianceClassId::Freezer,
-    ApplianceClassId::FridgeFreezer,
-    ApplianceClassId::WineCooler,
-    ApplianceClassId::IceMaker,
-    ApplianceClassId::Dishwasher,
-    ApplianceClassId::Microwave,
-    ApplianceClassId::Oven,
-    ApplianceClassId::InductionHob,
-    ApplianceClassId::AirFryer,
-    ApplianceClassId::Kettle,
-    ApplianceClassId::WaterHeater,
-    ApplianceClassId::Hvac,
-    ApplianceClassId::Dehumidifier,
-    ApplianceClassId::RangeHood,
-];
+/// Classes with a static `ClassTable` (full Tier-A set).
+pub const STATIC_CLASS_IDS: &[ApplianceClassId] = TIER_A_CLASS_IDS;
 
 pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
     ClassTable {
@@ -1757,6 +2160,76 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         class_points: RANGE_HOOD_POINTS,
         program_tokens: &[],
         cycle_phase_tokens: &[],
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::SteamOven,
+        typical_traits: STEAM_OVEN_TRAITS,
+        optional_traits: &[],
+        class_points: STEAM_OVEN_POINTS,
+        program_tokens: OVEN_PROGRAMS,
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: Some((50.0, 250.0)),
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::Range,
+        typical_traits: RANGE_TRAITS,
+        optional_traits: HOB_OPTIONAL_TRAITS,
+        class_points: RANGE_POINTS,
+        program_tokens: OVEN_PROGRAMS,
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: Some((50.0, 250.0)),
+        typical_zones: RANGE_ZONES,
+    },
+    ClassTable {
+        class_id: ApplianceClassId::Cooktop,
+        typical_traits: HOB_TRAITS,
+        optional_traits: HOB_OPTIONAL_TRAITS,
+        class_points: COOKTOP_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: None,
+        typical_zones: HOB_ZONES,
+    },
+    ClassTable {
+        class_id: ApplianceClassId::ToasterOven,
+        typical_traits: OVEN_TRAITS,
+        optional_traits: &[],
+        class_points: TOASTER_OVEN_POINTS,
+        program_tokens: TOASTER_OVEN_PROGRAMS,
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: Some((50.0, 250.0)),
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::CoffeeMachine,
+        typical_traits: COFFEE_TRAITS,
+        optional_traits: COFFEE_OPTIONAL_TRAITS,
+        class_points: COFFEE_MACHINE_POINTS,
+        program_tokens: COFFEE_PROGRAMS,
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::SousVide,
+        typical_traits: SOUS_VIDE_TRAITS,
+        optional_traits: &[],
+        class_points: SOUS_VIDE_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: Some((20.0, 95.0)),
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::MultiCooker,
+        typical_traits: MULTI_COOKER_TRAITS,
+        optional_traits: &[],
+        class_points: MULTI_COOKER_POINTS,
+        program_tokens: MULTI_COOKER_PROGRAMS,
+        cycle_phase_tokens: MULTI_COOKER_PHASES,
         typical_setpoint_c: None,
         typical_zones: &[],
     },

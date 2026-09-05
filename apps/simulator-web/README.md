@@ -37,8 +37,8 @@ Open <http://127.0.0.1:8080>.
 
 ## UI
 
-1. Pick a spawnable appliance class (static Tier-A catalog tables; see
-   [`docs/ROADMAP.md`](../../docs/ROADMAP.md) §4).
+1. Pick a spawnable appliance class (all 25 Tier-A static catalog
+   tables; see [`docs/ROADMAP.md`](../../docs/ROADMAP.md) §4).
 2. Create a device.
 3. Inspect identity, variables, and settings.
 4. Write settings / fire commands (`start`, `power_on`, …).
