@@ -1,6 +1,6 @@
 # HomeCooked roadmap — ~75% project completeness
 
-Version **0.1.22**. Planning doc for a long flesh-out of the catalog, control
+Version **0.1.23**. Planning doc for a long flesh-out of the catalog, control
 stack, and simulator. It does **not** freeze APIs; crate and YAML shapes may
 evolve with the code that implements each stream.
 
@@ -23,17 +23,17 @@ What exists on `main` today (Done highlights called out):
 | `homecooked-protocol` | Envelope, request/response kinds, discovery, JSON, errors (v0.1.0); **invalid Envelope JSON table tests** |
 | `homecooked-core` | Device registry, capability-enforced read/write |
 | `homecooked-sim` | In-memory devices for all 56 statically tabled classes; microwave cook ticks advance `elapsed_s`; water_heater/fridge/hvac thermal-port seeds + RW attach |
-| `homecooked-wasm` + `apps/simulator-web` | wasm-bindgen JSON API; full-catalog picker (56) + procedure runner (kettle + Domino's + wash-then-dry `run_procedure` E2E) + thermal panel + device `thermal_port_*` UI (auto when `thermal_port_id` present; `water_heater`/`fridge`/`hvac`); **WASM fetch+blob load** (module cache defeat) — **Done** |
+| `homecooked-wasm` + `apps/simulator-web` | wasm-bindgen JSON API; full-catalog picker (56) + procedure runner (kettle + Domino's + wash-then-dry + oven bake `run_procedure` E2E) + thermal panel + device `thermal_port_*` UI (auto when `thermal_port_id` present; `water_heater`/`fridge`/`hvac`); **WASM fetch+blob load** (module cache defeat) — **Done** |
 | `homecooked-io-map` | Chassis I/O map serde + validate (washer + dryer fragments) |
 | `homecooked-interlock` | Declarative interlock rules (washer heater/spin; dryer heater/motor) |
 | `homecooked-hal` | Firmware HAL sketch + host `MockHal` |
-| `homecooked-procedure` | Procedure documents + sequential runner; Domino's microwave + wash-then-dry multi-device fixtures complete against sim |
+| `homecooked-procedure` | Procedure documents + sequential runner; Domino's microwave + wash-then-dry + oven bake fixtures complete against sim |
 | `homecooked-controller` | Host controller sim: IoMap + MockHal + interlocks + washer cotton / **dryer cycle**; **lab TCP endpoints** (`ControllerEndpoint` + `DryerControllerEndpoint` interlock deny) — **Done** |
 | `homecooked-thermal` | First executable thermal plant slice (types, registry, offer/accept, tick); plant types still crate-local |
 | `homecooked-bridge` | **Modbus + Matter + Zigbee + BACnet mocks** (no real serial/TCP/CHIP/z2m/BACnet stacks) — **Done** |
 | `homecooked-transport` | Lab TCP JSON envelopes; **optional PSK pairing**; sim-backed server + **pluggable `RequestHandler`**; malformed frame table tests — **Done** |
 | `homecooked-hub` | Optional multi-device lab TCP aggregator (**not required for devices**) — **Done** |
-| `homecooked-conformance` | Stream 7 smoke: Tier-A / Tier-B / `catalog_hygiene` / `write_denial_matrix` / cotton / kettle + wash-then-dry procedures / thermal / `water_heater_thermal_ports` / Modbus / Matter / Zigbee / BACnet / TCP / TCP PSK / `controller_tcp_washer_interlock` / `controller_tcp_dryer_interlock` / hub lab set |
+| `homecooked-conformance` | Stream 7 smoke: Tier-A / Tier-B / `catalog_hygiene` / `write_denial_matrix` / cotton / kettle + oven bake + wash-then-dry procedures / thermal / `water_heater_thermal_ports` / Modbus / Matter / Zigbee / BACnet / TCP / TCP PSK / `controller_tcp_washer_interlock` / `controller_tcp_dryer_interlock` / hub lab set |
 | CI | rustfmt, clippy (`-D warnings`), `cargo test --workspace`, wasm-pack |
 
 **Done (thin / lab depth):** Tier-A+B **56** static tables + sim; dryer controller cycle; bridge family mocks;
@@ -126,7 +126,7 @@ multiple small PRs.
    (aligned with `docs/standard/procedures.md`).~~ **Done** —
    `homecooked-procedure` (serde + validate + sequential runner).
 2. ~~Simulator can load and run a small library.~~ **Done** — bundled
-   `kettle_heat_80` + `reheat_dominos_microwave` + `wash_then_dry`; wasm `run_procedure` E2E
+   `kettle_heat_80` + `reheat_dominos_microwave` + `wash_then_dry` + `oven_bake_180`; wasm `run_procedure` E2E
    auto-spawns and completes both (microwave wait uses sim `elapsed_s` ticks).
 3. ~~Failures surface as protocol / capability errors, never as interlock bypass.~~
    **Done** under tests (out-of-range write, guard fail, wait timeout).
@@ -258,8 +258,8 @@ multiple small PRs.
    header. **Procedure UI slice is done** — `list_example_procedures` /
    `get_example_procedure` / `parse_procedure` / `run_procedure` expose the
    sequential runner; simulator-web has a picker + paste/run panel with
-   step outcomes (kettle happy-path + Domino’s microwave fixture;
-   both covered by wasm `run_procedure` E2E tests).
+   step outcomes (kettle + Domino’s microwave + wash-then-dry + oven bake;
+   covered by wasm `run_procedure` E2E tests).
    **Thermal-port UI slice is done** — `create_thermal_demo` /
    `thermal_state` / `thermal_negotiate_demo` / `thermal_tick` /
    `thermal_demo_transfer` expose the fridge→DHW plant; simulator-web has a
@@ -274,7 +274,7 @@ multiple small PRs.
    **Partial (smoke + denial matrix)** — `homecooked-conformance` runs named
    end-to-end scenarios (Tier-A/B catalog/sim/describe, `catalog_hygiene`,
    table-driven `write_denial_matrix` across Tier-A denial kinds, washer cotton
-   controller, kettle procedure, wash-then-dry, thermal fridge→DHW,
+   controller, kettle procedure, oven bake, wash-then-dry, thermal fridge→DHW,
    thermal→dishwasher preheat dual-path, Modbus water_heater,
    Matter/Zigbee/BACnet kettle, TCP kettle, TCP PSK describe/ping, controller
    TCP washer interlock, optional lab hub discover/describe).
@@ -323,7 +323,7 @@ devices:
 | `fridge_freezer` | Zoned cooling |
 | `dishwasher` | Already tabled |
 | `microwave` | Already tabled |
-| `oven` | Already tabled |
+| `oven` | Already tabled; bake procedure + stub heat tick |
 | `steam_oven` | |
 | `range` | |
 | `cooktop` | |
@@ -441,3 +441,4 @@ the code that implements them.
 | 0.1.20 | Stream 4: dryer controller-sim-over-TCP (`DryerControllerEndpoint`; heater deny when unlocked; conformance `controller_tcp_dryer_interlock`) |
 | 0.1.21 | Stream 5/7: simulator-web surfaces catalog `thermal_port_*` on `water_heater`/`fridge` (chips + attach write) |
 | 0.1.22 | Stream 5: optional `thermal_port_*` on `hvac` (coil/sink/water/5000 W lab seeds); extend `water_heater_thermal_ports`; wire `hub_lab_set_discover_describe` into `all_scenarios` |
+| 0.1.23 | Stream 3: `oven_bake_180` procedure fixture + minimal oven heat tick; wasm/`run_procedure` E2E + conformance |

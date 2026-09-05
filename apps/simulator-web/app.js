@@ -605,6 +605,11 @@ function listExampleProcedures() {
         name: "Dishwasher with DHW preheat available",
         class_hints: ["dishwasher"],
       },
+      {
+        id: "oven_bake_180",
+        name: "Oven bake at 180C",
+        class_hints: ["oven"],
+      },
     ];
   }
 }

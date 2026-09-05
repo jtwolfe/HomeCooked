@@ -21,12 +21,16 @@ pub const WASH_THEN_DRY_JSON: &str = include_str!("../examples/wash_then_dry.jso
 pub const DISHWASHER_DHW_PREHEAT_JSON: &str =
     include_str!("../examples/dishwasher_dhw_preheat.json");
 
+/// Oven bake happy-path: program bake, setpoint 180 °C, wait until ≥ 170 °C.
+pub const OVEN_BAKE_180_JSON: &str = include_str!("../examples/oven_bake_180.json");
+
 /// Bundled example documents: `(id, json)`.
 pub const BUNDLED_EXAMPLE_PROCEDURES: &[(&str, &str)] = &[
     ("kettle_heat_80", KETTLE_HEAT_80_JSON),
     ("reheat_dominos_microwave", REHEAT_DOMINOS_MICROWAVE_JSON),
     ("wash_then_dry", WASH_THEN_DRY_JSON),
     ("dishwasher_dhw_preheat", DISHWASHER_DHW_PREHEAT_JSON),
+    ("oven_bake_180", OVEN_BAKE_180_JSON),
 ];
 
 /// Ordered recipe / protocol document.

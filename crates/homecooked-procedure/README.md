@@ -19,6 +19,9 @@ the runner binds them through a role → device-id map.
 Worked example (microwave-only Domino's reheat sketch):
 [`examples/reheat_dominos_microwave.json`](examples/reheat_dominos_microwave.json).
 
+Oven bake happy-path (`program` + setpoint + heat wait):
+[`examples/oven_bake_180.json`](examples/oven_bake_180.json).
+
 Dishwasher companion to the fridge→DHW thermal demo (procedure leg only —
 thermal must run out-of-band first):
 [`examples/dishwasher_dhw_preheat.json`](examples/dishwasher_dhw_preheat.json).
@@ -28,7 +31,7 @@ See [`docs/standard/thermal-plant.md`](../../docs/standard/thermal-plant.md) §8
 
 `DeviceBackend` is `read` / `write` / `tick`. `Simulator` implements it so
 `Wait` advances **simulated** time (`tick`, default 1000 ms) instead of
-sleeping on the wall clock. Kettle heat and cycle progress therefore move
+sleeping on the wall clock. Kettle/oven heat and cycle progress therefore move
 under the runner.
 
 ```bash

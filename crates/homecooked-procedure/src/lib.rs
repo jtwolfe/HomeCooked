@@ -16,8 +16,8 @@ mod validate;
 pub use backend::{DeviceBackend, SimulatorBackend};
 pub use document::{
     ClassHint, DeviceRef, Procedure, Step, StepAction, StepTarget, BUNDLED_EXAMPLE_PROCEDURES,
-    DISHWASHER_DHW_PREHEAT_JSON, KETTLE_HEAT_80_JSON, REHEAT_DOMINOS_MICROWAVE_JSON,
-    WASH_THEN_DRY_JSON,
+    DISHWASHER_DHW_PREHEAT_JSON, KETTLE_HEAT_80_JSON, OVEN_BAKE_180_JSON,
+    REHEAT_DOMINOS_MICROWAVE_JSON, WASH_THEN_DRY_JSON,
 };
 pub use error::Error;
 pub use guard::{CmpOp, Guard, GuardSet};

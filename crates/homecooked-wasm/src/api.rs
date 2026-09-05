@@ -440,7 +440,7 @@ impl WasmApi {
         serde_json::to_string(&items).expect("ExampleProcedureInfo serializes")
     }
 
-    /// Full JSON for a bundled example id (`kettle_heat_80`, `reheat_dominos_microwave`, `wash_then_dry`, `dishwasher_dhw_preheat`).
+    /// Full JSON for a bundled example id (`kettle_heat_80`, `reheat_dominos_microwave`, `wash_then_dry`, `dishwasher_dhw_preheat`, `oven_bake_180`).
     pub fn get_example_procedure(id: &str) -> Result<String, ApiError> {
         BUNDLED_EXAMPLE_PROCEDURES
             .iter()
@@ -1163,10 +1163,10 @@ mod tests {
     }
 
     #[test]
-    fn list_example_procedures_includes_kettle_dominos_laundry_and_dishwasher() {
+    fn list_example_procedures_includes_kettle_dominos_laundry_dishwasher_and_oven() {
         let items: Vec<ExampleProcedureInfo> =
             serde_json::from_str(&WasmApi::list_example_procedures()).unwrap();
-        assert_eq!(items.len(), 4);
+        assert_eq!(items.len(), 5);
         assert_eq!(items[0].id, "kettle_heat_80");
         assert_eq!(items[0].name, "Heat kettle to 80C");
         assert!(items[0].class_hints.iter().any(|c| c == "kettle"));
@@ -1177,6 +1177,9 @@ mod tests {
         assert!(items[2].class_hints.iter().any(|c| c == "dryer"));
         assert_eq!(items[3].id, "dishwasher_dhw_preheat");
         assert!(items[3].class_hints.iter().any(|c| c == "dishwasher"));
+        assert_eq!(items[4].id, "oven_bake_180");
+        assert_eq!(items[4].name, "Oven bake at 180C");
+        assert!(items[4].class_hints.iter().any(|c| c == "oven"));
     }
 
     #[test]
@@ -1209,6 +1212,13 @@ mod tests {
         assert_eq!(summary.id, "dishwasher_dhw_preheat");
         assert_eq!(summary.step_count, 4);
         assert_eq!(summary.devices[0].role, "dishwasher");
+
+        let oven = WasmApi::get_example_procedure("oven_bake_180").unwrap();
+        let summary: ProcedureSummary =
+            serde_json::from_str(&WasmApi::parse_procedure(&oven).unwrap()).unwrap();
+        assert_eq!(summary.id, "oven_bake_180");
+        assert_eq!(summary.step_count, 5);
+        assert_eq!(summary.devices[0].role, "oven");
 
         let err = WasmApi::get_example_procedure("not_a_recipe").unwrap_err();
         assert_eq!(err.code, ErrorCode::InvalidRequest);
@@ -1283,6 +1293,41 @@ mod tests {
         // Final cancel/`idle_cycle` resets elapsed_s; wait step already required >= 45.
         assert_eq!(state["trait.cycle.cycle_state"]["value"], "idle");
         assert_eq!(state["trait.cycle.elapsed_s"]["value"], 0);
+    }
+
+    #[test]
+    fn run_oven_bake_180_procedure_auto_spawns_and_completes() {
+        let mut api = WasmApi::new();
+        let json = WasmApi::get_example_procedure("oven_bake_180").unwrap();
+        let raw = api.run_procedure(&json).unwrap();
+        let result: ProcedureRunOut = serde_json::from_str(&raw).unwrap();
+
+        assert_eq!(
+            result.status, "completed",
+            "oven_bake_180 run failed: {:?}",
+            result.fail_reason
+        );
+        assert!(result.failed_step_id.is_none());
+        assert!(result.fail_reason.is_none());
+        assert_eq!(result.outcomes.len(), 5);
+        assert!(result.outcomes.iter().all(|o| o.ok));
+        assert_eq!(result.outcomes[0].step_id, "program");
+        assert_eq!(result.outcomes[1].step_id, "setpoint");
+        assert_eq!(result.outcomes[2].step_id, "start");
+        assert_eq!(result.outcomes[3].step_id, "wait_heat");
+        assert_eq!(result.outcomes[4].step_id, "assert_temp");
+
+        assert_eq!(result.bindings.len(), 1);
+        assert_eq!(result.bindings[0].role, "oven");
+        assert_eq!(result.bindings[0].class_id, ApplianceClassId::Oven);
+        assert!(result.bindings[0].spawned);
+        assert!(result.bindings[0].device_id.starts_with("sim-oven-"));
+
+        let state: serde_json::Value =
+            serde_json::from_str(&api.get_state(&result.bindings[0].device_id).unwrap()).unwrap();
+        assert!(f32_of(&state, "trait.temperature.current_c") >= 170.0);
+        assert_eq!(state["trait.program.program"]["value"], "bake");
+        assert!((f32_of(&state, "trait.temperature.setpoint_c") - 180.0).abs() < 0.05);
     }
 
     #[test]

@@ -357,6 +357,32 @@ mod tests {
     }
 
     #[test]
+    fn oven_heats_toward_setpoint_when_cycle_running() {
+        let mut sim = Simulator::new();
+        let id = sim.spawn(ApplianceClassId::Oven).unwrap();
+        sim.write(&id, "trait.program.program", Value::Enum("bake".into()))
+            .unwrap();
+        sim.write(&id, "trait.temperature.setpoint_c", Value::F32(180.0))
+            .unwrap();
+        sim.write(&id, "trait.cycle.start", Value::Void).unwrap();
+        assert_eq!(
+            sim.read_value(&id, "trait.cycle.cycle_state").unwrap(),
+            Value::Enum("running".into())
+        );
+        // 10 °C/s from 20 → 170 needs 15 s; use 16 s of sim time.
+        sim.tick(&id, 16_000).unwrap();
+        let current = f32_val(&sim.read_value(&id, "trait.temperature.current_c").unwrap());
+        assert!(
+            current >= 170.0,
+            "current={current}, expected >= 170 after 16s at 10 C/s"
+        );
+        assert_eq!(
+            sim.read_value(&id, "trait.program.program").unwrap(),
+            Value::Enum("bake".into())
+        );
+    }
+
+    #[test]
     fn microwave_cook_advances_elapsed_toward_cook_s() {
         let mut sim = Simulator::new();
         let id = sim.spawn(ApplianceClassId::Microwave).unwrap();
