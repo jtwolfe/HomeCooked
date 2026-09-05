@@ -529,6 +529,10 @@ Automatic dishwasher (built-in, drawer, or countertop).
   typically forces drain. Remote start needs closed door.
 - Optional `thermal_port_*` class points advertise a DHW inlet-preheat sink
   (not a parallel thermal class; see thermal-plant).
+- Catalog depth: optional sabbath/eco/door_ajar/door_locked/rinse_aid_low/
+  salt_low/overflow_alarm/timer_s; typical also advertises thin-table
+  rinse_aid_level/salt_level/wash_temp_c and trait delay_start_s (does not
+  duplicate cycle/thermal surfaces).
 - Drawer dishwashers: one device with two `zone`s if independently runnable,
   else one cycle.
 - Do not confuse with `washer` (laundry). Different programs and no spin rpm.

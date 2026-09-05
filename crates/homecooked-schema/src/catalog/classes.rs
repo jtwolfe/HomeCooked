@@ -974,7 +974,78 @@ static DISHWASHER_BASE: &[CatalogPoint] = &[
     ),
 ];
 
-const DISHWASHER_MERGED: [CatalogPoint; 15] = concat2(DISHWASHER_BASE, THERMAL_PORT_POINTS);
+/// Dishwasher optional depth (Stream 7 undepened Tier-A). Laundry/cycle template
+/// (washer) + water consumable alarms (steam_cooker / water_softener). Does not
+/// duplicate required cycle/thermal surfaces — `thermal_port_*` stay via merge.
+static DISHWASHER_DEPTH: &[CatalogPoint] = &[
+    s(
+        "sabbath_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    ),
+    s(
+        "eco_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "door_ajar",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "door_locked",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "rinse_aid_low",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "salt_low",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "overflow_alarm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "timer_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 86400),
+        AccessMode::RWE,
+        false,
+    ),
+];
+
+const DISHWASHER_MERGED: [CatalogPoint; 23] =
+    concat3(DISHWASHER_BASE, DISHWASHER_DEPTH, THERMAL_PORT_POINTS);
 const DISHWASHER_POINTS: &[CatalogPoint] = &DISHWASHER_MERGED;
 
 const MICROWAVE_TRAITS: &[TraitId] = &[
