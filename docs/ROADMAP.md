@@ -1,6 +1,6 @@
 # HomeCooked roadmap — ~75% project completeness
 
-Version **0.1.14**. Planning doc for a long flesh-out of the catalog, control
+Version **0.1.15**. Planning doc for a long flesh-out of the catalog, control
 stack, and simulator. It does **not** freeze APIs; crate and YAML shapes may
 evolve with the code that implements each stream.
 
@@ -20,7 +20,7 @@ What exists on `main` today (Done highlights called out):
 | Catalog docs | Appliance class index (**56** ids), traits, variables/settings in `docs/catalog/` |
 | Standard docs | Overview, thermal-plant, procedures, bridges, control-system sketches; washer/dryer I/O example |
 | `homecooked-schema` | Serde types, capability model, write validation; **56** static class tables (**25 Tier-A + 31 Tier-B**) — **Done** |
-| `homecooked-protocol` | Envelope, request/response kinds, discovery, JSON, errors (v0.1.0) |
+| `homecooked-protocol` | Envelope, request/response kinds, discovery, JSON, errors (v0.1.0); **invalid Envelope JSON table tests** |
 | `homecooked-core` | Device registry, capability-enforced read/write |
 | `homecooked-sim` | In-memory devices for all 56 statically tabled classes; microwave cook ticks advance `elapsed_s` |
 | `homecooked-wasm` + `apps/simulator-web` | wasm-bindgen JSON API; full-catalog picker (56) + procedure runner (kettle + Domino's + wash-then-dry `run_procedure` E2E) + thermal panel; **WASM fetch+blob load** (module cache defeat) — **Done** |
@@ -31,7 +31,7 @@ What exists on `main` today (Done highlights called out):
 | `homecooked-controller` | Host controller sim: IoMap + MockHal + interlocks + washer cotton / **dryer cycle** (Idle→Dry→Cool→Done) — **Done** |
 | `homecooked-thermal` | First executable thermal plant slice (types, registry, offer/accept, tick) |
 | `homecooked-bridge` | **Modbus + Matter + Zigbee + BACnet mocks** (no real serial/TCP/CHIP/z2m/BACnet stacks) — **Done** |
-| `homecooked-transport` | Lab TCP JSON envelopes; **optional PSK pairing**; sim-backed server + client smoke — **Done** |
+| `homecooked-transport` | Lab TCP JSON envelopes; **optional PSK pairing**; sim-backed server + client smoke; **malformed frame table tests** — **Done** |
 | `homecooked-hub` | Optional multi-device lab TCP aggregator (**not required for devices**) — **Done** |
 | `homecooked-conformance` | Stream 7 smoke: Tier-A / Tier-B / cotton / kettle + wash-then-dry procedures / thermal / Modbus / Matter / Zigbee / BACnet / TCP / TCP PSK / hub lab set |
 | CI | rustfmt, clippy (`-D warnings`), `cargo test --workspace`, wasm-pack |
@@ -262,8 +262,13 @@ multiple small PRs.
    scenarios (Tier-A catalog/sim/describe, washer cotton controller, kettle
    procedure, wash-then-dry, thermal fridge→DHW, thermal→dishwasher preheat
    dual-path, Modbus water_heater, Matter/Zigbee/BACnet
-   kettle, TCP kettle, TCP PSK describe/ping, optional lab hub discover/describe). Deeper
-   catalog hygiene / major-version / write-denial matrices remain follow-up.
+   kettle, TCP kettle, TCP PSK describe/ping, optional lab hub discover/describe).
+   **Protocol/transport robustness (table-driven):** `homecooked-transport`
+   malformed length-prefixed frames + `homecooked-protocol` invalid Envelope
+   JSON (oversize length, truncated body/header, invalid UTF-8, unknown kind,
+   truncated JSON). **`cargo fuzz` deferred** — thorough unit tests keep CI
+   free of nightly/libFuzzer deps; optional fuzz targets can land later if
+   needed. Deeper catalog hygiene / write-denial matrices remain follow-up.
 3. CI runs the conformance suite (or a `cargo test` subset tagged as such).
    **Done (via workspace)** — `cargo test --workspace` includes
    `homecooked-conformance`; also `cargo test -p homecooked-conformance`.
@@ -379,6 +384,7 @@ Count: **31** Tier-B ids, all with thin static tables + sim.
 | later | lab hub + PSK | 4 — **Done** (`homecooked-hub`, transport PSK) |
 | later | bridge mocks (Matter/Zigbee/BACnet) | 6 — **Done** (thin mocks; real SDKs still open) |
 | later | dryer controller cycle | 4 — **Done** |
+| later | protocol/transport robustness tests | 7 — table-driven malformed frames + invalid Envelope JSON; `cargo fuzz` deferred |
 
 One concern per PR when practical. Catalog/standard docs land before or with
 the code that implements them.
@@ -404,3 +410,4 @@ the code that implements them.
 | 0.1.12 | Stream 2 Tier-B thin ClassTables (31) → full catalog **56** static + sim |
 | 0.1.13 | Stream 7 simulator-web WASM load via fetch+blob (module cache defeat) |
 | 0.1.14 | Stream 3/7 Domino's microwave `run_procedure` E2E; roadmap Done-state refresh |
+| 0.1.15 | Stream 7 tooling: protocol/transport malformed-frame + invalid Envelope JSON table tests; `cargo fuzz` deferred |

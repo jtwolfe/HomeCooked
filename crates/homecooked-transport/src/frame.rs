@@ -69,9 +69,43 @@ pub fn read_envelope<R: Read>(reader: &mut R) -> Result<Envelope, TransportError
 
 #[cfg(test)]
 mod tests {
-    use homecooked_protocol::{Envelope, Payload, PingBody};
+    use std::io::Cursor;
+
+    use homecooked_protocol::{Envelope, Payload, PingBody, ProtocolError};
 
     use super::*;
+
+    fn frame_bytes(payload: &[u8]) -> Vec<u8> {
+        let mut out = (payload.len() as u32).to_be_bytes().to_vec();
+        out.extend_from_slice(payload);
+        out
+    }
+
+    #[derive(Debug, Clone, Copy)]
+    enum Expect {
+        FrameTooLarge,
+        EmptyFrame,
+        UnexpectedEof,
+        ProtocolJson,
+        ProtocolUtf8,
+    }
+
+    fn matches_expect(err: &TransportError, expect: Expect) -> bool {
+        match expect {
+            Expect::FrameTooLarge => {
+                matches!(err, TransportError::FrameTooLarge { len } if *len == MAX_FRAME_BYTES + 1)
+            }
+            Expect::EmptyFrame => matches!(err, TransportError::EmptyFrame),
+            Expect::UnexpectedEof => matches!(err, TransportError::UnexpectedEof),
+            Expect::ProtocolJson => {
+                matches!(err, TransportError::Protocol(ProtocolError::Json(_)))
+            }
+            Expect::ProtocolUtf8 => matches!(
+                err,
+                TransportError::Protocol(ProtocolError::Json(msg)) if msg.contains("invalid utf-8")
+            ),
+        }
+    }
 
     #[test]
     fn roundtrip_ping() {
@@ -86,11 +120,87 @@ mod tests {
         assert_eq!(back.message_id, env.message_id);
     }
 
+    /// Table-driven malformed length-prefixed frames (tooling / conformance).
+    ///
+    /// Covers oversize length, empty frame, truncated header/body, invalid
+    /// UTF-8, truncated/invalid JSON, and unknown `kind` — without `cargo fuzz`
+    /// (deferred; see `docs/ROADMAP.md`).
+    #[test]
+    fn malformed_frames_table() {
+        // Valid minimal ping JSON for positive control.
+        let good_json =
+            br#"{"protocol_version":"0.1.0","message_id":"m-1","ts_ms":0,"kind":"ping","body":{}}"#;
+
+        let mut oversize = (MAX_FRAME_BYTES + 1).to_be_bytes().to_vec();
+        oversize.extend_from_slice(&[0u8; 8]);
+
+        let mut truncated_body = 32u32.to_be_bytes().to_vec();
+        truncated_body.extend_from_slice(br#"{"a":1}"#);
+
+        let cases: &[(&str, Vec<u8>, Expect)] = &[
+            ("oversize_length", oversize, Expect::FrameTooLarge),
+            ("empty_frame", frame_bytes(&[]), Expect::EmptyFrame),
+            ("truncated_length_header", vec![0x00, 0x00], Expect::UnexpectedEof),
+            ("truncated_body", truncated_body, Expect::UnexpectedEof),
+            (
+                "invalid_utf8",
+                frame_bytes(&[0xff, 0xfe, 0xfd, 0xfc]),
+                Expect::ProtocolUtf8,
+            ),
+            (
+                "truncated_json",
+                frame_bytes(br#"{"protocol_version":"0.1.0","message_id":"m-1","kind":"ping""#),
+                Expect::ProtocolJson,
+            ),
+            (
+                "invalid_json_not_object",
+                frame_bytes(br#"[1,2,3]"#),
+                Expect::ProtocolJson,
+            ),
+            (
+                "unknown_kind",
+                frame_bytes(
+                    br#"{"protocol_version":"0.1.0","message_id":"m-1","ts_ms":0,"kind":"not_a_real_kind","body":{}}"#,
+                ),
+                Expect::ProtocolJson,
+            ),
+            (
+                "missing_kind",
+                frame_bytes(
+                    br#"{"protocol_version":"0.1.0","message_id":"m-1","ts_ms":0,"body":{}}"#,
+                ),
+                Expect::ProtocolJson,
+            ),
+        ];
+
+        for (name, bytes, expect) in cases {
+            let err = read_envelope(&mut bytes.as_slice()).unwrap_err();
+            assert!(
+                matches_expect(&err, *expect),
+                "case `{name}`: unexpected error {err:?}, expected {expect:?}"
+            );
+        }
+
+        // Positive: good_json framed must succeed (guards the table harness).
+        let ok = read_envelope(&mut frame_bytes(good_json).as_slice()).unwrap();
+        assert_eq!(ok.message_id, "m-1");
+        assert!(matches!(ok.payload, Payload::Ping(_)));
+    }
+
     #[test]
     fn rejects_oversize_length() {
         let mut bogus = (MAX_FRAME_BYTES + 1).to_be_bytes().to_vec();
         bogus.extend_from_slice(&[0u8; 8]);
         let err = read_envelope(&mut bogus.as_slice()).unwrap_err();
         assert!(matches!(err, TransportError::FrameTooLarge { .. }));
+    }
+
+    #[test]
+    fn truncated_stream_via_cursor() {
+        let mut partial = 8u32.to_be_bytes().to_vec();
+        partial.extend_from_slice(br#"{"k":"#);
+        let mut cur = Cursor::new(partial);
+        let err = read_envelope(&mut cur).unwrap_err();
+        assert!(matches!(err, TransportError::UnexpectedEof));
     }
 }
