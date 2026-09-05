@@ -6,9 +6,11 @@
 //!
 //! Also exposes catalog cycle points so a TCP client can **start cotton**
 //! (`trait.cycle.start` → [`Controller::start_cotton`]) and read
-//! `trait.cycle.cycle_state` / `trait.cycle.cycle_phase`. Lab-only
-//! `class.washer.sim_tick` advances one host sim tick (full cotton options /
-//! cancel / pause / typical_capability remain follow-ups).
+//! `trait.cycle.cycle_state` / `trait.cycle.cycle_phase`. Clients write
+//! CottonOptions knobs as adjacent catalog setpoints (`class.washer.wash_temp_c`,
+//! `class.washer.spin_rpm`) **before** void `trait.cycle.start` — same order as
+//! washer-dryer-io §6. Lab-only `class.washer.sim_tick` advances one host sim
+//! tick (DryOptions / cancel / pause / typical_capability remain follow-ups).
 //! Dryer TCP: see [`crate::DryerControllerEndpoint`]. No TLS / OAuth.
 
 use homecooked_hal::{bridge, ChannelId, HalValue};
@@ -18,7 +20,7 @@ use homecooked_protocol::{
     WriteOp, WriteRequest, WriteResponse,
 };
 use homecooked_schema::{
-    trait_table, AccessMode, ApplianceClassId, CapabilityModel, CommandArg, ErrorCode,
+    class_table, trait_table, AccessMode, ApplianceClassId, CapabilityModel, CommandArg, ErrorCode,
     PointCapability, TraitCapability, TraitId, Value, ValueRange, ValueType, CATALOG_VERSION,
     DEFAULT_CLASS_VERSION,
 };
@@ -37,6 +39,9 @@ const HEATER_POINT: &str = "class.washer.heater_enable";
 const DOOR_LOCK_POINT: &str = "class.washer.door_lock";
 const WATER_LEVEL_POINT: &str = "class.washer.water_level_pa";
 const DOOR_LOCK_FB_POINT: &str = "class.washer.door_lock_fb";
+/// Catalog CottonOptions setpoints (written before `trait.cycle.start`).
+const WASH_TEMP_POINT: &str = "class.washer.wash_temp_c";
+const SPIN_RPM_POINT: &str = "class.washer.spin_rpm";
 
 const HEATER_CHANNEL: &str = "aout.heater_enable";
 const DOOR_LOCK_CHANNEL: &str = "aout.door_lock";
@@ -56,6 +61,8 @@ pub struct ControllerEndpoint {
     device_id: String,
     capability: CapabilityModel,
     controller: Controller,
+    /// Pending CottonOptions applied on the next `trait.cycle.start`.
+    cotton_opts: CottonOptions,
 }
 
 impl ControllerEndpoint {
@@ -70,6 +77,7 @@ impl ControllerEndpoint {
             device_id: device_id.into(),
             capability: lab_washer_capability(),
             controller: Controller::washer_cotton_demo()?,
+            cotton_opts: CottonOptions::default(),
         })
     }
 
@@ -295,6 +303,15 @@ impl ControllerEndpoint {
                     phase.into()
                 }))
             }
+            WASH_TEMP_POINT => Ok(Value::F32(self.cotton_opts.wash_temp_c as f32)),
+            SPIN_RPM_POINT => {
+                let rpm = self
+                    .cotton_opts
+                    .spin_rpm
+                    .round()
+                    .clamp(0.0, u16::MAX as f64) as u16;
+                Ok(Value::U16(rpm))
+            }
             _ => {
                 let channel = point_to_channel(point_id).ok_or_else(|| {
                     ErrorBody::new(
@@ -331,8 +348,22 @@ impl ControllerEndpoint {
                     );
                 }
                 self.controller
-                    .start_cotton(CottonOptions::default())
+                    .start_cotton(self.cotton_opts.clone())
                     .map_err(|e| cycle_error_body(&point_id, e))
+            }
+            WASH_TEMP_POINT => {
+                let n = op.value.as_f64().ok_or_else(|| {
+                    ErrorBody::new(ErrorCode::InvalidType, "expected number").at_point(&point_id)
+                })?;
+                self.cotton_opts.wash_temp_c = n;
+                Ok(())
+            }
+            SPIN_RPM_POINT => {
+                let n = op.value.as_f64().ok_or_else(|| {
+                    ErrorBody::new(ErrorCode::InvalidType, "expected number").at_point(&point_id)
+                })?;
+                self.cotton_opts.spin_rpm = n;
+                Ok(())
             }
             LAB_TICK_POINT => {
                 if !matches!(op.value, Value::Void) {
@@ -404,10 +435,12 @@ impl RequestHandler for ControllerEndpoint {
     }
 }
 
-/// Thin lab capability: HAL-backed washer heater / door / water points + cycle start/read.
+/// Thin lab capability: HAL-backed washer heater / door / water points + CottonOptions
+/// setpoints + cycle start/read.
 pub fn lab_washer_capability() -> CapabilityModel {
     let mut cap = CapabilityModel::new(ApplianceClassId::Washer);
     cap.class_version = DEFAULT_CLASS_VERSION;
+    let washer = class_table(ApplianceClassId::Washer).expect("washer class table");
     cap.class_points = vec![
         PointCapability {
             id: HEATER_POINT.into(),
@@ -449,6 +482,17 @@ pub fn lab_washer_capability() -> CapabilityModel {
             resolution: None,
             zones: None,
         },
+        // Catalog CottonOptions knobs (write before trait.cycle.start).
+        PointCapability::from_catalog(
+            WASH_TEMP_POINT,
+            washer
+                .class_point("wash_temp_c")
+                .expect("washer wash_temp_c"),
+        ),
+        PointCapability::from_catalog(
+            SPIN_RPM_POINT,
+            washer.class_point("spin_rpm").expect("washer spin_rpm"),
+        ),
         // Lab-only tick (not catalog): advance host cotton runtime one step.
         PointCapability {
             id: LAB_TICK_POINT.into(),
@@ -469,7 +513,7 @@ pub fn lab_washer_capability() -> CapabilityModel {
         trait_version: DEFAULT_CLASS_VERSION,
         points: Vec::new(),
     });
-    // Catalog cycle points: start cotton + observe state/phase over TCP.
+    // Catalog cycle points: start cotton (void; options via adjacent writes) + observe state/phase.
     let cycle = trait_table(TraitId::Cycle).expect("cycle trait table");
     let mut cycle_points = Vec::new();
     for id in ["start", "cycle_state", "cycle_phase"] {
@@ -704,6 +748,74 @@ mod endpoint_tests {
             ep.handle_request(tick).payload,
             Payload::WriteOk(_)
         ));
+        assert_eq!(ep.controller().cycle_state().as_str(), "running");
+    }
+
+    #[test]
+    fn cotton_options_over_wire_applied_on_start() {
+        let mut ep = ControllerEndpoint::washer_lab().unwrap();
+
+        // Defaults advertised / readable before writes.
+        let read_defaults = Envelope::request(
+            Some(ep.device_id().into()),
+            Payload::Read(homecooked_protocol::ReadRequest {
+                points: vec![qid(WASH_TEMP_POINT), qid(SPIN_RPM_POINT)],
+                allow_partial: false,
+            }),
+        );
+        match ep.handle_request(read_defaults).payload {
+            Payload::ReadOk(body) => {
+                assert_eq!(body.values[0].value, Some(Value::F32(40.0)));
+                assert_eq!(body.values[1].value, Some(Value::U16(800)));
+            }
+            other => panic!("expected ReadOk defaults, got {other:?}"),
+        }
+
+        for (point, value) in [
+            (WASH_TEMP_POINT, Value::F32(0.0)),
+            (SPIN_RPM_POINT, Value::U16(1_200)),
+        ] {
+            let env = Envelope::request(
+                Some(ep.device_id().into()),
+                Payload::Write(WriteRequest {
+                    writes: vec![WriteOp {
+                        id: qid(point),
+                        value,
+                    }],
+                    dry_run: false,
+                    atomic: false,
+                }),
+            );
+            assert!(
+                matches!(ep.handle_request(env).payload, Payload::WriteOk(_)),
+                "write {point}"
+            );
+        }
+
+        let start = Envelope::request(
+            Some(ep.device_id().into()),
+            Payload::Write(WriteRequest {
+                writes: vec![WriteOp {
+                    id: qid(CYCLE_START_POINT),
+                    value: Value::Void,
+                }],
+                dry_run: false,
+                atomic: false,
+            }),
+        );
+        assert!(matches!(
+            ep.handle_request(start).payload,
+            Payload::WriteOk(_)
+        ));
+
+        let opts = ep.controller().options();
+        assert_eq!(opts.wash_temp_c, 0.0);
+        assert_eq!(opts.spin_rpm, 1_200.0);
+        // Host-only tick knobs stay at CottonOptions defaults.
+        assert_eq!(
+            opts.wash_tumble_ticks,
+            CottonOptions::default().wash_tumble_ticks
+        );
         assert_eq!(ep.controller().cycle_state().as_str(), "running");
     }
 }

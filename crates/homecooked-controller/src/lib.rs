@@ -17,8 +17,9 @@
 //! channels so interlock denies surface as `safety_interlock` over
 //! [`homecooked_transport`] TCP (`spawn_handler_server`). Washer and dryer
 //! TCP also expose `trait.cycle.start` / `cycle_state` / `cycle_phase` plus
-//! lab `class.washer.sim_tick` / `class.dryer.sim_tick` (CottonOptions /
-//! DryOptions / cancel / pause / typical_capability remain follow-up).
+//! lab `class.washer.sim_tick` / `class.dryer.sim_tick`. Washer CottonOptions
+//! travel as adjacent catalog writes (`wash_temp_c` / `spin_rpm`) before void
+//! start (DryOptions / cancel / pause / typical_capability remain follow-up).
 //! Lab only — no TLS / OAuth.
 //!
 //! # Example

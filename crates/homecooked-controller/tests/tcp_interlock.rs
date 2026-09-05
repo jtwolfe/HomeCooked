@@ -309,6 +309,87 @@ fn tcp_washer_cotton_start_and_phase() {
 }
 
 #[test]
+fn tcp_washer_cotton_options_over_wire() {
+    let ep = ControllerEndpoint::washer_lab().unwrap();
+    let (addr, _shared, _server) = spawn_handler_server("127.0.0.1:0", ep).unwrap();
+    thread::sleep(Duration::from_millis(20));
+
+    let mut client = TcpClient::connect(addr).unwrap();
+
+    let desc = client.describe(WASHER_CTRL_DEVICE_ID, vec![]).unwrap();
+    assert!(desc.capability.point("class.washer.wash_temp_c").is_some());
+    assert!(desc.capability.point("class.washer.spin_rpm").is_some());
+
+    // Non-default CottonOptions via adjacent catalog writes (before start).
+    client
+        .write(
+            WASHER_CTRL_DEVICE_ID,
+            vec![
+                WriteOp {
+                    id: qid("class.washer.wash_temp_c"),
+                    value: Value::F32(0.0),
+                },
+                WriteOp {
+                    id: qid("class.washer.spin_rpm"),
+                    value: Value::U16(1_200),
+                },
+            ],
+        )
+        .unwrap();
+
+    let read_back = client
+        .read(
+            WASHER_CTRL_DEVICE_ID,
+            vec![
+                qid("class.washer.wash_temp_c"),
+                qid("class.washer.spin_rpm"),
+            ],
+        )
+        .unwrap();
+    assert_eq!(read_back.values[0].value, Some(Value::F32(0.0)));
+    assert_eq!(read_back.values[1].value, Some(Value::U16(1_200)));
+
+    client
+        .write(
+            WASHER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: qid("trait.cycle.start"),
+                value: Value::Void,
+            }],
+        )
+        .unwrap();
+
+    let after = client
+        .read(
+            WASHER_CTRL_DEVICE_ID,
+            vec![
+                qid("trait.cycle.cycle_state"),
+                qid("class.washer.wash_temp_c"),
+                qid("class.washer.spin_rpm"),
+            ],
+        )
+        .unwrap();
+    assert_eq!(after.values[0].value, Some(Value::Enum("running".into())));
+    assert_eq!(after.values[1].value, Some(Value::F32(0.0)));
+    assert_eq!(after.values[2].value, Some(Value::U16(1_200)));
+
+    // Out-of-range spin must be rejected by capability validation (catalog 0–1600).
+    let denied = client.write(
+        WASHER_CTRL_DEVICE_ID,
+        vec![WriteOp {
+            id: qid("class.washer.spin_rpm"),
+            value: Value::U16(2_000),
+        }],
+    );
+    match denied {
+        Err(TransportError::Remote(body)) => {
+            assert_eq!(body.code, ErrorCode::OutOfRange);
+        }
+        other => panic!("expected remote out_of_range for spin_rpm=2000, got {other:?}"),
+    }
+}
+
+#[test]
 fn tcp_dryer_cotton_start_and_phase() {
     use homecooked_controller::{DryerControllerEndpoint, DRYER_CTRL_DEVICE_ID};
 

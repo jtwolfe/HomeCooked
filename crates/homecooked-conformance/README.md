@@ -59,6 +59,9 @@ Also covered by `cargo test --workspace` (CI).
 12b. **controller_tcp_washer_cotton** — TCP client against washer
    `ControllerEndpoint`: prepare interlocks, `trait.cycle.start` cotton,
    assert `cycle_state=running` + active `cycle_phase`; lab ticks keep running
+12b2. **controller_tcp_washer_cotton_options** — write `wash_temp_c` /
+   `spin_rpm` (CottonOptions) before void `trait.cycle.start`; read-back +
+   running; out-of-range spin denied
 12c. **controller_tcp_dryer_cycle** — TCP client against dryer
    `DryerControllerEndpoint`: `trait.cycle.start` dry, assert
    `cycle_state=running` + active `cycle_phase`; lab ticks keep running
