@@ -904,6 +904,10 @@ wand). Includes many dual-boiler connected machines.
   (flood). Prefer timed / volumetric shots. Devices may require
   `remote_brew_enabled`.
 - Standalone grinders are `coffee_grinder`.
+- Catalog depth: optional class points include `brew_pressure_bar`, `shot_ml`,
+  `pump_on`, `steam_wand_on`, sabbath, eco, `boiler_ready`, `high_temp_alarm`,
+  `water_tank_empty`, `descaling_needed`, and `timer_s` (see
+  variables-and-settings).
 
 ### `drip_coffee_maker`
 

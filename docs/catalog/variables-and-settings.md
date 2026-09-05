@@ -1193,9 +1193,17 @@ Fan speed via `trait.fan.fan_speed`; light dimming via
 | `preinfusion_s` | duration_s | second | 0–15 | r/w | opt | |
 | `shot_ml` | u16 | milliliter | 10–100 | r/w | opt | Volumetric |
 | `shot_s` | duration_s | second | 0–90 | r/e | opt | Elapsed |
-| `brew_pressure_bar` | f32 | bar | 0–16 | r/e | opt | |
-| `pump_on` | bool | — | | r/e | opt | |
+| `brew_pressure_bar` | f32 | bar | 0–16 | r/e | opt | Group / brew pressure |
+| `pump_on` | bool | — | | r/e | opt | Pump active |
 | `water_source` | enum | — | `tank` `plumbed` | r/w | opt | |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving boiler duty |
+| `boiler_ready` | bool | — | | r/e | opt | Brew boiler at setpoint |
+| `high_temp_alarm` | bool | — | | r/e | opt | Overtemp / too-hot |
+| `water_tank_empty` | bool | — | | r/e | opt | Tank empty / inhibit brew |
+| `descaling_needed` | bool | — | | r/e | opt | Descale due indicator |
+| `timer_s` | duration_s | second | 0–3600 | r/w/e | opt | Delayed brew / countdown |
+| `steam_wand_on` | bool | — | | r/e | opt | Steam wand active |
 
 **Commands:** `start_shot`, `stop_shot` (w, void). Raw `pump_on` write is
 optional and safety-gated (`remote_brew_enabled` bool, r/w, opt).
