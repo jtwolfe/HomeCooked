@@ -24,8 +24,8 @@ use homecooked_procedure::{
 };
 use homecooked_protocol::{Envelope, Payload, PingBody, WriteOp};
 use homecooked_schema::{
-    typical_capability, ApplianceClassId, QualifiedPointId, Value, TIER_A_CLASS_IDS,
-    TIER_B_CLASS_IDS,
+    class_table, static_class_tables, trait_table, typical_capability, ApplianceClassId, ErrorCode,
+    QualifiedPointId, TraitId, Value, STATIC_CLASS_IDS, TIER_A_CLASS_IDS, TIER_B_CLASS_IDS,
 };
 use homecooked_sim::Simulator;
 use homecooked_thermal::{
@@ -1199,11 +1199,182 @@ pub fn water_heater_thermal_ports() -> ScenarioResult {
     Ok(())
 }
 
+/// Stream 7 follow-up: table-driven write-denial matrix (Tier-A representatives).
+///
+/// Each case spawns a sim device, attempts a bad write, and asserts a named
+/// [`ErrorCode`]. Failures include the case name so CI output stays actionable.
+pub fn write_denial_matrix() -> ScenarioResult {
+    const NAME: &str = "write_denial_matrix";
+
+    // (case_name, class, point_id, value, expected_error)
+    let cases: &[(&str, ApplianceClassId, &str, Value, ErrorCode)] = &[
+        (
+            "kettle_setpoint_out_of_range",
+            ApplianceClassId::Kettle,
+            "trait.temperature.setpoint_c",
+            Value::F32(20.0),
+            ErrorCode::OutOfRange,
+        ),
+        (
+            "oven_setpoint_out_of_range",
+            ApplianceClassId::Oven,
+            "trait.temperature.setpoint_c",
+            Value::F32(300.0),
+            ErrorCode::OutOfRange,
+        ),
+        (
+            "unknown_point_id",
+            ApplianceClassId::Kettle,
+            "trait.temperature.not_a_real_point",
+            Value::F32(80.0),
+            ErrorCode::UnknownVariable,
+        ),
+        (
+            "read_only_current_c",
+            ApplianceClassId::Kettle,
+            "trait.temperature.current_c",
+            Value::F32(55.0),
+            ErrorCode::NotWritable,
+        ),
+        (
+            "bad_enum_token_program",
+            ApplianceClassId::Washer,
+            "trait.program.program",
+            Value::Enum("not_a_program".into()),
+            ErrorCode::InvalidEnum,
+        ),
+        (
+            "wrong_type_bool_into_f32_setpoint",
+            ApplianceClassId::Kettle,
+            "trait.temperature.setpoint_c",
+            Value::Bool(true),
+            ErrorCode::InvalidType,
+        ),
+        (
+            "class_lacks_foreign_point",
+            ApplianceClassId::Kettle,
+            "class.washer.spin_rpm",
+            Value::U16(800),
+            ErrorCode::UnsupportedCapability,
+        ),
+    ];
+
+    let mut failures = Vec::new();
+    for &(case, class_id, point_id, ref value, expected) in cases {
+        let mut sim = Simulator::new();
+        let id = match sim.spawn(class_id) {
+            Ok(id) => id,
+            Err(e) => {
+                failures.push(format!("{case}: spawn {}: {e}", class_id.as_str()));
+                continue;
+            }
+        };
+        match sim.write(&id, point_id, value.clone()) {
+            Ok(_) => failures.push(format!(
+                "{case}: expected {expected}, write succeeded on {}",
+                class_id.as_str()
+            )),
+            Err(e) if e.code == expected => {}
+            Err(e) => failures.push(format!(
+                "{case}: got {}, expected {expected} ({})",
+                e.code, e.message
+            )),
+        }
+    }
+
+    if failures.is_empty() {
+        Ok(())
+    } else {
+        Err(err(
+            NAME,
+            format!(
+                "{} case(s) failed:\n  - {}",
+                failures.len(),
+                failures.join("\n  - ")
+            ),
+        ))
+    }
+}
+
+/// Light catalog hygiene: ClassTable presence + no duplicate point ids per class.
+///
+/// Required-point ⊆ typical_capability is already covered by
+/// `homecooked-schema` unit tests (`static_tables_for_encoded_classes`).
+pub fn catalog_hygiene() -> ScenarioResult {
+    const NAME: &str = "catalog_hygiene";
+
+    if STATIC_CLASS_IDS.len() != static_class_tables().len() {
+        return Err(err(
+            NAME,
+            format!(
+                "STATIC_CLASS_IDS len {} != static_class_tables len {}",
+                STATIC_CLASS_IDS.len(),
+                static_class_tables().len()
+            ),
+        ));
+    }
+
+    for &id in STATIC_CLASS_IDS {
+        let table = class_table(id).ok_or_else(|| {
+            err(
+                NAME,
+                format!("STATIC_CLASS_ID {} has no ClassTable", id.as_str()),
+            )
+        })?;
+        if table.class_id != id {
+            return Err(err(
+                NAME,
+                format!(
+                    "ClassTable class_id {} != STATIC_CLASS_ID {}",
+                    table.class_id.as_str(),
+                    id.as_str()
+                ),
+            ));
+        }
+
+        let mut seen = std::collections::BTreeSet::new();
+        for p in table.class_points {
+            if !seen.insert(p.id) {
+                return Err(err(
+                    NAME,
+                    format!("duplicate class point id {}.{}", id.as_str(), p.id),
+                ));
+            }
+        }
+    }
+
+    for &trait_id in TraitId::ALL {
+        let Some(table) = trait_table(trait_id) else {
+            return Err(err(
+                NAME,
+                format!("TraitId {} has no TraitTable", trait_id.as_str()),
+            ));
+        };
+        let mut seen = std::collections::BTreeSet::new();
+        for p in table.points {
+            if !seen.insert(p.id) {
+                return Err(err(
+                    NAME,
+                    format!(
+                        "duplicate trait point id trait.{}.{}",
+                        trait_id.as_str(),
+                        p.id
+                    ),
+                ));
+            }
+        }
+    }
+
+    Ok(())
+}
+
 /// Ordered smoke scenarios for the suite runner.
 pub fn all_scenarios() -> &'static [(&'static str, ScenarioFn)] {
     &[
         ("tier_a_catalog_sim_describe", tier_a_catalog_sim_describe),
         ("tier_b_catalog_sim_describe", tier_b_catalog_sim_describe),
+        ("catalog_hygiene", catalog_hygiene),
+        ("write_denial_matrix", write_denial_matrix),
         ("washer_cotton_controller", washer_cotton_controller),
         ("procedure_kettle_happy_path", procedure_kettle_happy_path),
         ("procedure_wash_then_dry", procedure_wash_then_dry),

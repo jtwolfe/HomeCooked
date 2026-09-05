@@ -18,6 +18,13 @@ Also covered by `cargo test --workspace` (CI).
 
 1. **tier_a_catalog_sim_describe** — every Tier-A class has
    `typical_capability`; sim can spawn; protocol describe returns the class id
+1b. **tier_b_catalog_sim_describe** — every Tier-B class: typical_capability +
+   sim spawn + describe class id
+1c. **catalog_hygiene** — every `STATIC_CLASS_ID` has a `ClassTable`; no
+   duplicate point ids within a class or trait table
+1d. **write_denial_matrix** — table-driven Tier-A write denials (out-of-range
+   kettle/oven setpoint, unknown point, read-only, bad program enum, wrong type,
+   foreign class point) with per-case failure messages
 2. **washer_cotton_controller** — `homecooked-controller` cotton path reaches
    `WasherState::Done`
 3. **procedure_kettle_happy_path** — kettle heat procedure via
