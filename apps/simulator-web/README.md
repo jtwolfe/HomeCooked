@@ -52,7 +52,7 @@ Open <http://127.0.0.1:8080>.
    key telemetry chips (power / temperature / cycle when present),
    variables, and settings.
 4. For classes that advertise `thermal_port_id` (`water_heater` / `fridge` /
-   `hvac` / `dishwasher`), a compact **Thermal port** panel shows catalog `thermal_port_*`
+   `hvac` / `dishwasher` / `dryer`), a compact **Thermal port** panel shows catalog `thermal_port_*`
    telemetry (id, direction, media, max power, attached reservoir) and a write
    field for `thermal_port_attached_reservoir_id` (e.g. `dhw-tank`). Auto-shown
    when the point is present; hidden otherwise (no class-id hardcoding).

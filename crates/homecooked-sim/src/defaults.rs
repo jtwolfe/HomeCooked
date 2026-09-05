@@ -220,6 +220,8 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             ApplianceClassId::Hvac => Value::String("coil".into()),
             // DHW inlet preheat sink (closes fridge→DHW→dishwasher story at device surface).
             ApplianceClassId::Dishwasher => Value::String("inlet_preheat".into()),
+            // Exhaust / heat-reject source into the plant (vented or condenser exhaust air).
+            ApplianceClassId::Dryer => Value::String("exhaust".into()),
             _ => Value::String(String::new()),
         },
         "thermal_port_direction" => match ctx.identity.class_id {
@@ -228,16 +230,22 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             // Sink: space heating drawing from a hot plant reservoir (thermal-plant.md comfort priority).
             ApplianceClassId::Hvac => Value::Enum("sink".into()),
             ApplianceClassId::Dishwasher => Value::Enum("sink".into()),
+            ApplianceClassId::Dryer => Value::Enum("source".into()),
             _ => first_enum(point).unwrap_or_else(|| Value::Enum("unknown".into())),
         },
-        // Water_heater/fridge/dishwasher: plant demo Media::Water. HVAC: hydronic coil loop (water).
-        "thermal_port_media" => Value::Enum("water".into()),
+        // Water_heater/fridge/dishwasher/hvac: plant water loops. Dryer: exhaust air reject.
+        "thermal_port_media" => match ctx.identity.class_id {
+            ApplianceClassId::Dryer => Value::Enum("air".into()),
+            _ => Value::Enum("water".into()),
+        },
         "thermal_port_max_power_w" => match ctx.identity.class_id {
             ApplianceClassId::WaterHeater => Value::F32(2_000.0),
             ApplianceClassId::Fridge => Value::F32(120.0),
             ApplianceClassId::Hvac => Value::F32(5_000.0),
             // Inlet preheat transfer band (~1.5–2 kW electrical boost avoided when warm).
             ApplianceClassId::Dishwasher => Value::F32(1_800.0),
+            // Typical electric dryer heat-reject band (~1.5–2.5 kW); seed midpoint 2000 W.
+            ApplianceClassId::Dryer => Value::F32(2_000.0),
             _ => Value::F32(0.0),
         },
         "thermal_port_attached_reservoir_id" => Value::String(String::new()),

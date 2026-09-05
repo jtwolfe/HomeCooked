@@ -685,4 +685,53 @@ mod tests {
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }
+
+    #[test]
+    fn dryer_thermal_port_read_write() {
+        let mut sim = Simulator::new();
+        let id = sim.spawn(ApplianceClassId::Dryer).unwrap();
+        assert_eq!(
+            sim.read_value(&id, "class.dryer.thermal_port_id").unwrap(),
+            Value::String("exhaust".into())
+        );
+        assert_eq!(
+            sim.read_value(&id, "class.dryer.thermal_port_direction")
+                .unwrap(),
+            Value::Enum("source".into())
+        );
+        assert_eq!(
+            sim.read_value(&id, "class.dryer.thermal_port_media")
+                .unwrap(),
+            Value::Enum("air".into())
+        );
+        assert_eq!(
+            sim.read_value(&id, "class.dryer.thermal_port_max_power_w")
+                .unwrap(),
+            Value::F32(2_000.0)
+        );
+        assert_eq!(
+            sim.read_value(&id, "class.dryer.thermal_port_attached_reservoir_id")
+                .unwrap(),
+            Value::String(String::new())
+        );
+        sim.write(
+            &id,
+            "class.dryer.thermal_port_attached_reservoir_id",
+            Value::String("air-buffer".into()),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&id, "class.dryer.thermal_port_attached_reservoir_id")
+                .unwrap(),
+            Value::String("air-buffer".into())
+        );
+        let err = sim
+            .write(
+                &id,
+                "class.dryer.thermal_port_direction",
+                Value::Enum("sink".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
 }

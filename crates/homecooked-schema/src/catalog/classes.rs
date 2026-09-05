@@ -310,7 +310,7 @@ const HEAT_LEVEL: &[&str] = &["low", "medium", "high", "air"];
 const LINT_FILTER: &[&str] = &["ok", "missing", "clogged"];
 const DRAIN_TANK: &[&str] = &["ok", "full", "missing", "na"];
 
-const DRYER_POINTS: &[CatalogPoint] = &[
+static DRYER_BASE: &[CatalogPoint] = &[
     s(
         "dryness",
         ValueType::Enum,
@@ -471,7 +471,7 @@ const COLD_CABINET_POINTS: &[CatalogPoint] = &[
 
 /// Minimal device-facing thermal-port surface (Stream 5). Attachments on existing
 /// classes — not parallel appliance classes. See `docs/standard/thermal-plant.md`.
-/// Merged into water_heater / fridge / hvac / dishwasher.
+/// Merged into water_heater / fridge / hvac / dishwasher / dryer.
 const THERMAL_PORT_DIRECTION: &[&str] = &["source", "sink", "bidirectional"];
 const THERMAL_PORT_MEDIA: &[&str] = &["water", "air", "glycol", "refrigerant_proxy", "unknown"];
 
@@ -517,6 +517,9 @@ static THERMAL_PORT_POINTS: &[CatalogPoint] = &[
         false,
     ),
 ];
+
+const DRYER_MERGED: [CatalogPoint; 14] = concat2(DRYER_BASE, THERMAL_PORT_POINTS);
+const DRYER_POINTS: &[CatalogPoint] = &DRYER_MERGED;
 
 const FRIDGE_MERGED: [CatalogPoint; 12] = concat2(COLD_CABINET_POINTS, THERMAL_PORT_POINTS);
 const FRIDGE_POINTS: &[CatalogPoint] = &FRIDGE_MERGED;
@@ -1182,7 +1185,7 @@ const WASHER_DRYER_EXTRA: &[CatalogPoint] = &[
 
 const WASHER_DRYER_POINT_COUNT: usize = 30;
 const WASHER_DRYER_MERGED: [CatalogPoint; WASHER_DRYER_POINT_COUNT] =
-    concat3(WASHER_POINTS, DRYER_POINTS, WASHER_DRYER_EXTRA);
+    concat3(WASHER_POINTS, DRYER_BASE, WASHER_DRYER_EXTRA);
 const WASHER_DRYER_POINTS: &[CatalogPoint] = &WASHER_DRYER_MERGED;
 
 const FREEZER_TRAITS: &[TraitId] = &[

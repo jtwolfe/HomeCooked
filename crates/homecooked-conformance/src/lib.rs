@@ -1394,7 +1394,7 @@ pub fn hub_lab_set_discover_describe() -> ScenarioResult {
     Ok(())
 }
 
-/// (4c) Catalog/sim thermal-port surface on water_heater / fridge / hvac / dishwasher (Stream 5).
+/// (4c) Catalog/sim thermal-port surface on water_heater / fridge / hvac / dishwasher / dryer (Stream 5).
 pub fn water_heater_thermal_ports() -> ScenarioResult {
     const NAME: &str = "water_heater_thermal_ports";
     let mut sim = Simulator::new();
@@ -1584,6 +1584,71 @@ pub fn water_heater_thermal_ports() -> ScenarioResult {
         return Err(err(
             NAME,
             format!("dishwasher attached={dw_attached:?}, expected dhw-tank"),
+        ));
+    }
+
+    // Dryer: exhaust / heat-reject source (air) seeds + attach write.
+    let dryer = sim
+        .spawn(ApplianceClassId::Dryer)
+        .map_err(|e| err(NAME, format!("spawn dryer: {e}")))?;
+    let dryer_id = sim
+        .read_value(&dryer, "class.dryer.thermal_port_id")
+        .map_err(|e| err(NAME, format!("read dryer port_id: {e}")))?;
+    if dryer_id != Value::String("exhaust".into()) {
+        return Err(err(
+            NAME,
+            format!("dryer port_id={dryer_id:?}, expected exhaust"),
+        ));
+    }
+    let dryer_dir = sim
+        .read_value(&dryer, "class.dryer.thermal_port_direction")
+        .map_err(|e| err(NAME, format!("read dryer direction: {e}")))?;
+    if dryer_dir != Value::Enum("source".into()) {
+        return Err(err(
+            NAME,
+            format!("dryer direction={dryer_dir:?}, expected source"),
+        ));
+    }
+    let dryer_media = sim
+        .read_value(&dryer, "class.dryer.thermal_port_media")
+        .map_err(|e| err(NAME, format!("read dryer media: {e}")))?;
+    if dryer_media != Value::Enum("air".into()) {
+        return Err(err(
+            NAME,
+            format!("dryer media={dryer_media:?}, expected air"),
+        ));
+    }
+    let dryer_max = sim
+        .read_value(&dryer, "class.dryer.thermal_port_max_power_w")
+        .map_err(|e| err(NAME, format!("read dryer max_power: {e}")))?;
+    if dryer_max != Value::F32(2_000.0) {
+        return Err(err(
+            NAME,
+            format!("dryer max_power_w={dryer_max:?}, expected 2000"),
+        ));
+    }
+    let dryer_attached_empty = sim
+        .read_value(&dryer, "class.dryer.thermal_port_attached_reservoir_id")
+        .map_err(|e| err(NAME, format!("read dryer attached empty: {e}")))?;
+    if dryer_attached_empty != Value::String(String::new()) {
+        return Err(err(
+            NAME,
+            format!("dryer attached default={dryer_attached_empty:?}, expected empty"),
+        ));
+    }
+    sim.write(
+        &dryer,
+        "class.dryer.thermal_port_attached_reservoir_id",
+        Value::String("air-buffer".into()),
+    )
+    .map_err(|e| err(NAME, format!("write dryer attached_reservoir_id: {e}")))?;
+    let dryer_attached = sim
+        .read_value(&dryer, "class.dryer.thermal_port_attached_reservoir_id")
+        .map_err(|e| err(NAME, format!("read dryer attached: {e}")))?;
+    if dryer_attached != Value::String("air-buffer".into()) {
+        return Err(err(
+            NAME,
+            format!("dryer attached={dryer_attached:?}, expected air-buffer"),
         ));
     }
     Ok(())
