@@ -56,10 +56,10 @@ pub fn seed_state(identity: &DeviceIdentity, cap: &CapabilityModel) -> DeviceSta
         if let Some(zones) = &point.zones {
             for zone in zones {
                 let id = format!("{}#{zone}", point.base_id());
-                state.insert(id, default_value(point, &ctx));
+                state.insert(id, default_value(point, &ctx, Some(zone)));
             }
         } else {
-            state.insert(point.id.clone(), default_value(point, &ctx));
+            state.insert(point.id.clone(), default_value(point, &ctx, None));
         }
     }
     state
@@ -77,10 +77,17 @@ impl SeedCtx {
         let (ambient_c, setpoint_c, power_state) = match identity.class_id {
             ApplianceClassId::Kettle => (20.0, 100.0, "standby"),
             ApplianceClassId::Fridge => (4.0, 4.0, "on"),
+            ApplianceClassId::Freezer => (-18.0, -18.0, "on"),
+            ApplianceClassId::FridgeFreezer => (4.0, 4.0, "on"),
+            ApplianceClassId::WineCooler => (12.0, 12.0, "on"),
             ApplianceClassId::Oven => (20.0, 180.0, "on"),
             ApplianceClassId::AirFryer => (20.0, 180.0, "on"),
             ApplianceClassId::Microwave => (20.0, 20.0, "standby"),
             ApplianceClassId::InductionHob => (20.0, 20.0, "on"),
+            ApplianceClassId::WaterHeater => (60.0, 60.0, "on"),
+            ApplianceClassId::Hvac => (21.0, 21.0, "on"),
+            ApplianceClassId::SousVide => (20.0, 55.0, "standby"),
+            ApplianceClassId::SteamOven | ApplianceClassId::ToasterOven => (20.0, 180.0, "on"),
             _ => (20.0, 40.0, "on"),
         };
         Self {
@@ -96,8 +103,15 @@ fn clamp_to_typical(class_id: ApplianceClassId, setpoint: f32) -> f32 {
     match class_id {
         ApplianceClassId::Kettle => setpoint.clamp(40.0, 100.0),
         ApplianceClassId::Fridge => setpoint.clamp(1.0, 7.0),
-        ApplianceClassId::Oven => setpoint.clamp(50.0, 250.0),
+        ApplianceClassId::Freezer => setpoint.clamp(-24.0, -12.0),
+        ApplianceClassId::FridgeFreezer => setpoint.clamp(-24.0, 7.0),
+        ApplianceClassId::WineCooler => setpoint.clamp(5.0, 20.0),
+        ApplianceClassId::Oven | ApplianceClassId::SteamOven | ApplianceClassId::ToasterOven => {
+            setpoint.clamp(50.0, 250.0)
+        }
         ApplianceClassId::AirFryer => setpoint.clamp(80.0, 200.0),
+        ApplianceClassId::WaterHeater => setpoint.clamp(40.0, 70.0),
+        ApplianceClassId::SousVide => setpoint.clamp(20.0, 95.0),
         _ => setpoint,
     }
 }
@@ -107,8 +121,26 @@ fn last_segment(qualified: &str) -> &str {
     base.rsplit('.').next().unwrap_or(base)
 }
 
-fn default_value(point: &PointCapability, ctx: &SeedCtx) -> Value {
-    match last_segment(&point.id) {
+fn zoned_temp_c(class_id: ApplianceClassId, zone: &str) -> Option<f32> {
+    match (class_id, zone) {
+        (ApplianceClassId::FridgeFreezer, "fridge") => Some(4.0),
+        (ApplianceClassId::FridgeFreezer, "freezer") => Some(-18.0),
+        (ApplianceClassId::WineCooler, "upper" | "lower") => Some(12.0),
+        (ApplianceClassId::Freezer, "freezer") => Some(-18.0),
+        _ => None,
+    }
+}
+
+fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> Value {
+    let seg = last_segment(&point.id);
+    if matches!(seg, "current_c" | "setpoint_c") {
+        if let Some(z) = zone {
+            if let Some(temp) = zoned_temp_c(ctx.identity.class_id, z) {
+                return Value::F32(temp);
+            }
+        }
+    }
+    match seg {
         "device_id" => Value::String(ctx.identity.device_id.clone()),
         "manufacturer" => Value::String(ctx.identity.manufacturer.clone()),
         "model" => Value::String(ctx.identity.model.clone()),
@@ -124,6 +156,9 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx) -> Value {
         "protocol_version" => Value::String(ctx.identity.protocol_version.to_string()),
         "current_c" => Value::F32(ctx.ambient_c),
         "setpoint_c" => Value::F32(ctx.setpoint_c),
+        "space_c" => Value::F32(21.0),
+        "hvac_mode" => Value::Enum("auto".into()),
+        "combo_mode" => Value::Enum("wash_and_dry".into()),
         "power_state" => Value::Enum(ctx.power_state.to_string()),
         "cycle_state" => Value::Enum("idle".into()),
         "cycle_phase" => Value::String("idle".into()),
@@ -133,6 +168,7 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx) -> Value {
         "heater_state" => Value::Enum("off".into()),
         "motor_state" => Value::Enum("off".into()),
         "fan_state" => Value::Enum("off".into()),
+        "ice_state" => Value::Enum("off".into()),
         "fault_present" => Value::Bool(false),
         "interlock_ok" => Value::Bool(true),
         "remote_control_enabled" => Value::Bool(true),

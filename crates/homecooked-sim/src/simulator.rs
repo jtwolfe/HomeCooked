@@ -57,7 +57,7 @@ impl Simulator {
         self.hub.registry.register(identity, cap, state)
     }
 
-    /// Spawn one device for each of the nine static classes.
+    /// Spawn one device for each static catalog class.
     pub fn spawn_static_kitchen(&mut self) -> Result<Vec<DeviceId>, CoreError> {
         STATIC_CLASS_IDS.iter().map(|id| self.spawn(*id)).collect()
     }

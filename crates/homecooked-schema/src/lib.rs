@@ -19,7 +19,7 @@ pub use access::AccessMode;
 pub use capability::{CapabilityModel, PointCapability, SafetyFlags, TraitCapability};
 pub use catalog::{
     catalog_point, class_table, list_all_class_ids, static_class_tables, trait_table,
-    typical_capability, ClassTable, TraitTable, STATIC_CLASS_IDS,
+    typical_capability, ClassTable, TraitTable, STATIC_CLASS_IDS, TIER_A_CLASS_IDS,
 };
 pub use error::{ErrorCode, ValidationError};
 pub use identity::DeviceIdentity;

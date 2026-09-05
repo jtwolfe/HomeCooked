@@ -39,7 +39,7 @@ is **0.1.0** (peers are rejected only on protocol **major** mismatch).
 | `homecooked-schema` | [`crates/homecooked-schema`](crates/homecooked-schema) | Catalog-backed serde types, capability model, static tables, write validation |
 | `homecooked-protocol` | [`crates/homecooked-protocol`](crates/homecooked-protocol) | Envelope framing, request/response kinds, discovery, JSON, errors |
 | `homecooked-core` | [`crates/homecooked-core`](crates/homecooked-core) | Device registry, capability-enforced read/write, request handling |
-| `homecooked-sim` | [`crates/homecooked-sim`](crates/homecooked-sim) | In-memory devices for the nine static classes |
+| `homecooked-sim` | [`crates/homecooked-sim`](crates/homecooked-sim) | In-memory devices for static Tier-A class tables |
 | `homecooked-wasm` | [`crates/homecooked-wasm`](crates/homecooked-wasm) | wasm-bindgen JSON API over the simulator |
 | `homecooked-io-map` | [`crates/homecooked-io-map`](crates/homecooked-io-map) | Chassis I/O map serde+validate |
 | `homecooked-interlock` | [`crates/homecooked-interlock`](crates/homecooked-interlock) | Declarative interlock rules |
@@ -47,9 +47,13 @@ is **0.1.0** (peers are rejected only on protocol **major** mismatch).
 
 `list_all_class_ids` covers the full class index in
 `docs/catalog/appliances.md`. Static capability tables (and therefore
-simulated devices) are provided for `washer`, `dryer`, `fridge`,
-`dishwasher`, `microwave`, `oven`, `induction_hob`, `kettle`, and
-`air_fryer`.
+simulated devices) cover the encoded Tier-A batch: laundry (`washer`,
+`dryer`, `washer_dryer`), cold (`fridge`, `freezer`, `fridge_freezer`,
+`wine_cooler`, `ice_maker`), wash/cook already tabled (`dishwasher`,
+`microwave`, `oven`, `induction_hob`, `kettle`, `air_fryer`), plus
+utility/climate/vent (`water_heater`, `hvac`, `dehumidifier`,
+`range_hood`). Remaining Tier-A cooking classes are listed in
+[`docs/ROADMAP.md`](docs/ROADMAP.md) §4 (25 ids total).
 
 ## Tests
 

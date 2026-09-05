@@ -46,7 +46,7 @@ fn start_cycle(dev: &mut RegisteredDevice) {
     set_percent(&mut dev.state, "trait.cycle.progress_percent", 0.0);
     set_duration(&mut dev.state, "trait.cycle.elapsed_s", 0);
     match dev.identity.class_id {
-        ApplianceClassId::Washer => {
+        ApplianceClassId::Washer | ApplianceClassId::WasherDryer => {
             set_duration(&mut dev.state, "trait.cycle.remaining_s", WASHER_CYCLE_S);
             set_string(&mut dev.state, "trait.cycle.cycle_phase", "fill");
         }
@@ -84,7 +84,9 @@ pub fn tick_device(dev: &mut RegisteredDevice, dt_ms: u64) {
     }
     match dev.identity.class_id {
         ApplianceClassId::Kettle => tick_kettle(&mut dev.state, dt_ms),
-        ApplianceClassId::Washer => tick_washer(&mut dev.state, dt_ms),
+        ApplianceClassId::Washer | ApplianceClassId::WasherDryer => {
+            tick_washer(&mut dev.state, dt_ms)
+        }
         _ => {}
     }
 }
