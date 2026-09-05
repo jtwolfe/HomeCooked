@@ -691,6 +691,15 @@ the hood is integrated and addressable.
 - If the cooktop is induction, advertise trait set of `induction_hob` on the
   hob zones rather than inventing `induction_range`.
 - Oven door lock and hob residual-heat are independent safety bits.
+- Catalog depth: advertise cooktop optional depth already on `COOKTOP_POINTS`
+  composition (keep_warm/hotspot/timer_active/paused/surface_c/element_fault/
+  pan_detect/flame_on + boost/timer/bridge/flame_out/ignition_fail/
+  power_limit_w) and `OVEN_BASE` cavity thin surface (broil/convection/steam/
+  cook/door_locked_clean/elements); add `RANGE_EXTRA` sabbath_mode / eco_mode /
+  heater_on / high_temp_alarm / door_ajar (not `OVEN_DEPTH` — cooktop zoned
+  `timer_s` must stay singular). Typical also advertises Temperature `probe_c`
+  / `probe_target_c` / `probe_connected` / `preheat_complete`. Child lock via
+  typical `child_lock` trait.
 
 ### `cooktop`
 

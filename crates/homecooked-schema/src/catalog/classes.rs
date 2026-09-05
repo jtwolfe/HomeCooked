@@ -2692,16 +2692,66 @@ const RANGE_TRAITS: &[TraitId] = &[
 const RANGE_ZONES: &[&str] = &["hob_1", "hob_2", "hob_3", "hob_4", "oven"];
 const RANGE_SURFACE: &[&str] = &["gas", "electric", "radiant", "induction", "mixed"];
 
-const RANGE_SURFACE_POINTS: &[CatalogPoint] = &[v(
-    "surface",
-    ValueType::Enum,
-    None,
-    en(RANGE_SURFACE),
-    AccessMode::R,
-    true,
-)];
+/// Range combo extras: required `surface` fuel type + oven-cavity depth that
+/// cannot come from `OVEN_DEPTH` (`timer_s` would collide with cooktop zoned
+/// `timer_s`). Cooktop optional depth already lives on `COOKTOP_POINTS`; cavity
+/// thin surface (broil/convection/steam/cook/door_locked_clean/elements) on
+/// `OVEN_BASE`. Same isolation pattern as `WASHER_DRYER_EXTRA` vs `DRYER_DEPTH`.
+static RANGE_EXTRA: &[CatalogPoint] = &[
+    v(
+        "surface",
+        ValueType::Enum,
+        None,
+        en(RANGE_SURFACE),
+        AccessMode::R,
+        true,
+    ),
+    // Stream 7 undepened Tier-A deepen: oven-cavity depth not already on
+    // COOKTOP_POINTS / OVEN_BASE. Do not merge OVEN_DEPTH — timer_s would
+    // duplicate cooktop zoned timer_s; advertise hob timer from cooktop slice.
+    s(
+        "sabbath_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    ),
+    s(
+        "eco_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "heater_on",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "high_temp_alarm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "door_ajar",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+];
 
-const RANGE_MERGED: [CatalogPoint; 26] = concat3(COOKTOP_POINTS, OVEN_BASE, RANGE_SURFACE_POINTS);
+const RANGE_MERGED: [CatalogPoint; 31] = concat3(COOKTOP_POINTS, OVEN_BASE, RANGE_EXTRA);
 const RANGE_POINTS: &[CatalogPoint] = &RANGE_MERGED;
 
 const COFFEE_TRAITS: &[TraitId] = &[
