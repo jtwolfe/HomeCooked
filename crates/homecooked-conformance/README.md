@@ -56,5 +56,8 @@ Also covered by `cargo test --workspace` (CI).
 12. **controller_tcp_dryer_interlock** — TCP client against
    `DryerControllerEndpoint`: heater allow when lock+blower,
    `safety_interlock` deny when door unlocked
+12b. **controller_tcp_washer_cotton** — TCP client against washer
+   `ControllerEndpoint`: prepare interlocks, `trait.cycle.start` cotton,
+   assert `cycle_state=running` + active `cycle_phase`; lab ticks keep running
 13. **hub_lab_set_discover_describe** — optional `LabHub` lab set over TCP:
    Discover ≥3 devices, describe kettle (`homecooked-hub`)
