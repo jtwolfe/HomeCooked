@@ -42,6 +42,13 @@ const thermalReservoirs = document.getElementById("thermal-reservoirs");
 const thermalPorts = document.getElementById("thermal-ports");
 const thermalTransfers = document.getElementById("thermal-transfers");
 const thermalReply = document.getElementById("thermal-reply");
+const orchThermalDishwasherBtn = document.getElementById("orch-thermal-dishwasher-btn");
+const orchResult = document.getElementById("orch-result");
+const orchSummary = document.getElementById("orch-summary");
+const orchStatus = document.getElementById("orch-status");
+const orchFail = document.getElementById("orch-fail");
+const orchBindings = document.getElementById("orch-bindings");
+const orchSteps = document.getElementById("orch-steps");
 
 let wasm = null;
 let selectedId = null;
@@ -447,6 +454,7 @@ async function boot() {
     "thermal_negotiate_demo",
     "thermal_tick",
     "thermal_demo_transfer",
+    "run_thermal_then_dishwasher_preheat",
   ];
   const missing = required.filter((name) => typeof wasm[name] !== "function");
   if (missing.length) {
@@ -496,6 +504,7 @@ thermalLoadBtn.addEventListener("click", () => loadThermalDemo());
 thermalNegotiateBtn.addEventListener("click", () => negotiateThermalDemo());
 thermalTickBtn.addEventListener("click", () => tickThermalPlant());
 thermalTransferBtn.addEventListener("click", () => transferThermalDemo());
+orchThermalDishwasherBtn.addEventListener("click", () => runThermalThenDishwasher());
 
 boot();
 
@@ -805,5 +814,90 @@ function transferThermalDemo() {
   } catch (err) {
     showThermalError(err);
     setStatus("Thermal transfer failed", true);
+  }
+}
+
+function renderOrchestrationResult(out) {
+  orchResult.hidden = false;
+  const rise = Number(out.dhw_temp_end_c) - Number(out.dhw_temp_start_c);
+  orchSummary.textContent =
+    `${out.scenario || "thermal_then_dishwasher_preheat"} · DHW ${formatTemp(
+      out.dhw_temp_start_c,
+    )} → ${formatTemp(out.dhw_temp_end_c)} (Δ ${rise.toFixed(2)} °C) · dt ${
+      out.thermal && out.thermal.dt_s != null ? out.thermal.dt_s : "—"
+    }s`;
+
+  const proc = out.procedure || {};
+  const ok = proc.status === "completed";
+  orchStatus.textContent = ok ? "Dishwasher completed" : `Dishwasher ${proc.status || "failed"}`;
+  orchStatus.classList.toggle("ok", ok);
+  orchStatus.classList.toggle("fail", !ok);
+
+  if (!ok && proc.fail_reason) {
+    const bits = [
+      proc.failed_step_id ? `step ${proc.failed_step_id}` : null,
+      proc.fail_reason.kind,
+      proc.fail_reason.code,
+      proc.fail_reason.message,
+    ].filter(Boolean);
+    orchFail.textContent = bits.join(" · ");
+  } else {
+    orchFail.textContent = "";
+  }
+
+  orchBindings.innerHTML = "";
+  const bindings = proc.bindings || [];
+  orchBindings.hidden = bindings.length === 0;
+  for (const bind of bindings) {
+    const li = document.createElement("li");
+    li.textContent = `${bind.role} → ${bind.device_id} (${bind.class_id}${
+      bind.spawned ? ", spawned" : ""
+    })`;
+    orchBindings.appendChild(li);
+  }
+
+  orchSteps.innerHTML = "";
+  for (const step of proc.outcomes || []) {
+    const li = document.createElement("li");
+    li.className = step.ok ? "ok" : "fail";
+    const value =
+      step.read_value != null ? ` · ${displayValue(step.read_value)}` : "";
+    const msg = step.message ? ` — ${step.message}` : "";
+    li.innerHTML = `<span class="step-flag">${step.ok ? "ok" : "fail"}</span><span class="step-id">${
+      step.step_id
+    }</span><span class="step-meta">${step.action}${value}${msg}</span>`;
+    orchSteps.appendChild(li);
+  }
+}
+
+async function runThermalThenDishwasher() {
+  clearThermalError();
+  orchResult.hidden = true;
+  try {
+    const out = JSON.parse(wasm.run_thermal_then_dishwasher_preheat(thermalDtS()));
+    if (out.thermal && out.thermal.state) {
+      renderThermalState(out.thermal.state, out.thermal.transfers);
+    } else {
+      refreshThermalFromState();
+    }
+    renderOrchestrationResult(out);
+    await refreshDevices();
+    const firstBound =
+      out.procedure &&
+      out.procedure.bindings &&
+      out.procedure.bindings[0] &&
+      out.procedure.bindings[0].device_id;
+    if (firstBound) {
+      await selectDevice(firstBound);
+    }
+    setStatus(
+      `Orchestration done · DHW ${formatTemp(out.dhw_temp_start_c)} → ${formatTemp(
+        out.dhw_temp_end_c,
+      )}`,
+    );
+  } catch (err) {
+    orchResult.hidden = true;
+    showThermalError(err);
+    setStatus("Orchestration failed", true);
   }
 }

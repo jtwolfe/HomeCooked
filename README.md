@@ -149,12 +149,22 @@ Procedures cannot call thermal APIs yet. The runnable bridge is:
 2. Procedure `dishwasher_dhw_preheat` writes eco + `wash_temp_c` = 45 reflecting
    warm inlet / lower electrical boost.
 
+In the web simulator (**Thermal plant → Orchestrations**), use
+**Thermal → dishwasher preheat** (`run_thermal_then_dishwasher_preheat`, default
+dt=3600) for both legs in one click. Rebuild WASM after Rust changes:
+
+```bash
+wasm-pack build crates/homecooked-wasm --target web --out-dir ../../apps/simulator-web/pkg
+cd apps/simulator-web && python3 -m http.server 8080
+```
+
 ```bash
 cargo test -p homecooked-conformance   # includes thermal_then_dishwasher_preheat
 cargo test -p homecooked-wasm run_thermal_then_dishwasher
 ```
 
-See [`docs/standard/thermal-plant.md`](docs/standard/thermal-plant.md) §8.1.
+See [`docs/standard/thermal-plant.md`](docs/standard/thermal-plant.md) §8.1 and
+[`apps/simulator-web/README.md`](apps/simulator-web/README.md).
 
 ## Contributing
 
