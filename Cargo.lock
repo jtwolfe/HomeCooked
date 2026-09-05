@@ -91,6 +91,7 @@ dependencies = [
  "homecooked-controller",
  "homecooked-core",
  "homecooked-hal",
+ "homecooked-hub",
  "homecooked-procedure",
  "homecooked-protocol",
  "homecooked-schema",

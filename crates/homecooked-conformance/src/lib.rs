@@ -14,6 +14,7 @@ use homecooked_bridge::{
 use homecooked_controller::{Controller, CottonOptions, CyclePhase, CycleState, WasherState};
 use homecooked_core::DeviceId;
 use homecooked_hal::ChannelId;
+use homecooked_hub::{LabHub, LAB_KETTLE_ID};
 use homecooked_procedure::{run, DeviceBindings, Procedure, KETTLE_HEAT_80_JSON};
 use homecooked_protocol::{Envelope, Payload, PingBody, WriteOp};
 use homecooked_schema::{
@@ -801,6 +802,70 @@ pub fn tcp_psk_good_secret_describe_ping() -> ScenarioResult {
         other => {
             return Err(err(NAME, format!("expected Pong, got {other:?}")));
         }
+    }
+    Ok(())
+}
+
+/// (8) Optional lab hub: spawn lab set, TCP discover ≥3 devices, describe one.
+pub fn hub_lab_set_discover_describe() -> ScenarioResult {
+    const NAME: &str = "hub_lab_set_discover_describe";
+    let mut hub = LabHub::new();
+    let set = hub
+        .spawn_lab_set()
+        .map_err(|e| err(NAME, format!("spawn_lab_set: {e}")))?;
+    if hub.list().len() < 3 {
+        return Err(err(
+            NAME,
+            format!("lab set size={}, expected ≥3", hub.list().len()),
+        ));
+    }
+
+    let spawned = hub
+        .serve("127.0.0.1:0")
+        .map_err(|e| err(NAME, format!("serve: {e}")))?;
+    thread::sleep(Duration::from_millis(20));
+
+    let mut client =
+        TcpClient::connect(spawned.addr()).map_err(|e| err(NAME, format!("connect: {e}")))?;
+
+    let discovered = client
+        .discover(None, vec![])
+        .map_err(|e| err(NAME, format!("discover: {e}")))?;
+    if discovered.devices.len() < 3 {
+        return Err(err(
+            NAME,
+            format!("discover count={}, expected ≥3", discovered.devices.len()),
+        ));
+    }
+    let ids: Vec<&str> = discovered
+        .devices
+        .iter()
+        .map(|d| d.device_id.as_str())
+        .collect();
+    for expected in [
+        set.kettle.as_str(),
+        set.washer.as_str(),
+        set.fridge.as_str(),
+    ] {
+        if !ids.contains(&expected) {
+            return Err(err(
+                NAME,
+                format!("discover missing {expected}; got {ids:?}"),
+            ));
+        }
+    }
+
+    let desc = client
+        .describe(LAB_KETTLE_ID, vec![])
+        .map_err(|e| err(NAME, format!("describe: {e}")))?;
+    if desc.capability.class_id != ApplianceClassId::Kettle {
+        return Err(err(
+            NAME,
+            format!(
+                "describe class={:?}, expected Kettle",
+                desc.capability.class_id
+            ),
+        ));
     }
     Ok(())
 }
