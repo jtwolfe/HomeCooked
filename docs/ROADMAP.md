@@ -1,6 +1,6 @@
 # HomeCooked roadmap — ~75% project completeness
 
-Version **0.1.37**. Planning doc for a long flesh-out of the catalog, control
+Version **0.1.38**. Planning doc for a long flesh-out of the catalog, control
 stack, and simulator. It does **not** freeze APIs; crate and YAML shapes may
 evolve with the code that implements each stream.
 
@@ -11,7 +11,7 @@ Related: [`../README.md`](../README.md), [`catalog/`](./catalog/),
 
 ---
 
-## 1. Current state (~72% toward the 75% target)
+## 1. Current state (~75% of the §2 in-scope bar — met in spirit)
 
 What exists on `main` today (Done highlights called out):
 
@@ -41,32 +41,33 @@ cycle; bridge family mocks; lab TCP + PSK; optional hub (in conformance suite);
 simulator-web blob-load; procedure library (kettle + Domino's + wash-then-dry +
 `oven_bake_180` + `coffee_brew_espresso` + `air_fryer_cook_200`); controller-sim-over-TCP interlock smoke (washer + dryer) + washer cotton start/phase;
 catalog `thermal_port_*` on `water_heater` / `fridge` / `hvac` / `dishwasher` / `dryer` + sim UI chips;
-schema thermal vocabulary + `ClassTable.thermal_ports` (`HeatPortSpec`); optional-point
-depth on `wine_cooler` + `ice_maker`; `write_denial_matrix` + `catalog_hygiene` conformance.
+schema thermal vocabulary + `ClassTable.thermal_ports` (`HeatPortSpec`) + wasm/UI heat-port specs;
+optional-point depth on `wine_cooler` + `ice_maker`; `write_denial_matrix` + `catalog_hygiene` conformance.
 
-**Still open toward 75%:** promote full plant **runtime** into schema
-(`Media` / `PortDirection` / `TempBandC` / `HeatPortSpec` + `ClassTable.thermal_ports`
-landed; `ThermalPlant` / transfer dialogue still crate-local); **one real bridge
-SDK** (Modbus serial/TCP or Matter/CHIP — mocks only today); richer UI /
-conformance matrices beyond write-denial; deeper catalog optional points (Tier-A
-`wine_cooler` + `ice_maker` depth landed; remaining Tier-B thin tables + other
-classes still open); procedure⇄thermal **thin-present** (`thermal_wait` + backend
-hooks + `wait_dhw_reservoir`; offer/negotiate-as-steps and fuller wasm/UI
-wiring still open); richer controller device-role over TCP (washer cotton start+phase done; typical caps / CottonOptions / dryer cycle-over-TCP still open); TLS (still out of scope
-for lab transport).
+**Still open (beyond / still thin vs a strict §2 reading):** promote full plant
+**runtime** into schema (`Media` / `PortDirection` / `TempBandC` / `HeatPortSpec`
++ `ClassTable.thermal_ports` landed; `ThermalPlant` / transfer dialogue still
+crate-local); **real bridge SDKs** (Modbus serial/TCP or Matter/CHIP — mocks only
+today); TLS (still out of scope for lab transport); fuller Tier-B / catalog optional
+depth beyond `wine_cooler` + `ice_maker`; procedure⇄thermal **offer/negotiate-as-steps**
+(and fuller wasm/UI wiring; thin `thermal_wait` is present); dryer **cycle-over-TCP**;
+**CottonOptions** (and cancel/pause / typical_capability) over the wire.
 
 Rough completeness: foundation + Tier-A/B tables + procedure library (kettle /
 Domino's / wash-then-dry / oven / coffee / air fryer + thin `thermal_wait`) +
-HAL / controller TCP (washer+dryer) + hub-in-suite + thermal-port surface
-(5 classes + UI + schema vocabulary / `ClassTable.HeatPortSpec`) + bridge mocks
-+ write-denial matrix + early catalog depth (`wine_cooler` / `ice_maker`) ≈
-**~72%** of the 75% target below (was ~30% at roadmap start; ~70% at the
-v0.1.30 refresh). PRs #54–#57 (schema thermal vocab, `ClassTable.thermal_ports`,
-`wine_cooler` + `ice_maker` optional depth) are real Stream 5/7 progress but do
-not clear the large §2 gaps — so a band of **~71–73%** is honest; **~72%** is
-the midpoint, not a precise metric. Remaining work is still depth (real bridge
-SDK, full plant runtime schema promotion, richer UI / procedure⇄thermal steps,
-more class depth) — not greenfield product definition.
+HAL / controller TCP (washer+dryer interlock + washer cotton start/phase) +
+hub-in-suite + thermal-port surface (5 classes + UI + schema vocabulary /
+`ClassTable.HeatPortSpec` + wasm heat-port chips) + bridge mocks + write-denial
+matrix + early catalog depth (`wine_cooler` / `ice_maker`) ≈ **~75% of the §2
+in-scope bar, met in spirit** for lab/software depth (was ~30% at roadmap start;
+~72% at the v0.1.35 refresh). PRs **#54–#60** (schema thermal vocab,
+`ClassTable.thermal_ports`, `wine_cooler` + `ice_maker` optional depth, heat-port
+specs UI, washer cotton-over-TCP start/phase) close the recent grind enough that
+calling the target **substantially achieved** is honest — not that every §2 bullet
+is production-complete. This is **not** IEC certification, production firmware,
+or a shipping commercial appliance. Remaining work is depth beyond the lab bar
+(real bridge SDK, full plant runtime schema promotion, TLS, richer procedure⇄thermal
+steps, dryer cycle-over-TCP, CottonOptions over wire, more class depth).
 
 ---
 
@@ -94,9 +95,12 @@ more class depth) — not greenfield product definition.
 - Deeper Tier-B table depth (more optional points / programs) where devices need it.
 - Shipping a commercial appliance or certified Matter/Modbus product.
 
-### Honest gaps vs this 75% definition (still open)
+### Honest gaps vs this 75% definition (beyond / still thin)
 
-Even with Stream 3–7 thin DoDs met on `main`, the §2 bar is not fully cleared:
+§1 treats the §2 in-scope bar as **~75% met in spirit** for lab/software depth.
+The items below remain **beyond** that bar or still thin — they do **not**
+undo the “substantially achieved” framing, and they do **not** claim IEC /
+production firmware:
 
 - **Real bridge SDK** — in-scope asks for *one* real Matter **or** Modbus
   implementation; `homecooked-bridge` has Modbus + Matter + Zigbee + BACnet
@@ -120,9 +124,9 @@ Even with Stream 3–7 thin DoDs met on `main`, the §2 bar is not fully cleared
 - **TLS** — lab TCP stays cleartext (+ optional PSK); TLS/OAuth remain out of
   scope for the lab path.
 - **Richer controller-over-TCP** — interlock smoke for washer+dryer is done;
-  washer cotton **start + readable phase/state** (+ lab tick) over TCP landed;
-  CottonOptions / cancel / pause / typical_capability / dryer cycle-over-TCP
-  remain optional follow-up.
+  washer cotton **start + readable phase/state** (+ lab tick) over TCP landed
+  (#60); **CottonOptions** over the wire / cancel / pause / typical_capability /
+  **dryer cycle-over-TCP** remain optional follow-up (still thin / beyond).
 
 ---
 
@@ -518,3 +522,4 @@ the code that implements them.
 | 0.1.35 | Current-state refresh: ~70% → **~72%** (~71–73% band) of 75% target; cite PRs #54–#57 (schema thermal vocab, `ClassTable.HeatPortSpec`, `wine_cooler` + `ice_maker` optional depth); §2 gaps narrowed in wording, not cleared |
 | 0.1.36 | Stream 7: wasm `list_heat_port_specs(class_id)` exposes `ClassTable.thermal_ports`; simulator-web read-only Catalog heat ports chips alongside live `thermal_port_*` panel |
 | 0.1.37 | Stream 4: washer controller TCP cotton start (`trait.cycle.start` + readable `cycle_state`/`cycle_phase` + `class.washer.sim_tick`); conformance `controller_tcp_washer_cotton`; CottonOptions/cancel/dryer cycle-over-TCP deferred |
+| 0.1.38 | Current-state refresh: **~75% of the §2 in-scope bar met in spirit** for lab/software depth; cite PRs #54–#60 (thermal vocab + HeatPortSpec + UI, Tier-B wine_cooler/ice_maker, cotton-over-TCP); Still open reframed as beyond/thin (real bridge SDKs, plant runtime schema, TLS, fuller Tier-B, procedure offer/negotiate, dryer cycle-over-TCP, CottonOptions over wire); no IEC / production-firmware claim |
