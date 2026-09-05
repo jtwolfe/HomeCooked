@@ -13,6 +13,8 @@ Related documents:
 
 - [`variables-and-settings.md`](./variables-and-settings.md) — traits, variables,
   settings, commands, types, units, ranges, access modes.
+- [`ADDING_A_CLASS.md`](./ADDING_A_CLASS.md) — step-by-step for adding a new
+  class (docs → `ids.rs` → `ClassTable` → sim → WASM).
 - [`../standard/overview.md`](../standard/overview.md) — catalog → schema → wire
   protocol, versioning, and extensions.
 

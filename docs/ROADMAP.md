@@ -281,6 +281,10 @@ multiple small PRs.
 - Conformance failures are actionable (named assertions, not a single opaque
   binary).
   *(Smoke suite reports named scenario failures; deeper matrices still open.)*
+- **Contributor tooling:** how to add a class is documented in
+  [`docs/catalog/ADDING_A_CLASS.md`](catalog/ADDING_A_CLASS.md) (linked from
+  [`CONTRIBUTING.md`](../CONTRIBUTING.md) and the root README). Keep that guide
+  accurate when Tier-A / Tier-B / `STATIC_CLASS_IDS` layout changes.
 
 ---
 
@@ -326,7 +330,8 @@ Count: **25** Tier-A ids, all with static tables + sim.
 All remaining ids in the appliances catalog index (**31** = 56 − 25 Tier-A).
 Each has a thinner `ClassTable` (typical traits + catalog class points) and
 sim spawn via `typical_capability`. `STATIC_CLASS_IDS` = Tier-A ∪ Tier-B =
-`ApplianceClassId::ALL`.
+`ApplianceClassId::ALL`. To extend the catalog, see
+[`catalog/ADDING_A_CLASS.md`](catalog/ADDING_A_CLASS.md).
 
 | Id | Notes |
 |----|--------|
@@ -411,3 +416,4 @@ the code that implements them.
 | 0.1.13 | Stream 7 simulator-web WASM load via fetch+blob (module cache defeat) |
 | 0.1.14 | Stream 3/7 Domino's microwave `run_procedure` E2E; roadmap Done-state refresh |
 | 0.1.15 | Stream 7 tooling: protocol/transport malformed-frame + invalid Envelope JSON table tests; `cargo fuzz` deferred |
+| 0.1.16 | Stream 7 tooling: contributor guide for adding a class (`docs/catalog/ADDING_A_CLASS.md` + `CONTRIBUTING.md`) |

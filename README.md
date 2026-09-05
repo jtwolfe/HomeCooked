@@ -15,6 +15,8 @@ of truth**; code must track `docs/catalog/` and `docs/standard/`.
 - [`docs/catalog/variables-and-settings.md`](docs/catalog/variables-and-settings.md) —
   shared traits and per-class variables, settings, and commands (types, units,
   ranges, access modes)
+- [`docs/catalog/ADDING_A_CLASS.md`](docs/catalog/ADDING_A_CLASS.md) — step-by-step
+  guide for adding a new appliance class (catalog → schema tables → sim → WASM)
 - [`docs/standard/overview.md`](docs/standard/overview.md) — catalog → schema →
   wire protocol, discovery, versioning, errors, extensions
 - [`docs/standard/thermal-plant.md`](docs/standard/thermal-plant.md) — house
@@ -156,17 +158,12 @@ See [`docs/standard/thermal-plant.md`](docs/standard/thermal-plant.md) §8.1.
 
 ## Contributing
 
-1. Branch from **`main`** using a short prefix (`feat/…`, `fix/…`, `docs/…`).
-   Do not commit directly to `main`.
-2. Open a **small, focused PR** against `main`. One concern per PR when you can.
-3. CI must pass. For Rust changes run `cargo test` (and clippy/fmt). For wasm
-   or simulator-web changes also run the `wasm-pack build` command above.
-4. **Never force-push `main`.** Do not rewrite published history on default
-   branches.
-5. Do not paste secrets into the repo or PR descriptions.
-6. Catalog and standard docs land before or with the code that implements them.
-   Do not invent core class / trait / point ids in code that are missing from
-   `docs/catalog/`.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for branch / PR / CI norms.
+
+To add a **new appliance class** (catalog docs → `ids.rs` → `ClassTable` →
+sim defaults → tests → WASM list → optional procedure), follow
+[`docs/catalog/ADDING_A_CLASS.md`](docs/catalog/ADDING_A_CLASS.md). Today
+`STATIC_CLASS_IDS` = `ApplianceClassId::ALL` (Tier-A ∪ Tier-B, **56** ids).
 
 ## License
 
