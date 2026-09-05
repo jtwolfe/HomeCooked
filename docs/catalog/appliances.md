@@ -1085,6 +1085,12 @@ Centrifugal or masticating juicer.
 **Typical readable state:** running, pulp bin full, juice jug present, jam /
 reverse needed.
 
+**Notes:**
+- Catalog depth: optional class points include `reverse`, `pulp_full`,
+  `jug_present`, sabbath, eco, `motor_on`, `overload_trip`, and `timer_s`
+  (see variables-and-settings). Required `speed_level` remains the primary
+  speed control.
+
 ### `rice_cooker`
 
 Rice cooker / fuzzy-logic cooker, including many multi-grain cookers that are
