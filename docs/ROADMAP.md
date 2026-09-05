@@ -1,6 +1,6 @@
 # HomeCooked roadmap — ~75% project completeness
 
-Version **0.1.34**. Planning doc for a long flesh-out of the catalog, control
+Version **0.1.35**. Planning doc for a long flesh-out of the catalog, control
 stack, and simulator. It does **not** freeze APIs; crate and YAML shapes may
 evolve with the code that implements each stream.
 
@@ -11,7 +11,7 @@ Related: [`../README.md`](../README.md), [`catalog/`](./catalog/),
 
 ---
 
-## 1. Current state (~70% toward the 75% target)
+## 1. Current state (~72% toward the 75% target)
 
 What exists on `main` today (Done highlights called out):
 
@@ -41,12 +41,16 @@ cycle; bridge family mocks; lab TCP + PSK; optional hub (in conformance suite);
 simulator-web blob-load; procedure library (kettle + Domino's + wash-then-dry +
 `oven_bake_180` + `coffee_brew_espresso` + `air_fryer_cook_200`); controller-sim-over-TCP interlock smoke (washer + dryer);
 catalog `thermal_port_*` on `water_heater` / `fridge` / `hvac` / `dishwasher` / `dryer` + sim UI chips;
-`write_denial_matrix` + `catalog_hygiene` conformance.
+schema thermal vocabulary + `ClassTable.thermal_ports` (`HeatPortSpec`); optional-point
+depth on `wine_cooler` + `ice_maker`; `write_denial_matrix` + `catalog_hygiene` conformance.
 
-**Still open toward 75%:** promote full plant **runtime** into schema (vocabulary
-types landed; `ThermalPlant` / transfer dialogue still crate-local); **one real bridge SDK** (Modbus serial/TCP or Matter/CHIP — mocks only
-today); richer UI / conformance matrices beyond write-denial; deeper Tier-B
-optional points; procedure⇄thermal **thin-present** (`thermal_wait` + backend
+**Still open toward 75%:** promote full plant **runtime** into schema
+(`Media` / `PortDirection` / `TempBandC` / `HeatPortSpec` + `ClassTable.thermal_ports`
+landed; `ThermalPlant` / transfer dialogue still crate-local); **one real bridge
+SDK** (Modbus serial/TCP or Matter/CHIP — mocks only today); richer UI /
+conformance matrices beyond write-denial; deeper catalog optional points (Tier-A
+`wine_cooler` + `ice_maker` depth landed; remaining Tier-B thin tables + other
+classes still open); procedure⇄thermal **thin-present** (`thermal_wait` + backend
 hooks + `wait_dhw_reservoir`; offer/negotiate-as-steps and fuller wasm/UI
 wiring still open); richer controller device-role over TCP (cycle start /
 typical caps — washer+dryer TCP interlock smoke done); TLS (still out of scope
@@ -55,15 +59,15 @@ for lab transport).
 Rough completeness: foundation + Tier-A/B tables + procedure library (kettle /
 Domino's / wash-then-dry / oven / coffee / air fryer + thin `thermal_wait`) +
 HAL / controller TCP (washer+dryer) + hub-in-suite + thermal-port surface
-(5 classes + UI) + bridge mocks + write-denial matrix ≈ **~70%** of the 75%
-target below (was ~30% at roadmap start; ~65% at the v0.1.24 refresh after
-oven bake / early thermal ports / controller TCP / denial matrix). PRs since
-then (coffee + air-fryer procedures, dishwasher+dryer ports, `thermal_wait`)
-are real but thin — they deepen Streams 3/5 without clearing the large §2
-gaps — so a band of **~68–72%** is honest; **~70%** is the midpoint, not a
-precise metric. Remaining work is still depth (real bridge SDK, full plant runtime schema
-promotion, richer UI / procedure⇄thermal steps) — not greenfield product
-definition.
+(5 classes + UI + schema vocabulary / `ClassTable.HeatPortSpec`) + bridge mocks
++ write-denial matrix + early catalog depth (`wine_cooler` / `ice_maker`) ≈
+**~72%** of the 75% target below (was ~30% at roadmap start; ~70% at the
+v0.1.30 refresh). PRs #54–#57 (schema thermal vocab, `ClassTable.thermal_ports`,
+`wine_cooler` + `ice_maker` optional depth) are real Stream 5/7 progress but do
+not clear the large §2 gaps — so a band of **~71–73%** is honest; **~72%** is
+the midpoint, not a precise metric. Remaining work is still depth (real bridge
+SDK, full plant runtime schema promotion, richer UI / procedure⇄thermal steps,
+more class depth) — not greenfield product definition.
 
 ---
 
@@ -100,15 +104,16 @@ Even with Stream 3–7 thin DoDs met on `main`, the §2 bar is not fully cleared
   **mocks** only (no serial/TCP Modbus, CHIP, z2m, or BACnet stack).
 - **Plant runtime** — device `thermal_port_*` points exist on
   `water_heater` / `fridge` / `hvac` / `dishwasher` / `dryer`; shared vocabulary
-  (`Media` / `PortDirection` / `TempBandC`) lives in `homecooked-schema`; plant
+  (`Media` / `PortDirection` / `TempBandC` / `HeatPortSpec`) +
+  `ClassTable.thermal_ports` advertisement live in `homecooked-schema`; plant
   object runtime (`ThermalPlant`, reservoirs, offer/accept, tick) remains
   crate-local in `homecooked-thermal` (not full schema promotion).
 - **Richer UI** — picker + procedure runner + thermal panel + port chips are
   in; conformance-oriented / deeper screens remain.
-- **Deeper Tier-B optional points** — thin tables cover all 31 ids; depth
-  started with `wine_cooler`, continued with `ice_maker` (optional class
-  telemetry/settings + ice bin / filter life in typical/sim); more classes can
-  follow.
+- **Deeper catalog optional points** — thin tables cover all 31 Tier-B ids;
+  optional-point depth landed on Tier-A `wine_cooler` + `ice_maker` (alarms /
+  sabbath / bottle_count / humidity; ice bin/filter life + harvest/scale
+  alerts); remaining thin Tier-B classes (and other Tier-A) can follow.
 - **Procedure⇄thermal depth** — thin `thermal_wait` on reservoir `temp_c` is
   present (`wait_dhw_reservoir` + conformance); offer/accept/negotiate as
   procedure steps and wasm/UI wiring remain open. Dual-path dishwasher demo
@@ -455,6 +460,7 @@ Count: **31** Tier-B ids, all with thin static tables + sim.
 | later | `feat/simulator-tier-a-ui` | 7 — grouped Tier-A picker (first UI slice) |
 | later | WASM UI + conformance suite | 7 — picker + procedure UI (kettle/Domino's/wash-then-dry/oven bake/coffee brew/air fryer cook) + thermal UI + device port chips + blob-load done; smoke suite + write-denial matrix + hub-in-suite done; richer UI remaining |
 | later | Tier-B thin tables | 2 — **Done** (31 Tier-B → 56 total static + sim) |
+| later | catalog optional depth | 7 — **Started** (`wine_cooler` + `ice_maker`; more classes open) |
 | later | lab hub + PSK | 4 — **Done** (`homecooked-hub`, transport PSK) |
 | later | bridge mocks (Matter/Zigbee/BACnet) | 6 — **Done** (thin mocks; real SDKs still open) |
 | later | dryer controller cycle | 4 — **Done** |
@@ -504,3 +510,4 @@ the code that implements them.
 | 0.1.32 | Stream 5: `ClassTable.thermal_ports: &[HeatPortSpec]` advertisement matching sim seeds (water_heater/fridge/hvac/dishwasher/dryer) |
 | 0.1.33 | Stream 7 catalog depth: deepen `wine_cooler` optional class points (sabbath/compressor/alarms/vibration_alert/bottle_count + typical humidity setpoint); Tier-B deepen started |
 | 0.1.34 | Stream 7 catalog depth: deepen `ice_maker` optional class points (water_low/scoop_light/max_ice_mode/harvest_fail/scale_alert/delayed_start_s + typical ice bin/filter life) |
+| 0.1.35 | Current-state refresh: ~70% → **~72%** (~71–73% band) of 75% target; cite PRs #54–#57 (schema thermal vocab, `ClassTable.HeatPortSpec`, `wine_cooler` + `ice_maker` optional depth); §2 gaps narrowed in wording, not cleared |
