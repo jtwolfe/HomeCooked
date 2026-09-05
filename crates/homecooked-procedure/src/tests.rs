@@ -71,6 +71,7 @@ fn bundled_example_constants_parse() {
             "air_fryer_cook_200",
             "wait_dhw_reservoir",
             "offer_fridge_dhw",
+            "offer_fridge_dhw_soft",
         ]
     );
 }
