@@ -184,12 +184,20 @@ impl ThermalPlant {
     }
 
     /// Accept at `min(offered_max, port limits)` or decline with the error
-    /// message. Still requires [`Self::step`] to move energy.
+    /// message. Declines when available max is below the offered minimum
+    /// (partial fill below `power_w.min` is not automatic). Still requires
+    /// [`Self::step`] to move energy.
     pub fn negotiate(&mut self, offer: TransferOffer) -> TransferReply {
         let max = match self.max_power_w(&offer) {
             Ok(m) => m,
             Err(e) => return TransferReply::Decline(TransferDecline::new(e.to_string())),
         };
+        if max < offer.power_w.min {
+            return TransferReply::Decline(TransferDecline::new(format!(
+                "available max {max} W below offer min {} W",
+                offer.power_w.min
+            )));
+        }
         match self.accept(offer, max) {
             Ok(a) => TransferReply::Accept(a),
             Err(e) => TransferReply::Decline(TransferDecline::new(e.to_string())),

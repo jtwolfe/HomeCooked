@@ -8,10 +8,11 @@ use homecooked_thermal::{
 };
 
 use crate::{
-    run, run_with_config, DeviceBindings, FailReason, Procedure, RunConfig, RunStatus,
+    run, run_with_config, DeviceBindings, FailReason, OnDecline, Procedure, RunConfig, RunStatus,
     SimulatorBackend, StepAction, ThermalCmp, AIR_FRYER_COOK_200_JSON, COFFEE_BREW_ESPRESSO_JSON,
-    DISHWASHER_DHW_PREHEAT_JSON, KETTLE_HEAT_80_JSON, OFFER_FRIDGE_DHW_JSON, OVEN_BAKE_180_JSON,
-    REHEAT_DOMINOS_MICROWAVE_JSON, WAIT_DHW_RESERVOIR_JSON, WASH_THEN_DRY_JSON,
+    DISHWASHER_DHW_PREHEAT_JSON, KETTLE_HEAT_80_JSON, OFFER_FRIDGE_DHW_JSON,
+    OFFER_FRIDGE_DHW_SOFT_JSON, OVEN_BAKE_180_JSON, REHEAT_DOMINOS_MICROWAVE_JSON,
+    WAIT_DHW_RESERVOIR_JSON, WASH_THEN_DRY_JSON,
 };
 
 fn kettle_bindings(sim: &mut Simulator) -> DeviceBindings {
@@ -70,6 +71,7 @@ fn bundled_example_constants_parse() {
             "air_fryer_cook_200",
             "wait_dhw_reservoir",
             "offer_fridge_dhw",
+            "offer_fridge_dhw_soft",
         ]
     );
 }
@@ -1031,4 +1033,164 @@ fn thermal_offer_then_thermal_wait_after_duration_apply() {
         result.status
     );
     assert_eq!(result.outcomes.len(), 2);
+}
+
+#[test]
+fn parse_offer_fridge_dhw_soft_fixture() {
+    let doc = Procedure::load_json(OFFER_FRIDGE_DHW_SOFT_JSON).unwrap();
+    assert_eq!(doc.id, "offer_fridge_dhw_soft");
+    assert_eq!(doc.steps.len(), 1);
+    let step = &doc.steps[0];
+    assert_eq!(step.action, StepAction::ThermalOffer);
+    assert_eq!(step.on_decline, OnDecline::Continue);
+    let band = step.power_w.unwrap();
+    assert_eq!(band.min, 150);
+    assert_eq!(band.max, 200);
+    let fallback = step.fallback_power_w.unwrap();
+    assert_eq!(fallback.min, 80);
+    assert_eq!(fallback.max, 120);
+}
+
+#[test]
+fn thermal_offer_on_decline_defaults_to_fail() {
+    let raw = r#"{
+      "id": "d",
+      "name": "d",
+      "steps": [{
+        "id": "o",
+        "action": "thermal_offer",
+        "from_port": { "device_id": "fridge-kitchen", "port_id": "condenser" },
+        "to_port": { "device_id": "water-heater-plant", "port_id": "preheat" },
+        "power_w": { "min": 80, "max": 120 }
+      }]
+    }"#;
+    let doc = Procedure::load_json(raw).unwrap();
+    assert_eq!(doc.steps[0].on_decline, OnDecline::Fail);
+}
+
+#[test]
+fn thermal_offer_soft_continue_on_decline() {
+    // Negotiate declines when offer min exceeds condenser max (120 W); soft continue.
+    let raw = r#"{
+      "id": "soft",
+      "name": "soft",
+      "steps": [{
+        "id": "o",
+        "action": "thermal_offer",
+        "from_port": { "device_id": "fridge-kitchen", "port_id": "condenser" },
+        "to_port": { "device_id": "water-heater-plant", "port_id": "preheat" },
+        "power_w": { "min": 150, "max": 200 },
+        "on_decline": "continue"
+      }]
+    }"#;
+    let doc = Procedure::load_json(raw).unwrap();
+    let plant = ThermalPlant::fridge_condenser_dhw_demo().unwrap();
+    let mut backend = SimulatorBackend::with_plant(Simulator::new(), plant);
+    let result = run(&doc, &mut backend, &DeviceBindings::new());
+    assert!(
+        result.is_completed(),
+        "expected completed soft decline, got {:?}",
+        result.status
+    );
+    assert_eq!(result.outcomes.len(), 1);
+    assert!(result.outcomes[0].ok);
+    assert!(result.outcomes[0].read_value.is_none());
+    let msg = result.outcomes[0].message.as_deref().unwrap_or("");
+    assert!(msg.contains("declined"), "{msg}");
+    assert!(msg.contains("continuing"), "{msg}");
+}
+
+#[test]
+fn thermal_offer_fallback_accepts_after_high_min_decline() {
+    let doc = Procedure::load_json(OFFER_FRIDGE_DHW_SOFT_JSON).unwrap();
+    let plant = ThermalPlant::fridge_condenser_dhw_demo().unwrap();
+    let start = plant.get_reservoir("dhw-tank").unwrap().temp_c.unwrap();
+    assert!((start - 35.0).abs() < 1e-3, "start={start}");
+
+    let mut backend = SimulatorBackend::with_plant(Simulator::new(), plant);
+    let result = run(&doc, &mut backend, &DeviceBindings::new());
+    assert!(
+        result.is_completed(),
+        "expected completed, got {:?}",
+        result.status
+    );
+    assert_eq!(result.outcomes.len(), 1);
+    assert!(result.outcomes[0].ok);
+    let accepted = result.outcomes[0]
+        .read_value
+        .as_ref()
+        .and_then(|v| v.as_i64())
+        .unwrap();
+    assert_eq!(accepted, 120);
+    let msg = result.outcomes[0].message.as_deref().unwrap_or("");
+    assert!(msg.contains("fallback"), "{msg}");
+
+    let end = backend
+        .plant()
+        .unwrap()
+        .get_reservoir("dhw-tank")
+        .unwrap()
+        .temp_c
+        .unwrap();
+    assert!(
+        (end - 36.2).abs() < 1e-3,
+        "end={end} (expected ~36.2 after 3600s at 120 W)"
+    );
+}
+
+#[test]
+fn thermal_offer_fallback_then_soft_continue_when_both_decline() {
+    // Both primary and fallback mins exceed condenser max → final soft continue.
+    let raw = r#"{
+      "id": "both_decline",
+      "name": "both",
+      "steps": [{
+        "id": "o",
+        "action": "thermal_offer",
+        "from_port": { "device_id": "fridge-kitchen", "port_id": "condenser" },
+        "to_port": { "device_id": "water-heater-plant", "port_id": "preheat" },
+        "power_w": { "min": 150, "max": 200 },
+        "fallback_power_w": { "min": 130, "max": 140 },
+        "on_decline": "continue"
+      }]
+    }"#;
+    let doc = Procedure::load_json(raw).unwrap();
+    let plant = ThermalPlant::fridge_condenser_dhw_demo().unwrap();
+    let mut backend = SimulatorBackend::with_plant(Simulator::new(), plant);
+    let result = run(&doc, &mut backend, &DeviceBindings::new());
+    assert!(result.is_completed(), "{:?}", result.status);
+    assert!(result.outcomes[0].ok);
+    assert!(result.outcomes[0].read_value.is_none());
+    let msg = result.outcomes[0].message.as_deref().unwrap_or("");
+    assert!(msg.contains("continuing"), "{msg}");
+}
+
+#[test]
+fn thermal_offer_high_min_without_fallback_fails_by_default() {
+    let raw = r#"{
+      "id": "high",
+      "name": "high",
+      "steps": [{
+        "id": "o",
+        "action": "thermal_offer",
+        "from_port": { "device_id": "fridge-kitchen", "port_id": "condenser" },
+        "to_port": { "device_id": "water-heater-plant", "port_id": "preheat" },
+        "power_w": { "min": 150, "max": 200 }
+      }]
+    }"#;
+    let doc = Procedure::load_json(raw).unwrap();
+    let plant = ThermalPlant::fridge_condenser_dhw_demo().unwrap();
+    let mut backend = SimulatorBackend::with_plant(Simulator::new(), plant);
+    let result = run(&doc, &mut backend, &DeviceBindings::new());
+    assert!(!result.is_completed());
+    match result.fail_reason() {
+        Some(FailReason::Backend { code, message }) => {
+            assert_eq!(*code, ErrorCode::InvalidRequest);
+            assert!(
+                message.contains("declined") || message.contains("below offer min"),
+                "{message}"
+            );
+        }
+        other => panic!("expected fail, got {other:?}"),
+    }
 }

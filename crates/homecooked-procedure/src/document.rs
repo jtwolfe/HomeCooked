@@ -37,6 +37,9 @@ pub const WAIT_DHW_RESERVOIR_JSON: &str = include_str!("../examples/wait_dhw_res
 /// Offer fridge condenser heat to DHW preheat (procedure⇄thermal thin bridge).
 pub const OFFER_FRIDGE_DHW_JSON: &str = include_str!("../examples/offer_fridge_dhw.json");
 
+/// Soft-decline / fallback fridge→DHW offer (procedure⇄thermal thin multi-round).
+pub const OFFER_FRIDGE_DHW_SOFT_JSON: &str = include_str!("../examples/offer_fridge_dhw_soft.json");
+
 /// Bundled example documents: `(id, json)`.
 pub const BUNDLED_EXAMPLE_PROCEDURES: &[(&str, &str)] = &[
     ("kettle_heat_80", KETTLE_HEAT_80_JSON),
@@ -48,6 +51,7 @@ pub const BUNDLED_EXAMPLE_PROCEDURES: &[(&str, &str)] = &[
     ("air_fryer_cook_200", AIR_FRYER_COOK_200_JSON),
     ("wait_dhw_reservoir", WAIT_DHW_RESERVOIR_JSON),
     ("offer_fridge_dhw", OFFER_FRIDGE_DHW_JSON),
+    ("offer_fridge_dhw_soft", OFFER_FRIDGE_DHW_SOFT_JSON),
 ];
 
 /// Ordered recipe / protocol document.
@@ -115,6 +119,23 @@ impl ThermalCmp {
     }
 }
 
+/// Decline handling for [`StepAction::ThermalOffer`].
+///
+/// Default [`Self::Fail`] preserves the thin immediate-accept contract: a plant
+/// decline fails the step. [`Self::Continue`] records the decline and lets the
+/// procedure proceed (soft decline-without-fail).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OnDecline {
+    #[default]
+    Fail,
+    Continue,
+}
+
+fn is_default_on_decline(v: &OnDecline) -> bool {
+    *v == OnDecline::Fail
+}
+
 /// One sequential HomeCooked operation.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Step {
@@ -156,6 +177,14 @@ pub struct Step {
     /// Offer priority for [`StepAction::ThermalOffer`] (default 1 when omitted at run time).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub priority: Option<u8>,
+    /// Optional fallback power band for [`StepAction::ThermalOffer`]: if the
+    /// first negotiate declines, retry once with this band (thin multi-round).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fallback_power_w: Option<PowerBandW>,
+    /// How to treat a final plant decline for [`StepAction::ThermalOffer`]
+    /// (serde default [`OnDecline::Fail`]).
+    #[serde(default, skip_serializing_if = "is_default_on_decline")]
+    pub on_decline: OnDecline,
 }
 
 /// Executable ops. Sketch `guard` deserializes as [`StepAction::Assert`].
@@ -172,7 +201,8 @@ pub enum StepAction {
     #[serde(alias = "wait_reservoir")]
     ThermalWait,
     /// Submit a [`TransferOffer`] to the attached plant and immediately negotiate
-    /// (accept at max allowable, or decline).
+    /// (accept at max allowable, or decline). Optional `fallback_power_w` retries
+    /// once; `on_decline` chooses fail vs soft continue on a final decline.
     #[serde(alias = "offer_transfer")]
     ThermalOffer,
 }
@@ -232,6 +262,15 @@ impl Step {
     /// destination fields are missing or both `to_port` and `to_reservoir_id`
     /// are set.
     pub fn transfer_offer(&self) -> Result<TransferOffer, Error> {
+        self.transfer_offer_with_power(None)
+    }
+
+    /// Like [`Self::transfer_offer`], but optionally override `power_w` (used for
+    /// `fallback_power_w` retry).
+    pub fn transfer_offer_with_power(
+        &self,
+        power_override: Option<PowerBandW>,
+    ) -> Result<TransferOffer, Error> {
         let from_port = self
             .from_port
             .clone()
@@ -257,8 +296,8 @@ impl Step {
                 ));
             }
         };
-        let power_w = self
-            .power_w
+        let power_w = power_override
+            .or(self.power_w)
             .ok_or_else(|| Error::at_step(&self.id, "thermal_offer requires power_w"))?;
         let priority = self.priority.unwrap_or(1);
         Ok(TransferOffer::new(
