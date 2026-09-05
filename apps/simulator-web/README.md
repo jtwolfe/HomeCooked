@@ -83,7 +83,21 @@ The kettle sample is the happy-path demo (sim heats ~5 °C/s). The microwave
 fixture parses and writes cook settings; the sim does not yet advance
 `trait.cycle.elapsed_s` for microwave, so the wait step will time out.
 
-Thermal-port UI is still out of scope (ROADMAP Stream 5 / Stream 7).
+## Thermal plant panel
+
+The **Thermal plant** panel loads the fridge condenser → DHW demo from
+`homecooked-thermal` (same scenario as the crate integration test).
+
+1. **Load demo** creates/resets the plant (`create_thermal_demo`).
+2. **Negotiate** queues a best-effort fridge→water_heater offer
+   (`thermal_negotiate_demo`).
+3. **Tick** applies queued accepts over `dt` seconds (`thermal_tick`).
+4. **Transfer + tick** negotiates and steps in one shot
+   (`thermal_demo_transfer`). With the default `dt = 3600`, DHW rises from
+   35.0 °C to 36.2 °C at 120 W.
+
+The panel lists reservoirs (temps), heat ports, and the last transfer
+results / reply.
 
 ## Manual smoke (after wasm-pack)
 

@@ -562,3 +562,81 @@ button.cmd {
     grid-column: 1 / -1;
   }
 }
+
+.thermal-panel {
+  width: 100%;
+}
+
+.thermal-lede {
+  margin: 0.35rem 0 0;
+  line-height: 1.45;
+}
+
+.thermal-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: flex-end;
+  margin: 0.4rem 0 0.2rem;
+}
+
+.thermal-toolbar .field {
+  margin: 0;
+}
+
+.thermal-summary {
+  margin: 0.35rem 0 0.7rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid #f3d5b0;
+  border-radius: 10px;
+  background: #fff7ed;
+  font-size: 0.88rem;
+}
+
+.thermal-subhead {
+  margin: 0.85rem 0 0.4rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.thermal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.thermal-list li {
+  display: grid;
+  grid-template-columns: minmax(7rem, 12rem) 1fr;
+  gap: 0.55rem;
+  align-items: baseline;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.thermal-id {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.8rem;
+}
+
+.thermal-meta {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.thermal-reply {
+  margin: 0.55rem 0 0;
+}
+
+@media (max-width: 840px) {
+  .thermal-list li {
+    grid-template-columns: 1fr;
+  }
+}

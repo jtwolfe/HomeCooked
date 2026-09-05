@@ -17,6 +17,7 @@ homecooked-core = { path = "../homecooked-core" }
 homecooked-procedure = { path = "../homecooked-procedure" }
 homecooked-schema = { path = "../homecooked-schema" }
 homecooked-sim = { path = "../homecooked-sim" }
+homecooked-thermal = { path = "../homecooked-thermal" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 wasm-bindgen = "0.2"

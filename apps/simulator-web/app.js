@@ -30,6 +30,18 @@ const procedureStatus = document.getElementById("procedure-status");
 const procedureFail = document.getElementById("procedure-fail");
 const procedureBindings = document.getElementById("procedure-bindings");
 const procedureSteps = document.getElementById("procedure-steps");
+const thermalLoadBtn = document.getElementById("thermal-load-btn");
+const thermalNegotiateBtn = document.getElementById("thermal-negotiate-btn");
+const thermalTickBtn = document.getElementById("thermal-tick-btn");
+const thermalTransferBtn = document.getElementById("thermal-transfer-btn");
+const thermalDtInput = document.getElementById("thermal-dt-s");
+const thermalError = document.getElementById("thermal-error");
+const thermalSummary = document.getElementById("thermal-summary");
+const thermalView = document.getElementById("thermal-view");
+const thermalReservoirs = document.getElementById("thermal-reservoirs");
+const thermalPorts = document.getElementById("thermal-ports");
+const thermalTransfers = document.getElementById("thermal-transfers");
+const thermalReply = document.getElementById("thermal-reply");
 
 let wasm = null;
 let selectedId = null;
@@ -72,6 +84,18 @@ function showProcedureError(err) {
 function clearProcedureError() {
   procedureError.hidden = true;
   procedureError.textContent = "";
+}
+
+function showThermalError(err) {
+  const info = parseErr(err);
+  const bits = [info.code, info.point_id, info.message, info.expected].filter(Boolean);
+  thermalError.hidden = bits.length === 0;
+  thermalError.textContent = bits.join(" · ") || String(err);
+}
+
+function clearThermalError() {
+  thermalError.hidden = true;
+  thermalError.textContent = "";
 }
 
 function displayValue(tagged) {
@@ -390,6 +414,7 @@ async function boot() {
   fillClassSelect(classes);
   fillProcedureSelect(listExampleProcedures());
   await loadSelectedProcedure();
+  refreshThermalFromState();
 
   appEl.hidden = false;
   setStatus("Simulator ready");
@@ -417,6 +442,11 @@ loadProcedureBtn.addEventListener("click", () => loadSelectedProcedure());
 procedureSelect.addEventListener("change", () => loadSelectedProcedure());
 parseProcedureBtn.addEventListener("click", () => parseCurrentProcedure());
 runProcedureBtn.addEventListener("click", () => runCurrentProcedure());
+
+thermalLoadBtn.addEventListener("click", () => loadThermalDemo());
+thermalNegotiateBtn.addEventListener("click", () => negotiateThermalDemo());
+thermalTickBtn.addEventListener("click", () => tickThermalPlant());
+thermalTransferBtn.addEventListener("click", () => transferThermalDemo());
 
 boot();
 
@@ -566,5 +596,155 @@ async function runCurrentProcedure() {
     procedureResult.hidden = true;
     showProcedureError(err);
     setStatus("Procedure run failed", true);
+  }
+}
+
+function thermalDtS() {
+  const n = Number(thermalDtInput.value);
+  return Number.isFinite(n) && n > 0 ? n : 3600;
+}
+
+function formatTemp(temp) {
+  if (temp == null || Number.isNaN(Number(temp))) return "—";
+  return `${Number(temp).toFixed(2)} °C`;
+}
+
+function replyLabel(reply) {
+  if (!reply) return "";
+  if (reply.kind === "accept") {
+    return `Accepted ${reply.accepted_power_w} W · priority ${reply.priority}`;
+  }
+  if (reply.kind === "decline") {
+    return `Declined: ${reply.reason || "no reason"}`;
+  }
+  return JSON.stringify(reply);
+}
+
+function formatTransferTarget(to) {
+  if (!to) return "?";
+  if (to.kind === "port") return `${to.device_id}/${to.port_id}`;
+  if (to.kind === "reservoir") return `reservoir ${to.reservoir_id}`;
+  return JSON.stringify(to);
+}
+
+function renderThermalState(state, transfers) {
+  clearThermalError();
+  const loaded = !!state.loaded;
+  thermalView.hidden = !loaded;
+  if (!loaded) {
+    thermalSummary.hidden = false;
+    thermalSummary.textContent = "No plant loaded. Click Load demo for fridge condenser → DHW.";
+    thermalTransfers.innerHTML = "";
+    thermalReply.textContent = "";
+    return;
+  }
+
+  const scenario = state.scenario || "custom";
+  const reservoirs = state.reservoirs || [];
+  const dhw = reservoirs.find((r) => r.id === "dhw-tank");
+  const dhwBit = dhw ? ` · DHW ${formatTemp(dhw.temp_c)}` : "";
+  thermalSummary.hidden = false;
+  thermalSummary.textContent = `Scenario ${scenario} · ${reservoirs.length} reservoir(s) · ${(state.ports || []).length} port(s)${dhwBit}`;
+
+  thermalReservoirs.innerHTML = "";
+  for (const r of reservoirs) {
+    const li = document.createElement("li");
+    const band = r.usable_band_c
+      ? `${r.usable_band_c.min}–${r.usable_band_c.max} °C`
+      : "band —";
+    const cap = r.capacity_kwh != null ? `${r.capacity_kwh} kWh` : "cap —";
+    li.innerHTML = `<span class="thermal-id">${r.id}</span><span class="thermal-meta">${r.role} · ${r.media} · ${formatTemp(r.temp_c)} · ${band} · ${cap}</span>`;
+    thermalReservoirs.appendChild(li);
+  }
+
+  thermalPorts.innerHTML = "";
+  for (const p of state.ports || []) {
+    const li = document.createElement("li");
+    const attach = p.attached_reservoir_id
+      ? ` → ${p.attached_reservoir_id}`
+      : "";
+    li.innerHTML = `<span class="thermal-id">${p.device_id}/${p.port_id}</span><span class="thermal-meta">${p.direction} · max ${p.max_power_w} W · ${p.media}${attach}</span>`;
+    thermalPorts.appendChild(li);
+  }
+
+  const xfers = transfers != null ? transfers : state.last_transfers || [];
+  thermalTransfers.innerHTML = "";
+  if (!xfers.length) {
+    const li = document.createElement("li");
+    li.innerHTML = `<span class="step-flag">idle</span><span class="step-id">—</span><span class="step-meta">No transfer applied yet</span>`;
+    thermalTransfers.appendChild(li);
+  } else {
+    for (const t of xfers) {
+      const li = document.createElement("li");
+      li.className = "ok";
+      const to = formatTransferTarget(t.to);
+      const from = t.from_port
+        ? `${t.from_port.device_id}/${t.from_port.port_id}`
+        : "?";
+      const heated = t.heated_reservoir_id
+        ? ` · heated ${t.heated_reservoir_id} ΔT ${Number(t.delta_temp_c).toFixed(3)} °C`
+        : "";
+      li.innerHTML = `<span class="step-flag">xfer</span><span class="step-id">${t.power_w} W</span><span class="step-meta">${from} → ${to} · ${Number(t.energy_kwh).toFixed(4)} kWh${heated}</span>`;
+      thermalTransfers.appendChild(li);
+    }
+  }
+
+  thermalReply.textContent = replyLabel(state.last_reply);
+}
+
+function refreshThermalFromState() {
+  try {
+    const state = JSON.parse(wasm.thermal_state());
+    renderThermalState(state);
+  } catch (err) {
+    showThermalError(err);
+  }
+}
+
+function loadThermalDemo() {
+  clearThermalError();
+  try {
+    const state = JSON.parse(wasm.create_thermal_demo());
+    renderThermalState(state);
+    setStatus("Thermal demo loaded");
+  } catch (err) {
+    showThermalError(err);
+    setStatus("Thermal load failed", true);
+  }
+}
+
+function negotiateThermalDemo() {
+  clearThermalError();
+  try {
+    const state = JSON.parse(wasm.thermal_negotiate_demo());
+    renderThermalState(state);
+    setStatus("Thermal offer negotiated");
+  } catch (err) {
+    showThermalError(err);
+    setStatus("Thermal negotiate failed", true);
+  }
+}
+
+function tickThermalPlant() {
+  clearThermalError();
+  try {
+    const out = JSON.parse(wasm.thermal_tick(thermalDtS()));
+    renderThermalState(out.state, out.transfers);
+    setStatus(`Thermal tick ${out.dt_s}s · ${out.transfers.length} transfer(s)`);
+  } catch (err) {
+    showThermalError(err);
+    setStatus("Thermal tick failed", true);
+  }
+}
+
+function transferThermalDemo() {
+  clearThermalError();
+  try {
+    const out = JSON.parse(wasm.thermal_demo_transfer(thermalDtS()));
+    renderThermalState(out.state, out.transfers);
+    setStatus(`Thermal transfer ${out.dt_s}s · ${out.transfers.length} transfer(s)`);
+  } catch (err) {
+    showThermalError(err);
+    setStatus("Thermal transfer failed", true);
   }
 }

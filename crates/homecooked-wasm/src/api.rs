@@ -13,12 +13,22 @@ use homecooked_schema::{
     ValueRange, ValueType, TIER_A_CLASS_IDS,
 };
 use homecooked_sim::Simulator;
+use homecooked_thermal::{
+    HeatPort, PortRef, PowerBandW, Reservoir, ThermalPlant, TransferOffer, TransferReply,
+    TransferResult, TransferTarget,
+};
 use serde::{Deserialize, Serialize};
 
 /// In-memory simulator world exposed to JS as JSON strings.
 #[derive(Debug, Default)]
 pub struct WasmApi {
     sim: Simulator,
+    /// Optional thermal plant (fridge condenser → DHW demo, or custom later).
+    thermal: Option<ThermalPlant>,
+    /// Transfers applied by the most recent [`Self::thermal_tick`] / demo transfer.
+    last_thermal_transfers: Vec<TransferResult>,
+    /// Last offer/accept reply from [`Self::thermal_negotiate_demo`].
+    last_thermal_reply: Option<TransferReply>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -85,6 +95,12 @@ impl From<homecooked_procedure::Error> for ApiError {
                 expected: None,
             },
         }
+    }
+}
+
+impl From<homecooked_thermal::Error> for ApiError {
+    fn from(err: homecooked_thermal::Error) -> Self {
+        Self::invalid_request(err.to_string())
     }
 }
 
@@ -222,10 +238,34 @@ pub struct BindingOut {
     pub spawned: bool,
 }
 
+/// Structured thermal plant snapshot for the simulator-web panel.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ThermalStateOut {
+    pub loaded: bool,
+    pub scenario: Option<String>,
+    pub reservoirs: Vec<Reservoir>,
+    pub ports: Vec<HeatPort>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub last_transfers: Vec<TransferResult>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_reply: Option<TransferReply>,
+}
+
+/// Tick / demo-transfer response: applied transfers plus fresh plant state.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ThermalTickOut {
+    pub dt_s: f32,
+    pub transfers: Vec<TransferResult>,
+    pub state: ThermalStateOut,
+}
+
 impl WasmApi {
     pub fn new() -> Self {
         Self {
             sim: Simulator::new(),
+            thermal: None,
+            last_thermal_transfers: Vec::new(),
+            last_thermal_reply: None,
         }
     }
 
@@ -429,6 +469,88 @@ impl WasmApi {
         serde_json::to_string(&out).map_err(|e| ApiError::internal(e.to_string()))
     }
 
+    /// Create/reset the fridge condenser → DHW water_heater demo plant.
+    pub fn create_thermal_demo(&mut self) -> Result<String, ApiError> {
+        self.thermal = Some(ThermalPlant::fridge_condenser_dhw_demo()?);
+        self.last_thermal_transfers.clear();
+        self.last_thermal_reply = None;
+        self.thermal_state()
+    }
+
+    /// JSON snapshot of the loaded thermal plant (empty if none).
+    pub fn thermal_state(&self) -> Result<String, ApiError> {
+        serde_json::to_string(&self.thermal_state_out())
+            .map_err(|e| ApiError::internal(e.to_string()))
+    }
+
+    /// Negotiate the demo offer (fridge condenser → water_heater preheat).
+    pub fn thermal_negotiate_demo(&mut self) -> Result<String, ApiError> {
+        let offer = demo_fridge_offer()?;
+        let reply = self.thermal_mut()?.negotiate(offer);
+        self.last_thermal_reply = Some(reply);
+        self.thermal_state()
+    }
+
+    /// Apply queued accepts over `dt_s` seconds (one plant tick).
+    pub fn thermal_tick(&mut self, dt_s: f32) -> Result<String, ApiError> {
+        if !dt_s.is_finite() || dt_s <= 0.0 {
+            return Err(ApiError::invalid_request("dt_s must be > 0"));
+        }
+        let transfers = self.thermal_mut()?.step(dt_s)?;
+        self.last_thermal_transfers = transfers.clone();
+        let out = ThermalTickOut {
+            dt_s,
+            transfers,
+            state: self.thermal_state_out(),
+        };
+        serde_json::to_string(&out).map_err(|e| ApiError::internal(e.to_string()))
+    }
+
+    /// Negotiate the demo offer then tick once (UI one-shot transfer).
+    pub fn thermal_demo_transfer(&mut self, dt_s: f32) -> Result<String, ApiError> {
+        if !dt_s.is_finite() || dt_s <= 0.0 {
+            return Err(ApiError::invalid_request("dt_s must be > 0"));
+        }
+        let offer = demo_fridge_offer()?;
+        let reply = self.thermal_mut()?.negotiate(offer);
+        self.last_thermal_reply = Some(reply);
+        let transfers = self.thermal_mut()?.step(dt_s)?;
+        self.last_thermal_transfers = transfers.clone();
+        let out = ThermalTickOut {
+            dt_s,
+            transfers,
+            state: self.thermal_state_out(),
+        };
+        serde_json::to_string(&out).map_err(|e| ApiError::internal(e.to_string()))
+    }
+
+    fn thermal_mut(&mut self) -> Result<&mut ThermalPlant, ApiError> {
+        self.thermal.as_mut().ok_or_else(|| {
+            ApiError::invalid_request("no thermal plant loaded; call create_thermal_demo first")
+        })
+    }
+
+    fn thermal_state_out(&self) -> ThermalStateOut {
+        match &self.thermal {
+            Some(plant) => ThermalStateOut {
+                loaded: true,
+                scenario: Some("fridge_condenser_dhw".into()),
+                reservoirs: plant.list_reservoirs().into_iter().cloned().collect(),
+                ports: plant.list_ports().into_iter().cloned().collect(),
+                last_transfers: self.last_thermal_transfers.clone(),
+                last_reply: self.last_thermal_reply.clone(),
+            },
+            None => ThermalStateOut {
+                loaded: false,
+                scenario: None,
+                reservoirs: Vec::new(),
+                ports: Vec::new(),
+                last_transfers: Vec::new(),
+                last_reply: None,
+            },
+        }
+    }
+
     fn bind_procedure_devices(
         &mut self,
         procedure: &Procedure,
@@ -603,6 +725,16 @@ fn first_spawn_class(dev_ref: &DeviceRef) -> Option<ApplianceClassId> {
 }
 
 /// Declared `devices` plus any step roles that were omitted from the document.
+fn demo_fridge_offer() -> Result<TransferOffer, ApiError> {
+    Ok(TransferOffer::new(
+        PortRef::new("fridge-kitchen", "condenser")?,
+        TransferTarget::port("water-heater-plant", "preheat")?,
+        PowerBandW::new(80, 120)?,
+        None,
+        1,
+    ))
+}
+
 fn collect_role_refs(procedure: &Procedure) -> Vec<DeviceRef> {
     let mut refs = procedure.devices.clone();
     let mut seen: HashSet<String> = refs.iter().map(|d| d.role.clone()).collect();
@@ -1044,5 +1176,78 @@ mod tests {
                 .len(),
             1
         );
+    }
+
+    #[test]
+    fn create_thermal_demo_lists_reservoirs_and_ports() {
+        let mut api = WasmApi::new();
+        let empty: ThermalStateOut = serde_json::from_str(&api.thermal_state().unwrap()).unwrap();
+        assert!(!empty.loaded);
+        assert!(empty.reservoirs.is_empty());
+
+        let raw = api.create_thermal_demo().unwrap();
+        let state: ThermalStateOut = serde_json::from_str(&raw).unwrap();
+        assert!(state.loaded);
+        assert_eq!(state.scenario.as_deref(), Some("fridge_condenser_dhw"));
+        assert_eq!(state.reservoirs.len(), 1);
+        assert_eq!(state.reservoirs[0].id, "dhw-tank");
+        assert!((state.reservoirs[0].temp_c.unwrap() - 35.0).abs() < 1e-4);
+        assert_eq!(state.ports.len(), 2);
+        assert!(state
+            .ports
+            .iter()
+            .any(|p| p.device_id == "fridge-kitchen" && p.port_id == "condenser"));
+        assert!(state
+            .ports
+            .iter()
+            .any(|p| p.device_id == "water-heater-plant" && p.port_id == "preheat"));
+    }
+
+    #[test]
+    fn thermal_demo_transfer_raises_dhw_temp() {
+        let mut api = WasmApi::new();
+        api.create_thermal_demo().unwrap();
+        let raw = api.thermal_demo_transfer(3_600.0).unwrap();
+        let tick: ThermalTickOut = serde_json::from_str(&raw).unwrap();
+        assert_eq!(tick.dt_s, 3_600.0);
+        assert_eq!(tick.transfers.len(), 1);
+        assert_eq!(tick.transfers[0].power_w, 120);
+        assert!((tick.transfers[0].delta_temp_c - 1.2).abs() < 1e-4);
+        assert_eq!(
+            tick.transfers[0].heated_reservoir_id.as_deref(),
+            Some("dhw-tank")
+        );
+        let dhw = tick
+            .state
+            .reservoirs
+            .iter()
+            .find(|r| r.id == "dhw-tank")
+            .unwrap();
+        assert!((dhw.temp_c.unwrap() - 36.2).abs() < 1e-4);
+
+        // Separate negotiate + tick path matches one-shot.
+        let mut api2 = WasmApi::new();
+        api2.create_thermal_demo().unwrap();
+        let after_offer: ThermalStateOut =
+            serde_json::from_str(&api2.thermal_negotiate_demo().unwrap()).unwrap();
+        assert!(after_offer.last_reply.as_ref().unwrap().is_accept());
+        let tick2: ThermalTickOut =
+            serde_json::from_str(&api2.thermal_tick(3_600.0).unwrap()).unwrap();
+        assert_eq!(tick2.transfers.len(), 1);
+        let dhw2 = tick2
+            .state
+            .reservoirs
+            .iter()
+            .find(|r| r.id == "dhw-tank")
+            .unwrap();
+        assert!((dhw2.temp_c.unwrap() - 36.2).abs() < 1e-4);
+    }
+
+    #[test]
+    fn thermal_tick_without_plant_errors() {
+        let mut api = WasmApi::new();
+        let err = api.thermal_tick(1.0).unwrap_err();
+        assert_eq!(err.code, ErrorCode::InvalidRequest);
+        assert!(err.message.contains("no thermal plant"));
     }
 }
