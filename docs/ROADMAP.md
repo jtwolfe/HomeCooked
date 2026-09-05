@@ -30,9 +30,9 @@ What exists on `main` today:
 | `homecooked-procedure` | Procedure documents + sequential runner |
 | `homecooked-controller` | Host controller sim: IoMap + MockHal + interlocks + washer cotton cycle |
 | `homecooked-thermal` | First executable thermal plant slice (types, registry, offer/accept, tick) |
-| `homecooked-bridge` | First bridge slice: Modbus map + in-memory slave; Zigbee/Matter/BACnet stubs |
+| `homecooked-bridge` | Bridge slice: Modbus + Matter mock maps; Zigbee/BACnet stubs |
 | `homecooked-transport` | Lab TCP: length-prefixed JSON envelopes; sim-backed server + client smoke |
-| `homecooked-conformance` | Light Stream 7 smoke: Tier-A / cotton / kettle procedure / thermal / Modbus / TCP |
+| `homecooked-conformance` | Light Stream 7 smoke: Tier-A / cotton / kettle procedure / thermal / Modbus / Matter / TCP |
 | CI | rustfmt, clippy (`-D warnings`), `cargo test --workspace`, wasm-pack |
 
 **25 Tier-A classes are fully tabled** (see §4).
@@ -40,7 +40,7 @@ What exists on `main` today:
 `list_all_class_ids` already covers the full appliances index; most classes are
 ids-only (no static tables / sim yet). Thermal has `homecooked-thermal` (plant
 slice; catalog/sim ports still open). Bridges have `homecooked-bridge`
-(Modbus first slice + stubs; real serial/TCP and other fabrics still
+(Modbus + Matter mock; real serial/TCP Modbus, CHIP SDK, Zigbee/BACnet still
 open); control-system has HAL + controller-sim + io-map/interlock crates
 (TCP lab smoke in `homecooked-transport`; auth still out of scope); procedures has `homecooked-procedure`.
 
@@ -190,16 +190,21 @@ multiple small PRs.
    current temp, power state) through a YAML/JSON register map. Tests cover
    foreign → HomeCooked and HomeCooked → register.
 3. ~~Stubs (compile + clear “unimplemented”) for the other bridge families.~~
-   **Done** — `ZigbeeBridge`, `MatterBridge`, `BacnetBridge` return
-   `Error::UnsupportedFabric` and point at
-   [`standard/bridges.md`](./standard/bridges.md).
+   **Done** — `ZigbeeBridge` and `BacnetBridge` return
+   `Error::UnsupportedFabric`. **Matter** is no longer a stub: mock fabric
+   + kettle map (see below).
+
+4. ~~Thin Matter mock (no CHIP SDK).~~ **Done** — `MatterBridge` with
+   YAML/JSON endpoint/cluster/attribute map, in-memory attribute store, and
+   kettle OnOff + TemperatureMeasurement-style roundtrip tests. Cluster IDs
+   are illustrative lab constants.
 
 **Definition of done**
 
 - One bridge crate or module with tests against a fake peer or recorded
   fixtures; stubs documented in README / bridges doc.
-  **Met for the first slice** — see `crates/homecooked-bridge`. Real
-  serial/TCP Modbus, Matter SDK, and Zigbee/BACnet adapters remain
+  **Met** for Modbus + Matter mock — see `crates/homecooked-bridge`. Real
+  serial/TCP Modbus, CHIP / Matter SDK, and Zigbee/BACnet adapters remain
   follow-up.
 
 ### Stream 7 — WASM UI + conformance suite
@@ -223,7 +228,7 @@ multiple small PRs.
    protocol major-version rejection, representative write denials.
    **Partial (smoke)** — `homecooked-conformance` runs six named end-to-end
    scenarios (Tier-A catalog/sim/describe, washer cotton controller, kettle
-   procedure, thermal fridge→DHW, Modbus water_heater, TCP kettle). Deeper
+   procedure, thermal fridge→DHW, Modbus water_heater, Matter kettle, TCP kettle). Deeper
    catalog hygiene / major-version / write-denial matrices remain follow-up.
 3. CI runs the conformance suite (or a `cargo test` subset tagged as such).
    **Done (via workspace)** — `cargo test --workspace` includes
@@ -296,6 +301,7 @@ absent static tables are OK until after the 75% bar.
 | later | HAL + controller-sim + TCP | 4 — TCP lab smoke done (`homecooked-transport`) |
 | later | thermal ports | 5 |
 | later | `feat/bridges-modbus` | 6 — Modbus + stubs (first slice) |
+| later | `feat/matter-mock-bridge` | 6 — Matter mock fabric + kettle map |
 | later | `feat/simulator-tier-a-ui` | 7 — grouped Tier-A picker (first UI slice) |
 | later | WASM UI + conformance suite | 7 — picker + procedure UI done; smoke suite done (`homecooked-conformance`); deeper matrices / thermal-port UI remaining |
 
@@ -312,3 +318,4 @@ the code that implements them.
 | 0.1.1 | Stream 4 TCP lab smoke (`homecooked-transport`); auth/TLS still out of scope |
 | 0.1.2 | Stream 7 conformance smoke crate (`homecooked-conformance`) |
 | 0.1.3 | Stream 7 procedure UI slice (`homecooked-wasm` + simulator-web runner panel) |
+| 0.1.4 | Stream 6 Matter mock bridge (`homecooked-bridge` kettle map; no CHIP SDK) |

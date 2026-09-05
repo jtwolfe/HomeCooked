@@ -1,5 +1,7 @@
 //! Small [`Bridge`] trait and HomeCooked / foreign address types.
 
+use std::fmt;
+
 use homecooked_schema::{catalog_point, PointNamespace, QualifiedPointId, Value};
 
 use crate::error::Error;
@@ -35,37 +37,105 @@ impl PointRef {
     }
 }
 
-/// Foreign fabric address on a mapped device (Modbus register / coil, …).
+/// Fabric-specific address on a mapped device.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum ForeignLocator {
+    Modbus {
+        kind: RegisterKind,
+        address: u16,
+    },
+    Matter {
+        endpoint: u16,
+        cluster_id: u32,
+        attribute_id: u32,
+    },
+}
+
+impl fmt::Display for ForeignLocator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Modbus { kind, address } => write!(f, "{kind}@{address}"),
+            Self::Matter {
+                endpoint,
+                cluster_id,
+                attribute_id,
+            } => write!(
+                f,
+                "ep{endpoint}/cluster={cluster_id:#x}/attr={attribute_id:#x}"
+            ),
+        }
+    }
+}
+
+/// Foreign fabric address on a mapped device (Modbus register / coil, Matter
+/// endpoint+cluster+attribute, …).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ForeignRef {
     pub device_id: String,
-    pub kind: RegisterKind,
-    pub address: u16,
+    pub locator: ForeignLocator,
 }
 
 impl ForeignRef {
-    pub fn new(
-        device_id: impl Into<String>,
-        kind: RegisterKind,
-        address: u16,
-    ) -> Result<Self, Error> {
+    pub fn new(device_id: impl Into<String>, locator: ForeignLocator) -> Result<Self, Error> {
         let device_id = device_id.into();
         if device_id.is_empty() {
             return Err(Error::EmptyId("device_id"));
         }
-        Ok(Self {
-            device_id,
-            kind,
-            address,
-        })
+        Ok(Self { device_id, locator })
     }
 
     pub fn holding(device_id: impl Into<String>, address: u16) -> Result<Self, Error> {
-        Self::new(device_id, RegisterKind::Holding, address)
+        Self::new(
+            device_id,
+            ForeignLocator::Modbus {
+                kind: RegisterKind::Holding,
+                address,
+            },
+        )
     }
 
     pub fn coil(device_id: impl Into<String>, address: u16) -> Result<Self, Error> {
-        Self::new(device_id, RegisterKind::Coil, address)
+        Self::new(
+            device_id,
+            ForeignLocator::Modbus {
+                kind: RegisterKind::Coil,
+                address,
+            },
+        )
+    }
+
+    pub fn matter(
+        device_id: impl Into<String>,
+        endpoint: u16,
+        cluster_id: u32,
+        attribute_id: u32,
+    ) -> Result<Self, Error> {
+        Self::new(
+            device_id,
+            ForeignLocator::Matter {
+                endpoint,
+                cluster_id,
+                attribute_id,
+            },
+        )
+    }
+
+    pub fn as_modbus(&self) -> Option<(RegisterKind, u16)> {
+        match self.locator {
+            ForeignLocator::Modbus { kind, address } => Some((kind, address)),
+            ForeignLocator::Matter { .. } => None,
+        }
+    }
+
+    pub fn as_matter(&self) -> Option<(u16, u32, u32)> {
+        match self.locator {
+            ForeignLocator::Matter {
+                endpoint,
+                cluster_id,
+                attribute_id,
+            } => Some((endpoint, cluster_id, attribute_id)),
+            ForeignLocator::Modbus { .. } => None,
+        }
     }
 }
 
@@ -74,6 +144,16 @@ impl ForeignRef {
 pub enum ForeignRaw {
     Register(u16),
     Coil(bool),
+    /// Matter mock attribute payload.
+    Matter(MatterRaw),
+}
+
+/// Raw Matter attribute encoding used by the in-memory mock fabric.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MatterRaw {
+    Bool(bool),
+    Int16(i16),
+    UInt16(u16),
 }
 
 /// Maps foreign fabric reads/writes ↔ HomeCooked points.

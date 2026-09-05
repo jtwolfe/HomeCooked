@@ -85,12 +85,13 @@ impl<B: PointBackend> ModbusBridge<B> {
 
     fn entry_for_foreign(&self, foreign: &ForeignRef) -> Result<&ModbusEntry, Error> {
         self.require_device(&foreign.device_id)?;
+        let (kind, address) = foreign.as_modbus().ok_or_else(|| Error::LocatorMismatch {
+            expected: "modbus",
+            locator: foreign.locator.clone(),
+        })?;
         self.map
-            .entry_for_address(foreign.kind, foreign.address)
-            .ok_or(Error::UnmappedAddress {
-                kind: foreign.kind,
-                address: foreign.address,
-            })
+            .entry_for_address(kind, address)
+            .ok_or(Error::UnmappedAddress { kind, address })
     }
 
     fn apply_bits(&mut self, entry: &ModbusEntry, bits: ForeignBits) -> Result<Value, Error> {
@@ -114,6 +115,9 @@ impl<B: PointBackend> ModbusBridge<B> {
             }),
             (kind, ForeignRaw::Coil(_)) => Err(Error::InvalidRaw {
                 detail: format!("coil raw is not valid for {kind}"),
+            }),
+            (_, ForeignRaw::Matter(_)) => Err(Error::InvalidRaw {
+                detail: "matter raw is not valid for modbus bridge".into(),
             }),
         }
     }
