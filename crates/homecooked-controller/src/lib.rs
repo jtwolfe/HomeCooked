@@ -15,10 +15,11 @@
 //! [`ControllerEndpoint`] / [`DryerControllerEndpoint`] are thin lab
 //! device-role adapters: protocol describe/read/write map onto MockHal
 //! channels so interlock denies surface as `safety_interlock` over
-//! [`homecooked_transport`] TCP (`spawn_handler_server`). Washer TCP also
-//! exposes `trait.cycle.start` / `cycle_state` / `cycle_phase` plus lab
-//! `class.washer.sim_tick` (cotton options / cancel / pause /
-//! typical_capability remain follow-up). Lab only — no TLS / OAuth.
+//! [`homecooked_transport`] TCP (`spawn_handler_server`). Washer and dryer
+//! TCP also expose `trait.cycle.start` / `cycle_state` / `cycle_phase` plus
+//! lab `class.washer.sim_tick` / `class.dryer.sim_tick` (CottonOptions /
+//! DryOptions / cancel / pause / typical_capability remain follow-up).
+//! Lab only — no TLS / OAuth.
 //!
 //! # Example
 //!

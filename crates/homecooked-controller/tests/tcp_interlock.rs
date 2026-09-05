@@ -307,3 +307,96 @@ fn tcp_washer_cotton_start_and_phase() {
         Some(Value::Enum("running".into()))
     );
 }
+
+#[test]
+fn tcp_dryer_cotton_start_and_phase() {
+    use homecooked_controller::{DryerControllerEndpoint, DRYER_CTRL_DEVICE_ID};
+
+    let ep = DryerControllerEndpoint::dryer_lab().unwrap();
+    let (addr, _shared, _server) = spawn_handler_server("127.0.0.1:0", ep).unwrap();
+    thread::sleep(Duration::from_millis(20));
+
+    let mut client = TcpClient::connect(addr).unwrap();
+
+    let desc = client.describe(DRYER_CTRL_DEVICE_ID, vec![]).unwrap();
+    assert!(desc
+        .capability
+        .traits
+        .iter()
+        .any(|t| t.trait_id == homecooked_schema::TraitId::Cycle));
+    assert!(desc.capability.point("trait.cycle.start").is_some());
+    assert!(desc.capability.point("trait.cycle.cycle_state").is_some());
+    assert!(desc.capability.point("trait.cycle.cycle_phase").is_some());
+
+    // door_closed is injected closed by dryer_lab; lock is optional prep.
+    client
+        .write(
+            DRYER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: qid("class.dryer.door_lock"),
+                value: Value::Bool(true),
+            }],
+        )
+        .unwrap();
+
+    let before = client
+        .read(
+            DRYER_CTRL_DEVICE_ID,
+            vec![
+                qid("trait.cycle.cycle_state"),
+                qid("trait.cycle.cycle_phase"),
+            ],
+        )
+        .unwrap();
+    assert_eq!(before.values[0].value, Some(Value::Enum("idle".into())));
+
+    client
+        .write(
+            DRYER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: qid("trait.cycle.start"),
+                value: Value::Void,
+            }],
+        )
+        .unwrap();
+
+    let after = client
+        .read(
+            DRYER_CTRL_DEVICE_ID,
+            vec![
+                qid("trait.cycle.cycle_state"),
+                qid("trait.cycle.cycle_phase"),
+            ],
+        )
+        .unwrap();
+    assert_eq!(after.values[0].value, Some(Value::Enum("running".into())));
+    match after.values[1].value.as_ref().unwrap() {
+        Value::String(phase) => {
+            assert!(
+                !phase.is_empty() && phase != "idle",
+                "expected active catalog phase after start, got {phase}"
+            );
+        }
+        other => panic!("expected string phase, got {other:?}"),
+    }
+
+    // Advance a few lab ticks; cycle should remain running (phase may advance).
+    for _ in 0..3 {
+        client
+            .write(
+                DRYER_CTRL_DEVICE_ID,
+                vec![WriteOp {
+                    id: qid("class.dryer.sim_tick"),
+                    value: Value::Void,
+                }],
+            )
+            .unwrap();
+    }
+    let progressed = client
+        .read(DRYER_CTRL_DEVICE_ID, vec![qid("trait.cycle.cycle_state")])
+        .unwrap();
+    assert_eq!(
+        progressed.values[0].value,
+        Some(Value::Enum("running".into()))
+    );
+}
