@@ -189,6 +189,10 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
         "flow_c" => Value::F32(55.0),
         "pressure_bar" => Value::F32(1.5),
         "brew_setpoint_c" => Value::F32(93.0),
+        "shot_ml" => match ctx.identity.class_id {
+            ApplianceClassId::EspressoMachine => Value::U16(36),
+            _ => Value::U16(int_min(point, 0) as u16),
+        },
         "boiler_c" => Value::F32(20.0),
         "heat_level" => Value::Enum("low".into()),
         "water_empty" => Value::Bool(false),

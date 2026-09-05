@@ -564,6 +564,23 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "timer_s"
         );
     }
+    // Stream 7 catalog depth: espresso_machine optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::EspressoMachine {
+        return matches!(
+            point.id,
+            "brew_pressure_bar"
+                | "shot_ml"
+                | "pump_on"
+                | "steam_wand_on"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "boiler_ready"
+                | "high_temp_alarm"
+                | "water_tank_empty"
+                | "descaling_needed"
+                | "timer_s"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -2135,6 +2152,71 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.electric_smoker.door_ajar", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn espresso_machine_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::EspressoMachine).unwrap();
+        for id in [
+            "class.espresso_machine.brew_pressure_bar",
+            "class.espresso_machine.shot_ml",
+            "class.espresso_machine.pump_on",
+            "class.espresso_machine.steam_wand_on",
+            "class.espresso_machine.sabbath_mode",
+            "class.espresso_machine.eco_mode",
+            "class.espresso_machine.boiler_ready",
+            "class.espresso_machine.high_temp_alarm",
+            "class.espresso_machine.water_tank_empty",
+            "class.espresso_machine.descaling_needed",
+            "class.espresso_machine.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical espresso_machine"
+            );
+        }
+        cap.validate_write("class.espresso_machine.shot_ml", &Value::U16(36))
+            .unwrap();
+        cap.validate_write("class.espresso_machine.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.espresso_machine.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.espresso_machine.timer_s", &Value::DurationS(300))
+            .unwrap();
+        let err = cap
+            .validate_write("class.espresso_machine.brew_pressure_bar", &Value::F32(9.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.espresso_machine.pump_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.espresso_machine.steam_wand_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.espresso_machine.boiler_ready", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.espresso_machine.high_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write(
+                "class.espresso_machine.water_tank_empty",
+                &Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write(
+                "class.espresso_machine.descaling_needed",
+                &Value::Bool(true),
+            )
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }

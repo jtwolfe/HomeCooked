@@ -2770,6 +2770,180 @@ mod tests {
     }
 
     #[test]
+    fn espresso_machine_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let espresso = sim.spawn(ApplianceClassId::EspressoMachine).unwrap();
+
+        assert_eq!(
+            sim.read_value(&espresso, "class.espresso_machine.brew_pressure_bar")
+                .unwrap(),
+            Value::F32(0.0)
+        );
+        assert_eq!(
+            sim.read_value(&espresso, "class.espresso_machine.shot_ml")
+                .unwrap(),
+            Value::U16(36)
+        );
+        assert_eq!(
+            sim.read_value(&espresso, "class.espresso_machine.pump_on")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&espresso, "class.espresso_machine.steam_wand_on")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&espresso, "class.espresso_machine.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&espresso, "class.espresso_machine.eco_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&espresso, "class.espresso_machine.boiler_ready")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&espresso, "class.espresso_machine.high_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&espresso, "class.espresso_machine.water_tank_empty")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&espresso, "class.espresso_machine.descaling_needed")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&espresso, "class.espresso_machine.timer_s")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+
+        sim.write(&espresso, "class.espresso_machine.shot_ml", Value::U16(40))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&espresso, "class.espresso_machine.shot_ml")
+                .unwrap(),
+            Value::U16(40)
+        );
+        sim.write(
+            &espresso,
+            "class.espresso_machine.sabbath_mode",
+            Value::Bool(true),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&espresso, "class.espresso_machine.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(
+            &espresso,
+            "class.espresso_machine.eco_mode",
+            Value::Bool(true),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&espresso, "class.espresso_machine.eco_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(
+            &espresso,
+            "class.espresso_machine.timer_s",
+            Value::DurationS(180),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&espresso, "class.espresso_machine.timer_s")
+                .unwrap(),
+            Value::DurationS(180)
+        );
+        sim.write(
+            &espresso,
+            "class.espresso_machine.brew_setpoint_c",
+            Value::F32(94.0),
+        )
+        .unwrap();
+        assert!(
+            (f32_val(
+                &sim.read_value(&espresso, "class.espresso_machine.brew_setpoint_c")
+                    .unwrap()
+            ) - 94.0)
+                .abs()
+                < f32::EPSILON
+        );
+
+        let err = sim
+            .write(
+                &espresso,
+                "class.espresso_machine.brew_pressure_bar",
+                Value::F32(9.0),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &espresso,
+                "class.espresso_machine.pump_on",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &espresso,
+                "class.espresso_machine.steam_wand_on",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &espresso,
+                "class.espresso_machine.boiler_ready",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &espresso,
+                "class.espresso_machine.high_temp_alarm",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &espresso,
+                "class.espresso_machine.water_tank_empty",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &espresso,
+                "class.espresso_machine.descaling_needed",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {
