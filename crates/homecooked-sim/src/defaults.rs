@@ -544,6 +544,18 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             _ => Value::F32(0.0),
         },
         "thermal_port_attached_reservoir_id" => Value::String(String::new()),
+        "turntable" => match ctx.identity.class_id {
+            ApplianceClassId::Microwave => Value::Bool(true),
+            _ => Value::Bool(false),
+        },
+        "power_w" => match ctx.identity.class_id {
+            ApplianceClassId::Microwave => Value::U16(1000),
+            _ => Value::U16(int_min(point, 0) as u16),
+        },
+        "inverter" => match ctx.identity.class_id {
+            ApplianceClassId::Microwave => Value::Bool(true),
+            _ => Value::Bool(false),
+        },
         _ => generic_default(point),
     }
 }

@@ -1080,7 +1080,10 @@ const MICROWAVE_PROGRAMS: &[&str] = &[
     "custom",
 ];
 
-static MICROWAVE_POINTS: &[CatalogPoint] = &[
+/// Thin microwave cook surface (required cook_s / power_level_percent + optional
+/// power_w / defrost / turntable / inverter / add_30s). Depth points live in
+/// `MICROWAVE_DEPTH` so optional Tier-A deepen does not rewrite the cook core.
+static MICROWAVE_BASE: &[CatalogPoint] = &[
     s(
         "cook_s",
         ValueType::DurationS,
@@ -1131,6 +1134,65 @@ static MICROWAVE_POINTS: &[CatalogPoint] = &[
     ),
     cmd("add_30s", Some(CatalogRange::CommandVoid), false),
 ];
+
+/// Microwave optional depth (Stream 7 undepened Tier-A). Cooking-appliance /
+/// laundry template (sabbath/eco/door/alarms/timer) + magnetron telemetry (RE,
+/// not raw RF control — power_level / cook_s remain the cook surface). Reuses
+/// thin-table `turntable` (not a parallel turntable_on). ChildLock already on
+/// typical traits.
+static MICROWAVE_DEPTH: &[CatalogPoint] = &[
+    s(
+        "sabbath_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    ),
+    s(
+        "eco_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "door_ajar",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "magnetron_on",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "high_temp_alarm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "timer_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 86400),
+        AccessMode::RWE,
+        false,
+    ),
+];
+
+const MICROWAVE_MERGED: [CatalogPoint; 13] = concat2(MICROWAVE_BASE, MICROWAVE_DEPTH);
+const MICROWAVE_POINTS: &[CatalogPoint] = &MICROWAVE_MERGED;
 
 const OVEN_TRAITS: &[TraitId] = &[
     TraitId::Identity,
