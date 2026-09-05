@@ -837,6 +837,12 @@ shake event, done.
 - Dual-basket units use two `zone`s with optional sync-finish.
 - A toaster-oven that air-fries is `toaster_oven` with an `air_fry` program,
   not this class.
+- Catalog depth: optional sabbath/eco/heater_on/fan_on/high_temp_alarm/
+  door_ajar/timer_s; typical also advertises thin-table shake_enable/shake_due/
+  preheat/basket_present/sync_finish. Does not duplicate required cook_s.
+  Heater/Fan/DoorLid traits already typical (`heater_state` / `fan_state` /
+  `door_state`); class `heater_on` / `fan_on` / `door_ajar` are compact RE
+  telemetry (dehydrator / oven template).
 
 ### `electric_grill`
 

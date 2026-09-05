@@ -7368,6 +7368,130 @@ mod tests {
     }
 
     #[test]
+    fn air_fryer_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let af = sim.spawn(ApplianceClassId::AirFryer).unwrap();
+
+        assert_eq!(
+            sim.read_value(&af, "class.air_fryer.shake_enable").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&af, "class.air_fryer.shake_due").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&af, "class.air_fryer.preheat").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&af, "class.air_fryer.basket_present")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(
+            sim.read_value(&af, "class.air_fryer.sync_finish").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&af, "class.air_fryer.sabbath_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&af, "class.air_fryer.eco_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&af, "class.air_fryer.heater_on").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&af, "class.air_fryer.fan_on").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&af, "class.air_fryer.high_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&af, "class.air_fryer.door_ajar").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&af, "class.air_fryer.timer_s").unwrap(),
+            Value::DurationS(0)
+        );
+        // Required cook surface unchanged.
+        assert_eq!(
+            sim.read_value(&af, "class.air_fryer.cook_s").unwrap(),
+            Value::DurationS(600)
+        );
+
+        sim.write(&af, "class.air_fryer.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&af, "class.air_fryer.sabbath_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&af, "class.air_fryer.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&af, "class.air_fryer.eco_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&af, "class.air_fryer.timer_s", Value::DurationS(1200))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&af, "class.air_fryer.timer_s").unwrap(),
+            Value::DurationS(1200)
+        );
+        sim.write(&af, "class.air_fryer.shake_enable", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&af, "class.air_fryer.shake_enable").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&af, "class.air_fryer.preheat", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&af, "class.air_fryer.preheat").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&af, "class.air_fryer.sync_finish", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&af, "class.air_fryer.sync_finish").unwrap(),
+            Value::Bool(true)
+        );
+
+        let err = sim
+            .write(&af, "class.air_fryer.shake_due", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&af, "class.air_fryer.basket_present", Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&af, "class.air_fryer.heater_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&af, "class.air_fryer.fan_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&af, "class.air_fryer.high_temp_alarm", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&af, "class.air_fryer.door_ajar", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn induction_hob_optional_depth_points_read_and_write() {
         let mut sim = Simulator::new();
         let hob = sim.spawn(ApplianceClassId::InductionHob).unwrap();

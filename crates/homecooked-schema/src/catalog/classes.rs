@@ -1678,7 +1678,10 @@ const AIR_FRYER_PROGRAMS: &[&str] = &[
     "custom",
 ];
 
-static AIR_FRYER_POINTS: &[CatalogPoint] = &[
+/// Thin air-fryer cook surface (required cook_s + shake/preheat/basket/sync).
+/// Depth points live in `AIR_FRYER_DEPTH` so optional Tier-A deepen does not
+/// rewrite the procedure cook core (`air_fryer_cook_200` uses cook_s).
+static AIR_FRYER_BASE: &[CatalogPoint] = &[
     s(
         "cook_s",
         ValueType::DurationS,
@@ -1729,6 +1732,67 @@ static AIR_FRYER_POINTS: &[CatalogPoint] = &[
         false,
     ),
 ];
+
+/// Air-fryer optional depth (Stream 7 undepened Tier-A). Hot-air cooking /
+/// dehydrator template (sabbath/eco/heater_on/fan_on/alarms/door/timer). Reuses
+/// thin-table `basket_present` (not a parallel basket_in). Do not duplicate
+/// required `cook_s`. Heater/Fan/DoorLid traits already typical (`heater_state`
+/// / `fan_state` / `door_state`); class `heater_on` / `fan_on` / `door_ajar` are
+/// compact RE telemetry like oven / dehydrator.
+static AIR_FRYER_DEPTH: &[CatalogPoint] = &[
+    s(
+        "sabbath_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    ),
+    s(
+        "eco_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "heater_on",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v("fan_on", ValueType::Bool, None, None, AccessMode::RE, false),
+    v(
+        "high_temp_alarm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "door_ajar",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "timer_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 86400),
+        AccessMode::RWE,
+        false,
+    ),
+];
+
+const AIR_FRYER_MERGED: [CatalogPoint; 13] = concat2(AIR_FRYER_BASE, AIR_FRYER_DEPTH);
+const AIR_FRYER_POINTS: &[CatalogPoint] = &AIR_FRYER_MERGED;
 
 const WASHER_DRYER_TRAITS: &[TraitId] = &[
     TraitId::Identity,

@@ -316,6 +316,29 @@ fn extra_typical_trait_point(table: &ClassTable, trait_id: TraitId, point: &Cata
 
 /// Optional class points that the typical model still advertises for demos.
 fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
+    // Stream 7 undepened Tier-A deepen: air_fryer optional telemetry/settings.
+    // Advertise thin-table shake_enable/shake_due/preheat/basket_present/sync_finish;
+    // add depth sabbath/eco/heater_on/fan_on/high_temp_alarm/door_ajar/timer_s.
+    // Do not duplicate required cook_s (already required). Heater/Fan/DoorLid
+    // traits already typical — class heater_on/fan_on/door_ajar are compact RE
+    // telemetry (dehydrator / oven template), not trait replacements.
+    if table.class_id == ApplianceClassId::AirFryer {
+        return matches!(
+            point.id,
+            "shake_enable"
+                | "shake_due"
+                | "preheat"
+                | "basket_present"
+                | "sync_finish"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "heater_on"
+                | "fan_on"
+                | "high_temp_alarm"
+                | "door_ajar"
+                | "timer_s"
+        );
+    }
     // Stream 7 undepened Tier-A deepen: oven optional telemetry/settings.
     // Advertise thin-table broil/convection/steam/cook/door_locked_clean/elements;
     // add OVEN_DEPTH sabbath/eco/heater_on/high_temp_alarm/door_ajar/timer_s.
@@ -5182,6 +5205,113 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("trait.temperature.preheat_complete", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn air_fryer_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::AirFryer).unwrap();
+        for id in [
+            // Required cook surface still present.
+            "class.air_fryer.cook_s",
+            // Thin-table optional advertised in typical.
+            "class.air_fryer.shake_enable",
+            "class.air_fryer.shake_due",
+            "class.air_fryer.preheat",
+            "class.air_fryer.basket_present",
+            "class.air_fryer.sync_finish",
+            // Depth points.
+            "class.air_fryer.sabbath_mode",
+            "class.air_fryer.eco_mode",
+            "class.air_fryer.heater_on",
+            "class.air_fryer.fan_on",
+            "class.air_fryer.high_temp_alarm",
+            "class.air_fryer.door_ajar",
+            "class.air_fryer.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical air_fryer"
+            );
+        }
+        // Heater / Fan / DoorLid traits already typical.
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Heater)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.heater.heater_state"));
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Fan)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.fan.fan_state"));
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::DoorLid)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.door_lid.door_state"));
+        // Single kitchen timer_s — distinct from required cook_s.
+        assert_eq!(
+            cap.class_points
+                .iter()
+                .filter(|p| p.id == "class.air_fryer.timer_s")
+                .count(),
+            1
+        );
+        assert_eq!(
+            cap.class_points
+                .iter()
+                .filter(|p| p.id == "class.air_fryer.cook_s")
+                .count(),
+            1
+        );
+
+        cap.validate_write("class.air_fryer.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.air_fryer.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.air_fryer.timer_s", &Value::DurationS(1800))
+            .unwrap();
+        cap.validate_write("class.air_fryer.shake_enable", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.air_fryer.preheat", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.air_fryer.sync_finish", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.air_fryer.cook_s", &Value::DurationS(900))
+            .unwrap();
+        let err = cap
+            .validate_write("class.air_fryer.shake_due", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.air_fryer.basket_present", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.air_fryer.heater_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.air_fryer.fan_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.air_fryer.high_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.air_fryer.door_ajar", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }
