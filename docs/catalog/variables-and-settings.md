@@ -1609,10 +1609,16 @@ Cycle remaining via `trait.cycle.remaining_s`. Setpoint resolution typically 0.1
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
 | `run_s` | duration_s | second | 1–60 | r/w | opt | Max pulse length |
-| `jam` | bool | — | | r/e | opt | |
-| `reset_needed` | bool | — | | r/e | opt | Overload |
-| `reverse` | command | void | — | w | opt | |
+| `jam` | bool | — | | r/e | opt | Impeller / grind chamber jammed |
+| `reset_needed` | bool | — | | r/e | opt | Manual reset after overload / jam |
+| `reverse` | command | void | — | w | opt | Reverse grind direction |
 | `run` | command | optional `run_s` | w | req | Timed pulse; default deny if `remote_control_enabled` is false |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving grind profile |
+| `motor_on` | bool | — | | r/e | opt | Disposer motor running |
+| `overload_trip` | bool | — | | r/e | opt | Overcurrent / thermal overload trip |
+| `air_switch` | bool | — | | r/w | opt | Air-switch control enabled |
+| `timer_s` | duration_s | second | 0–3600 | r/w/e | opt | Delay start / remaining timer |
 
 ---
 

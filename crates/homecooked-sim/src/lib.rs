@@ -5129,6 +5129,120 @@ mod tests {
     }
 
     #[test]
+    fn garbage_disposal_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let gd = sim.spawn(ApplianceClassId::GarbageDisposal).unwrap();
+
+        assert_eq!(
+            sim.read_value(&gd, "class.garbage_disposal.run_s").unwrap(),
+            Value::DurationS(15)
+        );
+        assert_eq!(
+            sim.read_value(&gd, "class.garbage_disposal.jam").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&gd, "class.garbage_disposal.reset_needed")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&gd, "class.garbage_disposal.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&gd, "class.garbage_disposal.eco_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&gd, "class.garbage_disposal.motor_on")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&gd, "class.garbage_disposal.overload_trip")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&gd, "class.garbage_disposal.air_switch")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&gd, "class.garbage_disposal.timer_s")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+
+        sim.write(&gd, "class.garbage_disposal.run_s", Value::DurationS(30))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&gd, "class.garbage_disposal.run_s").unwrap(),
+            Value::DurationS(30)
+        );
+        sim.write(
+            &gd,
+            "class.garbage_disposal.sabbath_mode",
+            Value::Bool(true),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&gd, "class.garbage_disposal.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&gd, "class.garbage_disposal.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&gd, "class.garbage_disposal.eco_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&gd, "class.garbage_disposal.air_switch", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&gd, "class.garbage_disposal.air_switch")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&gd, "class.garbage_disposal.timer_s", Value::DurationS(45))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&gd, "class.garbage_disposal.timer_s")
+                .unwrap(),
+            Value::DurationS(45)
+        );
+
+        let err = sim
+            .write(&gd, "class.garbage_disposal.jam", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &gd,
+                "class.garbage_disposal.reset_needed",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&gd, "class.garbage_disposal.motor_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &gd,
+                "class.garbage_disposal.overload_trip",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {

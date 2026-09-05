@@ -1346,11 +1346,11 @@ Food waste disposer under a sink.
 **Typical traits:** `identity`, `power`, `connectivity`, `motor`, `cycle`,
 `fault`, `energy`, `safety`, `audio` (optional).
 
-**Typical controllable settings:** run (momentary or timed), reverse (if
-supported), air-switch enable, batch-feed interlock ignore is **not** allowed.
+**Typical controllable settings:** timed `run_s` / `run` pulse; reverse; air
+switch enable; sabbath / eco; delay timer. Batch-feed interlock ignore is
+**not** allowed.
 
-**Typical readable state:** running, jam, overcurrent, reset needed, lid /
-batch-feed stopper (if sensed).
+**Typical readable state:** motor on, jam, overload trip, reset needed.
 
 **Notes:**
 
@@ -1358,6 +1358,10 @@ batch-feed stopper (if sensed).
   and require `remote_enable`. Default deny unattended start.
 - Not a dishwasher. Dishwasher drain through a disposal is plumbing, not a
   HomeCooked relationship.
+
+- Catalog depth: optional class points include sabbath, eco, `motor_on`,
+  `overload_trip`, `air_switch`, and `timer_s`, plus thin-table `run_s` /
+  `jam` / `reset_needed` / `reverse` (see variables-and-settings).
 
 ### `trash_compactor`
 
