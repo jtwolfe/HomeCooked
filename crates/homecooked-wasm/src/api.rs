@@ -1298,7 +1298,7 @@ mod tests {
     ) {
         let items: Vec<ExampleProcedureInfo> =
             serde_json::from_str(&WasmApi::list_example_procedures()).unwrap();
-        assert_eq!(items.len(), 11);
+        assert_eq!(items.len(), 12);
         assert_eq!(items[0].id, "kettle_heat_80");
         assert_eq!(items[0].name, "Heat kettle to 80C");
         assert!(items[0].class_hints.iter().any(|c| c == "kettle"));
@@ -1330,15 +1330,19 @@ mod tests {
         assert_eq!(items[9].name, "Soft-decline / fallback fridge→DHW offer");
         assert!(items[9].class_hints.is_empty());
         assert!(items[9].thermal);
-        assert_eq!(items[10].id, "wait_dhw_with_requeue");
-        assert_eq!(
-            items[10].name,
-            "Wait for DHW while re-queuing fridge→DHW transfer"
-        );
+        assert_eq!(items[10].id, "offer_fridge_dhw_counter");
+        assert_eq!(items[10].name, "Counter then accept fridge→DHW offer");
         assert!(items[10].class_hints.is_empty());
         assert!(items[10].thermal);
+        assert_eq!(items[11].id, "wait_dhw_with_requeue");
+        assert_eq!(
+            items[11].name,
+            "Wait for DHW while re-queuing fridge→DHW transfer"
+        );
+        assert!(items[11].class_hints.is_empty());
+        assert!(items[11].thermal);
         assert!(!items[0].thermal);
-        assert_eq!(items.iter().filter(|i| i.thermal).count(), 4);
+        assert_eq!(items.iter().filter(|i| i.thermal).count(), 5);
     }
 
     #[test]
@@ -1411,6 +1415,14 @@ mod tests {
         assert_eq!(summary.id, "offer_fridge_dhw_soft");
         assert_eq!(summary.step_count, 1);
         assert!(summary.devices.is_empty());
+
+        let counter = WasmApi::get_example_procedure("offer_fridge_dhw_counter").unwrap();
+        let summary: ProcedureSummary =
+            serde_json::from_str(&WasmApi::parse_procedure(&counter).unwrap()).unwrap();
+        assert_eq!(summary.id, "offer_fridge_dhw_counter");
+        assert_eq!(summary.step_count, 1);
+        assert!(summary.devices.is_empty());
+        assert!(summary.thermal);
 
         let requeue = WasmApi::get_example_procedure("wait_dhw_with_requeue").unwrap();
         let summary: ProcedureSummary =
@@ -1832,6 +1844,29 @@ mod tests {
             msg.contains("fallback") || msg.contains("accepted"),
             "msg={msg}"
         );
+        let state: serde_json::Value = serde_json::from_str(&api.thermal_state().unwrap()).unwrap();
+        assert_eq!(state["loaded"], true);
+    }
+
+    #[test]
+    fn run_thermal_procedure_counter_attaches_plant() {
+        let mut api = WasmApi::new();
+        let raw = api
+            .run_thermal_procedure("offer_fridge_dhw_counter")
+            .unwrap();
+        let out: ProcedureRunOut = serde_json::from_str(&raw).unwrap();
+        assert_eq!(out.status, "completed", "counter offer failed: {raw}");
+        assert_eq!(out.outcomes.len(), 1);
+        assert!(out.outcomes[0].ok);
+        assert_eq!(out.outcomes[0].action, StepAction::ThermalOffer);
+        let accepted = out.outcomes[0]
+            .read_value
+            .as_ref()
+            .and_then(|v| v.as_i64())
+            .unwrap();
+        assert_eq!(accepted, 120);
+        let msg = out.outcomes[0].message.as_deref().unwrap_or("");
+        assert!(msg.contains("counter"), "msg={msg}");
         let state: serde_json::Value = serde_json::from_str(&api.thermal_state().unwrap()).unwrap();
         assert_eq!(state["loaded"], true);
     }

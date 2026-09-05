@@ -1,7 +1,7 @@
 {
   "id": "offer_fridge_dhw_soft",
   "name": "Soft-decline / fallback fridge→DHW offer",
-  "description": "Thin multi-round procedure⇄thermal: first power band min exceeds the fridge condenser max (plant declines), then fallback_power_w retries once at 80–120 W and accepts. on_decline=continue soft-continues if even the fallback declines. Requires SimulatorBackend + ThermalPlant (fridge_condenser_dhw_demo). See wait_dhw_with_requeue for continuous re-queue across wait polls; dedicated thin wasm UI: simulator-web Thermal procedures + run_thermal_procedure.",
+  "description": "Thin multi-round procedure⇄thermal: first power band min exceeds the fridge condenser max (plant Counters; without accept_counter this path still triggers fallback_power_w), then fallback_power_w retries once at 80–120 W and accepts. on_decline=continue soft-continues if even the fallback declines/counters unanswered. See offer_fridge_dhw_counter for accept_counter. Requires SimulatorBackend + ThermalPlant (fridge_condenser_dhw_demo). Dedicated thin wasm UI: simulator-web Thermal procedures + run_thermal_procedure.",
   "catalog_version": "0.1.0",
   "protocol_version": "0.1.0",
   "devices": [],

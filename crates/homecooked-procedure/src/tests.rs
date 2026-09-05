@@ -72,6 +72,7 @@ fn bundled_example_constants_parse() {
             "wait_dhw_reservoir",
             "offer_fridge_dhw",
             "offer_fridge_dhw_soft",
+            "offer_fridge_dhw_counter",
             "wait_dhw_with_requeue",
         ]
     );
@@ -1071,8 +1072,8 @@ fn thermal_offer_on_decline_defaults_to_fail() {
 }
 
 #[test]
-fn thermal_offer_soft_continue_on_decline() {
-    // Negotiate declines when offer min exceeds condenser max (120 W); soft continue.
+fn thermal_offer_soft_continue_on_unanswered_counter() {
+    // Negotiate Counters when offer min exceeds condenser max (120 W); soft continue.
     let raw = r#"{
       "id": "soft",
       "name": "soft",
@@ -1091,14 +1092,19 @@ fn thermal_offer_soft_continue_on_decline() {
     let result = run(&doc, &mut backend, &DeviceBindings::new());
     assert!(
         result.is_completed(),
-        "expected completed soft decline, got {:?}",
+        "expected completed soft counter, got {:?}",
         result.status
     );
     assert_eq!(result.outcomes.len(), 1);
     assert!(result.outcomes[0].ok);
-    assert!(result.outcomes[0].read_value.is_none());
+    let suggested = result.outcomes[0]
+        .read_value
+        .as_ref()
+        .and_then(|v| v.as_i64())
+        .unwrap();
+    assert_eq!(suggested, 120);
     let msg = result.outcomes[0].message.as_deref().unwrap_or("");
-    assert!(msg.contains("declined"), "{msg}");
+    assert!(msg.contains("countered"), "{msg}");
     assert!(msg.contains("continuing"), "{msg}");
 }
 
@@ -1141,10 +1147,10 @@ fn thermal_offer_fallback_accepts_after_high_min_decline() {
 }
 
 #[test]
-fn thermal_offer_fallback_then_soft_continue_when_both_decline() {
-    // Both primary and fallback mins exceed condenser max → final soft continue.
+fn thermal_offer_fallback_then_soft_continue_when_both_counter() {
+    // Both primary and fallback mins exceed condenser max → Counter each time → soft continue.
     let raw = r#"{
-      "id": "both_decline",
+      "id": "both_counter",
       "name": "both",
       "steps": [{
         "id": "o",
@@ -1162,13 +1168,19 @@ fn thermal_offer_fallback_then_soft_continue_when_both_decline() {
     let result = run(&doc, &mut backend, &DeviceBindings::new());
     assert!(result.is_completed(), "{:?}", result.status);
     assert!(result.outcomes[0].ok);
-    assert!(result.outcomes[0].read_value.is_none());
+    let suggested = result.outcomes[0]
+        .read_value
+        .as_ref()
+        .and_then(|v| v.as_i64())
+        .unwrap();
+    assert_eq!(suggested, 120);
     let msg = result.outcomes[0].message.as_deref().unwrap_or("");
     assert!(msg.contains("continuing"), "{msg}");
+    assert!(msg.contains("countered"), "{msg}");
 }
 
 #[test]
-fn thermal_offer_high_min_without_fallback_fails_by_default() {
+fn thermal_offer_high_min_without_accept_counter_fails_by_default() {
     let raw = r#"{
       "id": "high",
       "name": "high",
@@ -1189,12 +1201,65 @@ fn thermal_offer_high_min_without_fallback_fails_by_default() {
         Some(FailReason::Backend { code, message }) => {
             assert_eq!(*code, ErrorCode::InvalidRequest);
             assert!(
-                message.contains("declined") || message.contains("below offer min"),
+                message.contains("countered") || message.contains("below offer min"),
                 "{message}"
             );
         }
         other => panic!("expected fail, got {other:?}"),
     }
+}
+
+#[test]
+fn parse_offer_fridge_dhw_counter_fixture() {
+    let doc = Procedure::load_json(crate::OFFER_FRIDGE_DHW_COUNTER_JSON).unwrap();
+    assert_eq!(doc.id, "offer_fridge_dhw_counter");
+    assert_eq!(doc.steps.len(), 1);
+    let step = &doc.steps[0];
+    assert_eq!(step.action, StepAction::ThermalOffer);
+    assert!(step.accept_counter);
+    let band = step.power_w.unwrap();
+    assert_eq!(band.min, 150);
+    assert_eq!(band.max, 200);
+    assert!(step.fallback_power_w.is_none());
+}
+
+#[test]
+fn thermal_offer_accept_counter_auto_accepts_suggested_band() {
+    let doc = Procedure::load_json(crate::OFFER_FRIDGE_DHW_COUNTER_JSON).unwrap();
+    let plant = ThermalPlant::fridge_condenser_dhw_demo().unwrap();
+    let start = plant.get_reservoir("dhw-tank").unwrap().temp_c.unwrap();
+    assert!((start - 35.0).abs() < 1e-3, "start={start}");
+
+    let mut backend = SimulatorBackend::with_plant(Simulator::new(), plant);
+    let result = run(&doc, &mut backend, &DeviceBindings::new());
+    assert!(
+        result.is_completed(),
+        "expected completed, got {:?}",
+        result.status
+    );
+    assert_eq!(result.outcomes.len(), 1);
+    assert!(result.outcomes[0].ok);
+    let accepted = result.outcomes[0]
+        .read_value
+        .as_ref()
+        .and_then(|v| v.as_i64())
+        .unwrap();
+    assert_eq!(accepted, 120);
+    let msg = result.outcomes[0].message.as_deref().unwrap_or("");
+    assert!(msg.contains("counter"), "{msg}");
+    assert!(msg.contains("accepted"), "{msg}");
+
+    let end = backend
+        .plant()
+        .unwrap()
+        .get_reservoir("dhw-tank")
+        .unwrap()
+        .temp_c
+        .unwrap();
+    assert!(
+        (end - 36.2).abs() < 1e-3,
+        "end={end} (expected ~36.2 after 3600s at 120 W)"
+    );
 }
 
 #[test]

@@ -1,4 +1,4 @@
-//! Plant objects and the offer / accept / decline dialogue.
+//! Plant objects and the offer / accept / decline / counter dialogue.
 //!
 //! Shapes follow [`docs/standard/thermal-plant.md`](../../../docs/standard/thermal-plant.md)
 //! §§3–6. Plant runtime types (`Reservoir`, `HeatPort`, transfer dialogue) stay
@@ -278,12 +278,33 @@ impl TransferDecline {
     }
 }
 
-/// Offer reply (accept may partial-fill).
+/// Counter-offer when the plant can supply some power but below the offered min.
+///
+/// Suggested band is typically `{ min: available, max: available }` so a
+/// follow-up accept / re-offer can fill without silent partial below the
+/// original `power_w.min`. Plant state is unchanged until Accept.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TransferCounter {
+    pub suggested_power_w: PowerBandW,
+    pub reason: String,
+}
+
+impl TransferCounter {
+    pub fn new(suggested_power_w: PowerBandW, reason: impl Into<String>) -> Self {
+        Self {
+            suggested_power_w,
+            reason: reason.into(),
+        }
+    }
+}
+
+/// Offer reply (accept may partial-fill; counter suggests a lower band).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "kind")]
 pub enum TransferReply {
     Accept(TransferAccept),
     Decline(TransferDecline),
+    Counter(TransferCounter),
 }
 
 impl TransferReply {
@@ -293,6 +314,10 @@ impl TransferReply {
 
     pub fn is_decline(&self) -> bool {
         matches!(self, Self::Decline(_))
+    }
+
+    pub fn is_counter(&self) -> bool {
+        matches!(self, Self::Counter(_))
     }
 }
 

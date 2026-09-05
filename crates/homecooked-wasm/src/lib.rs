@@ -209,6 +209,15 @@ mod tests {
     }
 
     #[test]
+    fn bindgen_run_thermal_procedure_counter() {
+        let raw = run_thermal_procedure("offer_fridge_dhw_counter").unwrap();
+        assert!(raw.contains("completed"));
+        assert!(raw.contains("thermal_offer"));
+        assert!(raw.contains("counter"));
+        assert!(raw.contains("120"));
+    }
+
+    #[test]
     fn bindgen_thermal_demo_raises_dhw() {
         let empty = thermal_state().unwrap();
         assert!(empty.contains("\"loaded\":false") || empty.contains("\"loaded\": false"));

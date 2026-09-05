@@ -1,0 +1,20 @@
+{
+  "id": "offer_fridge_dhw_counter",
+  "name": "Counter then accept fridge→DHW offer",
+  "description": "Typed multi-round procedure⇄thermal: first power band min exceeds the fridge condenser max (plant Counters with suggested 120 W). accept_counter=true auto-reoffers the suggested band and accepts. Requires SimulatorBackend + ThermalPlant (fridge_condenser_dhw_demo). Contrast offer_fridge_dhw_soft (fallback_power_w after Counter/Decline). Dedicated thin wasm UI: simulator-web Thermal procedures + run_thermal_procedure.",
+  "catalog_version": "0.1.0",
+  "protocol_version": "0.1.0",
+  "devices": [],
+  "steps": [
+    {
+      "id": "offer_accept_counter",
+      "action": "thermal_offer",
+      "from_port": { "device_id": "fridge-kitchen", "port_id": "condenser" },
+      "to_port": { "device_id": "water-heater-plant", "port_id": "preheat" },
+      "power_w": { "min": 150, "max": 200 },
+      "duration_s": 3600,
+      "priority": 1,
+      "accept_counter": true
+    }
+  ]
+}

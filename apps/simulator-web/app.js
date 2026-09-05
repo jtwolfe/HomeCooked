@@ -680,6 +680,12 @@ function listExampleProcedures() {
         thermal: true,
       },
       {
+        id: "offer_fridge_dhw_counter",
+        name: "Counter then accept fridge→DHW offer",
+        class_hints: [],
+        thermal: true,
+      },
+      {
         id: "wait_dhw_with_requeue",
         name: "Wait for DHW while re-queuing fridge→DHW transfer",
         class_hints: [],
@@ -707,6 +713,7 @@ const THERMAL_PROCEDURE_LABELS = {
   wait_dhw_reservoir: "Wait DHW (prime + wait)",
   offer_fridge_dhw: "Offer fridge→DHW",
   offer_fridge_dhw_soft: "Soft decline + fallback",
+  offer_fridge_dhw_counter: "Counter then accept",
   wait_dhw_with_requeue: "Wait + requeue",
 };
 
@@ -843,25 +850,36 @@ function renderProcedureResult(result) {
   }
 }
 
-/** Surface accept power / soft decline / requeue / final temp from run_procedure fields. */
+/** Surface accept power / counter / soft decline / requeue / final temp from run_procedure fields. */
 function thermalStepBadges(step) {
   const action = step.action;
   const msg = step.message || "";
   const badges = [];
   if (action !== "thermal_offer" && action !== "thermal_wait") return badges;
   if (action === "thermal_offer") {
-    if (msg.includes("after fallback") || msg.includes("fallback")) {
+    if (msg.includes("after fallback") || (msg.includes("fallback") && msg.includes("accepted"))) {
       badges.push({ label: "fallback accept", cls: "badge-fallback" });
     }
+    if (msg.includes("after counter") || (msg.includes("counter") && msg.includes("accepted"))) {
+      badges.push({ label: "counter accept", cls: "badge-counter" });
+    } else if (msg.includes("countered")) {
+      badges.push({ label: "counter", cls: "badge-counter" });
+    }
     if (msg.includes("continuing")) {
-      badges.push({ label: "soft decline → continue", cls: "badge-soft" });
+      const soft = msg.includes("countered")
+        ? "soft counter → continue"
+        : "soft decline → continue";
+      badges.push({ label: soft, cls: "badge-soft" });
     } else if (msg.includes("declined") && !step.ok) {
       badges.push({ label: "declined", cls: "badge-decline" });
     }
     if (step.read_value != null) {
+      const accepted = msg.includes("accepted");
       badges.push({
-        label: `accept ${displayValue(step.read_value)} W`,
-        cls: "badge-accept",
+        label: accepted
+          ? `accept ${displayValue(step.read_value)} W`
+          : `suggested ${displayValue(step.read_value)} W`,
+        cls: accepted ? "badge-accept" : "badge-counter",
       });
     }
   }

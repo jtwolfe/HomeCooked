@@ -741,6 +741,11 @@ button.cmd {
   color: #92400e;
 }
 
+.step-badge.badge-counter {
+  background: #fae8ff;
+  color: #86198f;
+}
+
 .step-badge.badge-soft {
   background: #e0e7ff;
   color: #3730a3;
