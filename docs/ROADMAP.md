@@ -72,17 +72,18 @@ mocks + write-denial matrix + **optional-depth deepen series** on
 `dehumidifier` / `range_hood` / `steam_oven` / `cooktop` / `humidifier` /
 `freezer` / `fridge_freezer` / `beverage_cooler` / `kegerator` / `warming_drawer` / `pizza_oven` / `electric_grill` / `electric_smoker` / `espresso_machine` / `drip_coffee_maker` / `coffee_grinder` / `water_dispenser` / `toaster` / `blender` / `food_processor` / `stand_mixer` / `juicer` / `rice_cooker` / `slow_cooker` / `bread_maker` / `dehydrator` / `vacuum_sealer` / `ice_cream_maker` / `yogurt_maker` / `waffle_maker` / `pasta_maker` / `steam_cooker` / `garbage_disposal` / `trash_compactor` / `boiler` / `water_softener` / `water_filter` / `washer` / `dryer` / `washer_dryer` / `fridge` / `dishwasher` / `microwave` / `oven` / `range` / `induction_hob` / `air_fryer` / `kettle` / `coffee_machine` / `water_heater` / `hvac` ≈ **~75% of the §2 in-scope bar, met in spirit** for
 lab/software depth (was ~30% at roadmap start; ~72% at the v0.1.35 refresh; still
-~75% after the deepen wave — all 31 Tier-B have optional-depth passes; all listed undepened Tier-A classes now have optional-depth passes (`washer` + `dryer` + `washer_dryer` + `fridge` + `dishwasher` + `microwave` + `oven` + `range` + `induction_hob` + `air_fryer` + `kettle` + `coffee_machine` + `water_heater` + `hvac`); honest caveats still apply for real bridges, TLS, typical_capability, etc.).
+~75% after the deepen wave — all 31 Tier-B have optional-depth passes; all listed undepened Tier-A classes now have optional-depth passes (`washer` + `dryer` + `washer_dryer` + `fridge` + `dishwasher` + `microwave` + `oven` + `range` + `induction_hob` + `air_fryer` + `kettle` + `coffee_machine` + `water_heater` + `hvac`); honest caveats still apply for real bridges, TLS, etc.).
 Recent grind: schema thermal vocab + `ClassTable.thermal_ports` + heat-port UI
 (#54–#55, #59); washer cotton-over-TCP (#60) + **dryer cycle TCP** (#62);
 thin **`thermal_offer`** (#65); catalog optional-depth PRs **#56–#57, #63–#64,
 #66–#73** + `beverage_cooler` / `kegerator` / `warming_drawer` / `pizza_oven` / `electric_grill` / `electric_smoker` / `espresso_machine` / `drip_coffee_maker` / `coffee_grinder` / `water_dispenser` / `toaster` / `blender` / `food_processor` / `stand_mixer` / `juicer` / `rice_cooker` / `slow_cooker` / `bread_maker` / `dehydrator` / `vacuum_sealer` / `ice_cream_maker` / `yogurt_maker` / `waffle_maker` / `pasta_maker` / `steam_cooker` / `garbage_disposal` / `trash_compactor` / `boiler` / `water_softener` / `water_filter` / `washer` / `dryer` / `washer_dryer` / `fridge` / `dishwasher` / `microwave` / `oven` / `range` / `induction_hob` / `air_fryer` / `kettle` / `coffee_machine` / `water_heater` / `hvac` (the fifty-six classes above; undepened Tier-A deepen series: `washer` + `dryer` + `washer_dryer` + `fridge` + `dishwasher` + `microwave` + `oven` + `range` + `induction_hob` + `air_fryer` + `kettle` + `coffee_machine` + `water_heater` + `hvac`). Calling the target **substantially
 achieved** remains honest — not that every §2 bullet is production-complete or
-that real bridge SDKs / TLS / typical_capability are done. This is **not** IEC certification,
+that real bridge SDKs / TLS are done. This is **not** IEC certification,
 production firmware, or a shipping commercial appliance. Remaining work is depth
 beyond the lab bar (real bridge SDK, full plant runtime schema promotion, TLS,
-richer procedure⇄thermal dialogue beyond offer+immediate-accept,
-typical_capability over wire).
+richer procedure⇄thermal dialogue beyond offer+immediate-accept; washer/dryer
+lab typical_capability-over-wire landed — full HAL binding for every typical
+point still not required).
 
 ---
 
