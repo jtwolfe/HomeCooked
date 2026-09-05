@@ -1523,10 +1523,20 @@ Humidity setpoint via `trait.humidity.setpoint_rh`; fan speed via
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `output_level` | u8 | — | 1–max | r/w | opt | |
-| `mist_type` | enum | — | `cool` `warm` `steam` `evaporative` | r | opt | |
-| `water_empty` | bool | — | | r/e | req | |
-| `wick_state` | enum | — | `ok` `replace` `na` | r/e | opt | |
+| `output_level` | u8 | — | 1–10 | r/w | opt | Mist / output intensity |
+| `mist_type` | enum | — | `cool` `warm` `steam` `evaporative` | r | opt | Hardware mist capability |
+| `water_empty` | bool | — | | r/e | req | Dry tank / stop misting |
+| `wick_state` | enum | — | `ok` `replace` `na` | r/e | opt | Evaporative wick condition |
+| `warm_mist` | bool | — | | r/w | opt | Warm mist enabled (when dual-mode) |
+| `auto_humidity` | bool | — | | r/w | opt | Follow `trait.humidity.setpoint_rh` |
+| `mineral_filter` | bool | — | | r/e | opt | Demineralization cartridge needs replace |
+| `uv_clean` | bool | — | | r/w | opt | UV sterilization lamp enabled |
+| `scale_alert` | bool | — | | r/e | opt | Mineral scale buildup detected |
+| `tank_removed` | bool | — | | r/e | opt | Water tank not seated |
+| `misting` | bool | — | | r/e | opt | Currently producing mist |
+| `night_mode` | bool | — | | r/w | opt | Quiet / dim night operation |
+
+Humidity setpoint via `trait.humidity.setpoint_rh`.
 
 ---
 

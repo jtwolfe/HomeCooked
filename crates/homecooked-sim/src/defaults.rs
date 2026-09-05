@@ -304,12 +304,22 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
         "current_rh" => match ctx.identity.class_id {
             ApplianceClassId::WineCooler => Value::Percent(60.0),
             ApplianceClassId::Dehumidifier => Value::Percent(55.0),
+            ApplianceClassId::Humidifier => Value::Percent(40.0),
             _ => Value::Percent(0.0),
         },
         "setpoint_rh" => match ctx.identity.class_id {
             ApplianceClassId::WineCooler => Value::Percent(60.0),
             ApplianceClassId::Dehumidifier => Value::Percent(45.0),
+            ApplianceClassId::Humidifier => Value::Percent(45.0),
             _ => Value::Percent(0.0),
+        },
+        "output_level" => match ctx.identity.class_id {
+            ApplianceClassId::Humidifier => Value::U8(3),
+            _ => Value::U8(int_min(point, 0) as u8),
+        },
+        "wick_state" => match ctx.identity.class_id {
+            ApplianceClassId::Humidifier => Value::Enum("ok".into()),
+            _ => first_enum(point).unwrap_or_else(|| Value::Enum("unknown".into())),
         },
         "spin_rpm" => Value::U16(800),
         "cook_s" => Value::DurationS(600),

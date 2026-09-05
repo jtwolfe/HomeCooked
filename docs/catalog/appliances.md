@@ -1387,12 +1387,17 @@ whitegoods.
 **Typical traits:** `identity`, `power`, `connectivity`, `humidity`, `water`,
 `fault`, `energy`, `maintenance`, `safety`.
 
-**Typical controllable settings:** humidity setpoint, output level, warm vs
-cool mist.
+**Typical controllable settings:** humidity setpoint (% RH), output level, warm
+mist, auto humidity, UV clean, night / quiet mode.
 
-**Typical readable state:** RH, water empty, scale, filter / wick life.
+**Typical readable state:** RH, water empty, tank removed, misting, mist type,
+wick state, mineral filter, scale alert.
 
-**Notes:** Safety: ultrasonic units may expose a dry-tank interlock. Whole-home
+**Notes:** Safety: ultrasonic units may expose a dry-tank interlock
+(`water_empty` / `tank_removed`). Catalog depth: optional class points include
+warm_mist / auto_humidity / mineral_filter / uv_clean / scale_alert /
+tank_removed / misting / night_mode plus existing output_level / mist_type /
+wick_state; typical also advertises `trait.humidity.setpoint_rh`. Whole-home
 bypass humidifiers attached to HVAC ducts can be this class or a trait on
 `hvac` if they are not independently addressed.
 

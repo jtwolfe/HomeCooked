@@ -233,6 +233,13 @@ fn extra_typical_trait_point(table: &ClassTable, trait_id: TraitId, point: &Cata
             return true;
         }
     }
+    // Humidifier: humidity setpoint is a typical comfort control.
+    if table.class_id == ApplianceClassId::Humidifier
+        && trait_id == TraitId::Humidity
+        && point.id == "setpoint_rh"
+    {
+        return true;
+    }
     // Range hood: fan speed + light dimming + grease-filter life are typical.
     if table.class_id == ApplianceClassId::RangeHood {
         if trait_id == TraitId::Fan && point.id == "fan_speed" {
@@ -405,6 +412,23 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "element_fault"
                 | "pan_detect"
                 | "flame_on"
+        );
+    }
+    // Stream 7 catalog depth: humidifier optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::Humidifier {
+        return matches!(
+            point.id,
+            "output_level"
+                | "mist_type"
+                | "wick_state"
+                | "warm_mist"
+                | "auto_humidity"
+                | "mineral_filter"
+                | "uv_clean"
+                | "scale_alert"
+                | "tank_removed"
+                | "misting"
+                | "night_mode"
         );
     }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
@@ -1395,6 +1419,79 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.cooktop.residual_heat#hob_1", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn humidifier_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::Humidifier).unwrap();
+        for id in [
+            "class.humidifier.output_level",
+            "class.humidifier.mist_type",
+            "class.humidifier.water_empty",
+            "class.humidifier.wick_state",
+            "class.humidifier.warm_mist",
+            "class.humidifier.auto_humidity",
+            "class.humidifier.mineral_filter",
+            "class.humidifier.uv_clean",
+            "class.humidifier.scale_alert",
+            "class.humidifier.tank_removed",
+            "class.humidifier.misting",
+            "class.humidifier.night_mode",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical humidifier"
+            );
+        }
+        let humidity = cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Humidity)
+            .unwrap();
+        assert!(humidity
+            .points
+            .iter()
+            .any(|p| p.id == "trait.humidity.setpoint_rh"));
+        cap.validate_write("class.humidifier.output_level", &Value::U8(5))
+            .unwrap();
+        cap.validate_write("class.humidifier.warm_mist", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.humidifier.auto_humidity", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.humidifier.uv_clean", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.humidifier.night_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("trait.humidity.setpoint_rh", &Value::Percent(50.0))
+            .unwrap();
+        let err = cap
+            .validate_write("class.humidifier.mist_type", &Value::Enum("cool".into()))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.humidifier.water_empty", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.humidifier.wick_state", &Value::Enum("ok".into()))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.humidifier.mineral_filter", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.humidifier.scale_alert", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.humidifier.tank_removed", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.humidifier.misting", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }
