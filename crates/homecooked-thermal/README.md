@@ -72,6 +72,12 @@ cargo test -p homecooked-thermal
 The filter matches the unit demo `demo_fridge_condenser_to_dhw_preheat` and
 the integration test in `tests/fridge_condenser_dhw.rs`.
 
+**Dual-path (thermal + dishwasher procedure):** after this plant raises DHW,
+run `dishwasher_dhw_preheat` (or wasm / conformance
+`thermal_then_dishwasher_preheat`) so dishwasher eco + wash_temp reflect warm
+inlet availability. See
+[`docs/standard/thermal-plant.md`](../../docs/standard/thermal-plant.md) §8.1.
+
 ## Still sketch / vendor / experimental
 
 - No wire encoding; no `homecooked-schema` catalog types or sim port

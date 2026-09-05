@@ -24,6 +24,9 @@ Also covered by `cargo test --workspace` (CI).
    `homecooked-procedure` against the sim
 4. **thermal_fridge_dhw_demo** — fridge condenser → DHW preheat via
    `homecooked-thermal`
+4b. **thermal_then_dishwasher_preheat** — dual-path: thermal fridge→DHW
+   (assert DHW rose), then `dishwasher_dhw_preheat` procedure writes eco +
+   wash_temp reflecting preheat available
 5. **modbus_water_heater_roundtrip** — Modbus map ↔ HomeCooked points via
    `homecooked-bridge`
 6. **matter_kettle_roundtrip** — Matter mock fabric ↔ HomeCooked kettle points

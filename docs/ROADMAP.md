@@ -260,7 +260,8 @@ multiple small PRs.
    protocol major-version rejection, representative write denials.
    **Partial (smoke)** — `homecooked-conformance` runs named end-to-end
    scenarios (Tier-A catalog/sim/describe, washer cotton controller, kettle
-   procedure, thermal fridge→DHW, Modbus water_heater, Matter/Zigbee/BACnet
+   procedure, wash-then-dry, thermal fridge→DHW, thermal→dishwasher preheat
+   dual-path, Modbus water_heater, Matter/Zigbee/BACnet
    kettle, TCP kettle, TCP PSK describe/ping, optional lab hub discover/describe). Deeper
    catalog hygiene / major-version / write-denial matrices remain follow-up.
 3. CI runs the conformance suite (or a `cargo test` subset tagged as such).

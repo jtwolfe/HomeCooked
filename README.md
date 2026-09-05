@@ -138,6 +138,22 @@ cargo test -p homecooked-hub
 cargo run -p homecooked-hub --example hub_demo
 ```
 
+## Dual-path demo: thermal preheat → dishwasher
+
+Procedures cannot call thermal APIs yet. The runnable bridge is:
+
+1. Fridge condenser → DHW plant tick (`homecooked-thermal` /
+   `create_thermal_demo` + `thermal_demo_transfer`) — DHW rises 35 → 36.2 °C.
+2. Procedure `dishwasher_dhw_preheat` writes eco + `wash_temp_c` = 45 reflecting
+   warm inlet / lower electrical boost.
+
+```bash
+cargo test -p homecooked-conformance   # includes thermal_then_dishwasher_preheat
+cargo test -p homecooked-wasm run_thermal_then_dishwasher
+```
+
+See [`docs/standard/thermal-plant.md`](docs/standard/thermal-plant.md) §8.1.
+
 ## Contributing
 
 1. Branch from **`main`** using a short prefix (`feat/…`, `fix/…`, `docs/…`).

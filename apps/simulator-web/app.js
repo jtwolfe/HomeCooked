@@ -515,6 +515,11 @@ function listExampleProcedures() {
         name: "Wash then dry (laundry)",
         class_hints: ["washer", "dryer"],
       },
+      {
+        id: "dishwasher_dhw_preheat",
+        name: "Dishwasher with DHW preheat available",
+        class_hints: ["dishwasher"],
+      },
     ];
   }
 }

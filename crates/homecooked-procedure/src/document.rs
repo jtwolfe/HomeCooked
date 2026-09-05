@@ -17,11 +17,16 @@ pub const REHEAT_DOMINOS_MICROWAVE_JSON: &str =
 /// Multi-device laundry demo: washer cycle then dryer cycle.
 pub const WASH_THEN_DRY_JSON: &str = include_str!("../examples/wash_then_dry.json");
 
+/// Dishwasher settings after fridge→DHW thermal preheat (procedure leg only).
+pub const DISHWASHER_DHW_PREHEAT_JSON: &str =
+    include_str!("../examples/dishwasher_dhw_preheat.json");
+
 /// Bundled example documents: `(id, json)`.
 pub const BUNDLED_EXAMPLE_PROCEDURES: &[(&str, &str)] = &[
     ("kettle_heat_80", KETTLE_HEAT_80_JSON),
     ("reheat_dominos_microwave", REHEAT_DOMINOS_MICROWAVE_JSON),
     ("wash_then_dry", WASH_THEN_DRY_JSON),
+    ("dishwasher_dhw_preheat", DISHWASHER_DHW_PREHEAT_JSON),
 ];
 
 /// Ordered recipe / protocol document.

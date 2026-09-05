@@ -16,7 +16,8 @@ use homecooked_core::DeviceId;
 use homecooked_hal::ChannelId;
 use homecooked_hub::{LabHub, LAB_KETTLE_ID};
 use homecooked_procedure::{
-    run, DeviceBindings, Procedure, KETTLE_HEAT_80_JSON, WASH_THEN_DRY_JSON,
+    run, DeviceBindings, Procedure, DISHWASHER_DHW_PREHEAT_JSON, KETTLE_HEAT_80_JSON,
+    WASH_THEN_DRY_JSON,
 };
 use homecooked_protocol::{Envelope, Payload, PingBody, WriteOp};
 use homecooked_schema::{
@@ -388,6 +389,111 @@ pub fn thermal_fridge_dhw_demo() -> ScenarioResult {
         .ok_or_else(|| err(NAME, "dhw-tank missing temp after step"))?;
     if (end - 36.2).abs() >= 1e-4 {
         return Err(err(NAME, format!("dhw end temp={end}, expected 36.2")));
+    }
+    Ok(())
+}
+
+/// (4b) Dual-path: fridge→DHW thermal transfer, then dishwasher preheat settings.
+///
+/// Procedures cannot call thermal APIs yet, so this scenario runs the plant
+/// tick first, asserts DHW rose, then runs the dishwasher procedure leg
+/// (`dishwasher_dhw_preheat`) which writes eco + wash_temp_c reflecting warm
+/// inlet availability ([`docs/standard/thermal-plant.md`] §8).
+pub fn thermal_then_dishwasher_preheat() -> ScenarioResult {
+    const NAME: &str = "thermal_then_dishwasher_preheat";
+
+    // --- Path A: thermal plant ---
+    let mut plant = ThermalPlant::fridge_condenser_dhw_demo()
+        .map_err(|e| err(NAME, format!("demo plant: {e}")))?;
+    let start = plant
+        .get_reservoir("dhw-tank")
+        .and_then(|r| r.temp_c)
+        .ok_or_else(|| err(NAME, "dhw-tank missing temp"))?;
+    if (start - 35.0).abs() >= 1e-4 {
+        return Err(err(NAME, format!("dhw start temp={start}, expected 35")));
+    }
+
+    let offer = TransferOffer::new(
+        PortRef::new("fridge-kitchen", "condenser").map_err(|e| err(NAME, e.to_string()))?,
+        TransferTarget::port("water-heater-plant", "preheat")
+            .map_err(|e| err(NAME, e.to_string()))?,
+        PowerBandW::new(80, 120).map_err(|e| err(NAME, e.to_string()))?,
+        None,
+        1,
+    );
+    match plant.negotiate(offer) {
+        TransferReply::Accept(a) => {
+            if a.accepted_power_w != 120 {
+                return Err(err(
+                    NAME,
+                    format!("accepted_power_w={}, expected 120", a.accepted_power_w),
+                ));
+            }
+        }
+        other => return Err(err(NAME, format!("expected Accept, got {other:?}"))),
+    }
+    let results = plant
+        .step(3_600.0)
+        .map_err(|e| err(NAME, format!("step: {e}")))?;
+    if results.len() != 1 || results[0].power_w != 120 {
+        return Err(err(
+            NAME,
+            format!("transfer results={results:?}, expected one 120 W result"),
+        ));
+    }
+    let dhw_end = plant
+        .get_reservoir("dhw-tank")
+        .and_then(|r| r.temp_c)
+        .ok_or_else(|| err(NAME, "dhw-tank missing temp after step"))?;
+    if (dhw_end - 36.2).abs() >= 1e-4 {
+        return Err(err(
+            NAME,
+            format!("dhw end temp={dhw_end}, expected 36.2 after transfer"),
+        ));
+    }
+    if dhw_end <= start {
+        return Err(err(
+            NAME,
+            format!("dhw temp did not rise: start={start}, end={dhw_end}"),
+        ));
+    }
+
+    // --- Path B: dishwasher procedure reflecting preheat available ---
+    let doc = Procedure::load_json(DISHWASHER_DHW_PREHEAT_JSON)
+        .map_err(|e| err(NAME, format!("load procedure: {e}")))?;
+    let mut sim = Simulator::new();
+    let dw = sim
+        .spawn(ApplianceClassId::Dishwasher)
+        .map_err(|e| err(NAME, format!("spawn dishwasher: {e}")))?;
+    let bindings = DeviceBindings::new().bind("dishwasher", dw.as_str());
+    let result = run(&doc, &mut sim, &bindings);
+    if !result.is_completed() {
+        return Err(err(
+            NAME,
+            format!(
+                "dishwasher procedure expected completed, got {:?}",
+                result.status
+            ),
+        ));
+    }
+
+    let program = sim
+        .read_value(&DeviceId::new(dw.as_str()), "trait.program.program")
+        .map_err(|e| err(NAME, format!("read program: {e}")))?;
+    if program != Value::Enum("eco".into()) {
+        return Err(err(
+            NAME,
+            format!("program={program:?}, expected eco (preheat-aware)"),
+        ));
+    }
+    let wash_temp = sim
+        .read_value(&DeviceId::new(dw.as_str()), "class.dishwasher.wash_temp_c")
+        .map_err(|e| err(NAME, format!("read wash_temp_c: {e}")))?;
+    if wash_temp != Value::F32(45.0) {
+        return Err(err(
+            NAME,
+            format!("wash_temp_c={wash_temp:?}, expected 45.0 (preheat-aware)"),
+        ));
     }
     Ok(())
 }
@@ -924,6 +1030,10 @@ pub fn all_scenarios() -> &'static [(&'static str, ScenarioFn)] {
         ("procedure_kettle_happy_path", procedure_kettle_happy_path),
         ("procedure_wash_then_dry", procedure_wash_then_dry),
         ("thermal_fridge_dhw_demo", thermal_fridge_dhw_demo),
+        (
+            "thermal_then_dishwasher_preheat",
+            thermal_then_dishwasher_preheat,
+        ),
         (
             "modbus_water_heater_roundtrip",
             modbus_water_heater_roundtrip,

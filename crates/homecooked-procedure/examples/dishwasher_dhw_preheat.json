@@ -1,0 +1,38 @@
+{
+  "id": "dishwasher_dhw_preheat",
+  "name": "Dishwasher with DHW preheat available",
+  "description": "Companion to the fridge→DHW thermal plant demo. Procedures cannot call thermal APIs yet: run create_thermal_demo + transfer first (or the wasm/conformance dual-path helper), then this recipe. With warm DHW inlet available, write eco program and a moderate wash_temp_c (less electrical boost than intensive).",
+  "catalog_version": "0.1.0",
+  "protocol_version": "0.1.0",
+  "devices": [
+    { "role": "dishwasher", "class_id": "dishwasher" }
+  ],
+  "steps": [
+    {
+      "id": "program_eco",
+      "action": "write",
+      "target": { "role": "dishwasher", "point": "trait.program.program" },
+      "value": { "type": "enum", "value": "eco" },
+      "timeout_s": 5
+    },
+    {
+      "id": "wash_temp_preheat",
+      "action": "write",
+      "target": { "role": "dishwasher", "point": "class.dishwasher.wash_temp_c" },
+      "value": { "type": "f32", "value": 45.0 },
+      "timeout_s": 5
+    },
+    {
+      "id": "assert_program",
+      "op": "guard",
+      "target": { "role": "dishwasher" },
+      "guard": { "point": "trait.program.program", "eq": { "type": "enum", "value": "eco" } }
+    },
+    {
+      "id": "assert_wash_temp",
+      "op": "guard",
+      "target": { "role": "dishwasher" },
+      "guard": { "point": "class.dishwasher.wash_temp_c", "eq": { "type": "f32", "value": 45.0 } }
+    }
+  ]
+}

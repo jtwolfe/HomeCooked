@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use homecooked_core::{CoreError, DeviceId};
 use homecooked_procedure::{
     run, ClassHint, DeviceBindings, DeviceRef, FailReason, Procedure, RunResult, RunStatus,
-    StepAction, BUNDLED_EXAMPLE_PROCEDURES,
+    StepAction, BUNDLED_EXAMPLE_PROCEDURES, DISHWASHER_DHW_PREHEAT_JSON,
 };
 use homecooked_schema::{
     catalog_group, AccessMode, ApplianceClassId, DeviceIdentity, ErrorCode, Unit, Value,
@@ -259,6 +259,16 @@ pub struct ThermalTickOut {
     pub state: ThermalStateOut,
 }
 
+/// Dual-path demo: thermal fridge→DHW then dishwasher preheat procedure.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ThermalThenDishwasherOut {
+    pub scenario: String,
+    pub dhw_temp_start_c: f32,
+    pub dhw_temp_end_c: f32,
+    pub thermal: ThermalTickOut,
+    pub procedure: ProcedureRunOut,
+}
+
 impl WasmApi {
     pub fn new() -> Self {
         Self {
@@ -430,7 +440,7 @@ impl WasmApi {
         serde_json::to_string(&items).expect("ExampleProcedureInfo serializes")
     }
 
-    /// Full JSON for a bundled example id (`kettle_heat_80`, `reheat_dominos_microwave`, `wash_then_dry`).
+    /// Full JSON for a bundled example id (`kettle_heat_80`, `reheat_dominos_microwave`, `wash_then_dry`, `dishwasher_dhw_preheat`).
     pub fn get_example_procedure(id: &str) -> Result<String, ApiError> {
         BUNDLED_EXAMPLE_PROCEDURES
             .iter()
@@ -521,6 +531,60 @@ impl WasmApi {
             dt_s,
             transfers,
             state: self.thermal_state_out(),
+        };
+        serde_json::to_string(&out).map_err(|e| ApiError::internal(e.to_string()))
+    }
+
+    /// Dual-path demo: load fridge→DHW plant, transfer (`dt_s`), assert DHW rose,
+    /// then run `dishwasher_dhw_preheat` (eco + wash_temp reflecting warm inlet).
+    ///
+    /// Procedures cannot call thermal APIs yet; this helper is the orchestrated
+    /// wasm / conformance path documented in `docs/standard/thermal-plant.md` §8.
+    pub fn run_thermal_then_dishwasher_preheat(&mut self, dt_s: f32) -> Result<String, ApiError> {
+        if !dt_s.is_finite() || dt_s <= 0.0 {
+            return Err(ApiError::invalid_request("dt_s must be > 0"));
+        }
+
+        self.create_thermal_demo()?;
+        let start = self
+            .thermal_mut()?
+            .get_reservoir("dhw-tank")
+            .and_then(|r| r.temp_c)
+            .ok_or_else(|| ApiError::internal("dhw-tank missing temp"))?;
+
+        let thermal_raw = self.thermal_demo_transfer(dt_s)?;
+        let thermal: ThermalTickOut =
+            serde_json::from_str(&thermal_raw).map_err(|e| ApiError::internal(e.to_string()))?;
+
+        let end = thermal
+            .state
+            .reservoirs
+            .iter()
+            .find(|r| r.id == "dhw-tank")
+            .and_then(|r| r.temp_c)
+            .ok_or_else(|| ApiError::internal("dhw-tank missing after transfer"))?;
+        if end <= start {
+            return Err(ApiError::internal(format!(
+                "DHW temp did not rise: start={start}, end={end}"
+            )));
+        }
+
+        let proc_raw = self.run_procedure(DISHWASHER_DHW_PREHEAT_JSON)?;
+        let procedure: ProcedureRunOut =
+            serde_json::from_str(&proc_raw).map_err(|e| ApiError::internal(e.to_string()))?;
+        if procedure.status != "completed" {
+            return Err(ApiError::internal(format!(
+                "dishwasher procedure status={}, expected completed",
+                procedure.status
+            )));
+        }
+
+        let out = ThermalThenDishwasherOut {
+            scenario: "thermal_then_dishwasher_preheat".into(),
+            dhw_temp_start_c: start,
+            dhw_temp_end_c: end,
+            thermal,
+            procedure,
         };
         serde_json::to_string(&out).map_err(|e| ApiError::internal(e.to_string()))
     }
@@ -1099,10 +1163,10 @@ mod tests {
     }
 
     #[test]
-    fn list_example_procedures_includes_kettle_dominos_and_laundry() {
+    fn list_example_procedures_includes_kettle_dominos_laundry_and_dishwasher() {
         let items: Vec<ExampleProcedureInfo> =
             serde_json::from_str(&WasmApi::list_example_procedures()).unwrap();
-        assert_eq!(items.len(), 3);
+        assert_eq!(items.len(), 4);
         assert_eq!(items[0].id, "kettle_heat_80");
         assert_eq!(items[0].name, "Heat kettle to 80C");
         assert!(items[0].class_hints.iter().any(|c| c == "kettle"));
@@ -1111,6 +1175,8 @@ mod tests {
         assert_eq!(items[2].id, "wash_then_dry");
         assert!(items[2].class_hints.iter().any(|c| c == "washer"));
         assert!(items[2].class_hints.iter().any(|c| c == "dryer"));
+        assert_eq!(items[3].id, "dishwasher_dhw_preheat");
+        assert!(items[3].class_hints.iter().any(|c| c == "dishwasher"));
     }
 
     #[test]
@@ -1136,6 +1202,13 @@ mod tests {
         assert_eq!(summary.devices.len(), 2);
         assert_eq!(summary.devices[0].role, "washer");
         assert_eq!(summary.devices[1].role, "dryer");
+
+        let dw = WasmApi::get_example_procedure("dishwasher_dhw_preheat").unwrap();
+        let summary: ProcedureSummary =
+            serde_json::from_str(&WasmApi::parse_procedure(&dw).unwrap()).unwrap();
+        assert_eq!(summary.id, "dishwasher_dhw_preheat");
+        assert_eq!(summary.step_count, 4);
+        assert_eq!(summary.devices[0].role, "dishwasher");
 
         let err = WasmApi::get_example_procedure("not_a_recipe").unwrap_err();
         assert_eq!(err.code, ErrorCode::InvalidRequest);
@@ -1341,5 +1414,31 @@ mod tests {
         let err = api.thermal_tick(1.0).unwrap_err();
         assert_eq!(err.code, ErrorCode::InvalidRequest);
         assert!(err.message.contains("no thermal plant"));
+    }
+
+    #[test]
+    fn run_thermal_then_dishwasher_preheat_raises_dhw_and_sets_eco() {
+        let mut api = WasmApi::new();
+        let raw = api.run_thermal_then_dishwasher_preheat(3_600.0).unwrap();
+        let out: ThermalThenDishwasherOut = serde_json::from_str(&raw).unwrap();
+        assert_eq!(out.scenario, "thermal_then_dishwasher_preheat");
+        assert!((out.dhw_temp_start_c - 35.0).abs() < 1e-4);
+        assert!((out.dhw_temp_end_c - 36.2).abs() < 1e-4);
+        assert!(out.dhw_temp_end_c > out.dhw_temp_start_c);
+        assert_eq!(out.thermal.transfers.len(), 1);
+        assert_eq!(out.thermal.transfers[0].power_w, 120);
+        assert_eq!(out.procedure.status, "completed");
+        assert_eq!(out.procedure.outcomes.len(), 4);
+        assert!(out.procedure.outcomes.iter().all(|o| o.ok));
+        assert_eq!(out.procedure.bindings[0].role, "dishwasher");
+        assert_eq!(
+            out.procedure.bindings[0].class_id,
+            ApplianceClassId::Dishwasher
+        );
+
+        let dw_id = &out.procedure.bindings[0].device_id;
+        let state = api.get_state(dw_id).unwrap();
+        assert!(state.contains("\"eco\"") || state.contains("eco"));
+        assert!(state.contains("45") || state.contains("45.0"));
     }
 }
