@@ -7368,6 +7368,105 @@ mod tests {
     }
 
     #[test]
+    fn kettle_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let k = sim.spawn(ApplianceClassId::Kettle).unwrap();
+
+        assert_eq!(
+            sim.read_value(&k, "class.kettle.on_base").unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(
+            sim.read_value(&k, "class.kettle.keep_warm").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&k, "class.kettle.keep_warm_s").unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&k, "class.kettle.boil_dry").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&k, "class.kettle.sabbath_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&k, "class.kettle.eco_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&k, "class.kettle.heater_on").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&k, "class.kettle.high_temp_alarm").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&k, "class.kettle.lid_open").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&k, "class.kettle.timer_s").unwrap(),
+            Value::DurationS(0)
+        );
+
+        sim.write(&k, "class.kettle.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&k, "class.kettle.sabbath_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&k, "class.kettle.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&k, "class.kettle.eco_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&k, "class.kettle.timer_s", Value::DurationS(900))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&k, "class.kettle.timer_s").unwrap(),
+            Value::DurationS(900)
+        );
+        sim.write(&k, "class.kettle.keep_warm", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&k, "class.kettle.keep_warm").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&k, "class.kettle.keep_warm_s", Value::DurationS(1200))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&k, "class.kettle.keep_warm_s").unwrap(),
+            Value::DurationS(1200)
+        );
+
+        let err = sim
+            .write(&k, "class.kettle.on_base", Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&k, "class.kettle.boil_dry", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&k, "class.kettle.heater_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&k, "class.kettle.high_temp_alarm", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&k, "class.kettle.lid_open", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn air_fryer_optional_depth_points_read_and_write() {
         let mut sim = Simulator::new();
         let af = sim.spawn(ApplianceClassId::AirFryer).unwrap();

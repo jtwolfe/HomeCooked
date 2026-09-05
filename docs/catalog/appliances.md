@@ -1048,6 +1048,11 @@ base, empty, boil-dry trip.
 - Safety: boil-dry and off-base are interlocks. A write to heat while off-base
   is `safety_interlock`.
 - No water-level sensor is common; `water_level` is optional.
+- Catalog depth: optional sabbath/eco/heater_on/high_temp_alarm/lid_open/
+  timer_s; typical also advertises thin-table keep_warm/keep_warm_s/boil_dry.
+  Required `on_base` unchanged. Heater trait already typical (`heater_state`);
+  class `heater_on` is compact RE telemetry (water_dispenser / espresso
+  template). Does not duplicate Temperature setpoint or Matter boil surfaces.
 
 ### `water_dispenser`
 
