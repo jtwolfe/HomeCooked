@@ -4511,14 +4511,73 @@ const DEHYDRATOR_TRAITS: &[TraitId] = &[
     TraitId::Energy,
 ];
 
-static DEHYDRATOR_POINTS: &[CatalogPoint] = &[s(
-    "cook_s",
-    ValueType::DurationS,
-    Some(Unit::Second),
-    int(0, 172800),
-    AccessMode::RW,
-    true,
-)];
+static DEHYDRATOR_POINTS: &[CatalogPoint] = &[
+    s(
+        "cook_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 172800),
+        AccessMode::RW,
+        true,
+    ),
+    s(
+        "sabbath_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    ),
+    s(
+        "eco_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "heater_on",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v("fan_on", ValueType::Bool, None, None, AccessMode::RE, false),
+    v(
+        "high_temp_alarm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "door_ajar",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "timer_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 172800),
+        AccessMode::RWE,
+        false,
+    ),
+    v(
+        "tray_count",
+        ValueType::U8,
+        None,
+        int(1, 15),
+        AccessMode::R,
+        false,
+    ),
+];
 
 const VACUUM_SEALER_TRAITS: &[TraitId] = &[
     TraitId::Identity,

@@ -237,6 +237,10 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             ApplianceClassId::Toaster => Value::U8(2),
             _ => Value::U8(int_min(point, 0) as u8),
         },
+        "tray_count" => match ctx.identity.class_id {
+            ApplianceClassId::Dehydrator => Value::U8(5),
+            _ => Value::U8(int_min(point, 0) as u8),
+        },
         "shade" => match ctx.identity.class_id {
             ApplianceClassId::Toaster | ApplianceClassId::WaffleMaker => Value::U8(4),
             _ => Value::U8(int_min(point, 0) as u8),

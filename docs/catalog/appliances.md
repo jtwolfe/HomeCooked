@@ -1212,9 +1212,15 @@ Food dehydrator cabinet or stacked trays.
 `heater`, `fan`, `humidity` (optional), `time_schedule`, `fault`, `energy`.
 
 **Typical controllable settings:** temp (typically 30–75 °C), time, fan, tray
-programs.
+programs, delay.
 
-**Typical readable state:** temp, remaining, fan, heater, done.
+**Typical readable state:** temp, remaining, fan, heater, door ajar, overtemp,
+tray count.
+
+**Notes:**
+- Catalog depth: optional class points include sabbath, eco, `heater_on`,
+  `fan_on`, `high_temp_alarm`, `door_ajar`, `timer_s`, and `tray_count` (see
+  variables-and-settings); required `cook_s`.
 
 ### `vacuum_sealer`
 

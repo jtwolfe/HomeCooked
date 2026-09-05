@@ -4386,6 +4386,99 @@ mod tests {
     }
 
     #[test]
+    fn dehydrator_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let dehy = sim.spawn(ApplianceClassId::Dehydrator).unwrap();
+
+        assert_eq!(
+            sim.read_value(&dehy, "class.dehydrator.cook_s").unwrap(),
+            Value::DurationS(600)
+        );
+        assert_eq!(
+            sim.read_value(&dehy, "class.dehydrator.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&dehy, "class.dehydrator.eco_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&dehy, "class.dehydrator.heater_on").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&dehy, "class.dehydrator.fan_on").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&dehy, "class.dehydrator.high_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&dehy, "class.dehydrator.door_ajar").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&dehy, "class.dehydrator.timer_s").unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&dehy, "class.dehydrator.tray_count")
+                .unwrap(),
+            Value::U8(5)
+        );
+
+        sim.write(&dehy, "class.dehydrator.cook_s", Value::DurationS(28800))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&dehy, "class.dehydrator.cook_s").unwrap(),
+            Value::DurationS(28800)
+        );
+        sim.write(&dehy, "class.dehydrator.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&dehy, "class.dehydrator.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&dehy, "class.dehydrator.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&dehy, "class.dehydrator.eco_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&dehy, "class.dehydrator.timer_s", Value::DurationS(1800))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&dehy, "class.dehydrator.timer_s").unwrap(),
+            Value::DurationS(1800)
+        );
+
+        let err = sim
+            .write(&dehy, "class.dehydrator.heater_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&dehy, "class.dehydrator.fan_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&dehy, "class.dehydrator.high_temp_alarm", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&dehy, "class.dehydrator.door_ajar", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&dehy, "class.dehydrator.tray_count", Value::U8(8))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {

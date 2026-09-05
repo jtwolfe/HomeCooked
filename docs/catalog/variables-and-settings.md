@@ -1484,7 +1484,15 @@ Cycle remaining via `trait.cycle.remaining_s`. Setpoint resolution typically 0.1
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `cook_s` | duration_s | second | 0–172800 | r/w | req | |
+| `cook_s` | duration_s | second | 0–172800 | r/w | req | Dry / dehydrate duration |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving dry / hold |
+| `heater_on` | bool | — | | r/e | opt | Heater element active |
+| `fan_on` | bool | — | | r/e | opt | Circulating fan active |
+| `high_temp_alarm` | bool | — | | r/e | opt | Chamber over-temp |
+| `door_ajar` | bool | — | | r/e | opt | Door / lid ajar bit |
+| `timer_s` | duration_s | second | 0–172800 | r/w/e | opt | Delay start / remaining |
+| `tray_count` | u8 | — | 1–15 | r | opt | Hardware tray count |
 
 ---
 
