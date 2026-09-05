@@ -1165,6 +1165,42 @@ mod tests {
     }
 
     #[test]
+    fn run_dominos_microwave_procedure_auto_spawns_and_completes() {
+        let mut api = WasmApi::new();
+        let json = WasmApi::get_example_procedure("reheat_dominos_microwave").unwrap();
+        let raw = api.run_procedure(&json).unwrap();
+        let result: ProcedureRunOut = serde_json::from_str(&raw).unwrap();
+
+        assert_eq!(
+            result.status, "completed",
+            "dominos run failed: {:?}",
+            result.fail_reason
+        );
+        assert!(result.failed_step_id.is_none());
+        assert!(result.fail_reason.is_none());
+        assert_eq!(result.outcomes.len(), 5);
+        assert!(result.outcomes.iter().all(|o| o.ok));
+        assert_eq!(result.outcomes[0].step_id, "mw_power");
+        assert_eq!(result.outcomes[1].step_id, "mw_cook_time");
+        assert_eq!(result.outcomes[2].step_id, "mw_start");
+        assert_eq!(result.outcomes[3].step_id, "mw_wait");
+        assert_eq!(result.outcomes[4].step_id, "mw_stop");
+
+        // Microwave-only v1: optional crisp/fridge roles are not auto-spawned.
+        assert_eq!(result.bindings.len(), 1);
+        assert_eq!(result.bindings[0].role, "microwave");
+        assert_eq!(result.bindings[0].class_id, ApplianceClassId::Microwave);
+        assert!(result.bindings[0].spawned);
+        assert!(result.bindings[0].device_id.starts_with("sim-microwave-"));
+
+        let state: serde_json::Value =
+            serde_json::from_str(&api.get_state(&result.bindings[0].device_id).unwrap()).unwrap();
+        // Final cancel/`idle_cycle` resets elapsed_s; wait step already required >= 45.
+        assert_eq!(state["trait.cycle.cycle_state"]["value"], "idle");
+        assert_eq!(state["trait.cycle.elapsed_s"]["value"], 0);
+    }
+
+    #[test]
     fn run_kettle_reuses_existing_matching_device() {
         let mut api = WasmApi::new();
         let existing = api.create_device("kettle").unwrap();

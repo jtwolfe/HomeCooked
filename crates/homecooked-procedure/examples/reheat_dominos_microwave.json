@@ -6,7 +6,7 @@
   "protocol_version": "0.1.0",
   "devices": [
     { "role": "microwave", "class_id": "microwave" },
-    { "role": "crisp", "class_id": ["oven", "air_fryer"] },
+    { "role": "crisp", "class_id": ["oven", "air_fryer"], "optional": true },
     { "role": "fridge", "class_id": "fridge", "optional": true }
   ],
   "steps": [
