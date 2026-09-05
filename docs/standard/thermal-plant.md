@@ -200,7 +200,7 @@ Orchestrators:
 |---------|--------|
 | Conformance | `thermal_then_dishwasher_preheat` in `homecooked-conformance` |
 | WASM | `run_thermal_then_dishwasher_preheat(dt_s)` |
-| Web sim | Thermal panel (path 1) + procedure picker `dishwasher_dhw_preheat` (path 2) |
+| Web sim | **Thermal → dishwasher preheat** (Orchestrations; one-click) or Thermal panel + procedure picker |
 
 ```bash
 cargo test -p homecooked-conformance thermal_then_dishwasher

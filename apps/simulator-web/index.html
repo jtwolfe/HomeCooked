@@ -17,8 +17,9 @@
         <h1>Appliance simulator</h1>
         <p class="lede">
           Spawn any Tier-A catalog class (grouped picker), write settings, tick
-          simulated time, run a procedure / recipe, or exercise the fridge→DHW
-          thermal plant demo. WASM wraps <code>homecooked-sim</code>,
+          simulated time, run a procedure / recipe, exercise the fridge→DHW
+          thermal plant demo, or one-click the thermal→dishwasher orchestrator.
+          WASM wraps <code>homecooked-sim</code>,
           <code>homecooked-procedure</code>, and <code>homecooked-thermal</code>.
         </p>
       </div>
@@ -161,6 +162,30 @@ python3 -m http.server 8080</pre>
           <h3 class="thermal-subhead">Last transfer</h3>
           <ul id="thermal-transfers" class="step-outcomes"></ul>
           <p id="thermal-reply" class="muted thermal-reply"></p>
+        </div>
+
+        <div class="orchestration-block">
+          <h3 class="thermal-subhead">Orchestrations</h3>
+          <p class="muted thermal-lede">
+            One-click dual-path: fridge→DHW transfer then
+            <code>dishwasher_dhw_preheat</code>
+            (<code>run_thermal_then_dishwasher_preheat</code>).
+            Uses the <strong>dt (s)</strong> above (default 3600).
+          </p>
+          <div class="thermal-toolbar">
+            <button id="orch-thermal-dishwasher-btn" type="button">
+              Thermal → dishwasher preheat
+            </button>
+          </div>
+          <div id="orch-result" hidden>
+            <div id="orch-summary" class="thermal-summary"></div>
+            <div class="procedure-result-head">
+              <p id="orch-status" class="procedure-status"></p>
+              <p id="orch-fail" class="muted"></p>
+            </div>
+            <ul id="orch-bindings" class="procedure-bindings" hidden></ul>
+            <ol id="orch-steps" class="step-outcomes"></ol>
+          </div>
         </div>
       </section>
     </div>

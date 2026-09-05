@@ -102,14 +102,43 @@ results / reply.
 
 ### Dual-path: thermal then dishwasher preheat
 
-Procedures cannot call thermal APIs yet. Demo both legs:
+Procedures cannot call thermal APIs yet. The **Orchestrations** block on the
+Thermal plant panel exposes a one-click button that calls wasm
+`run_thermal_then_dishwasher_preheat(dt)` (default **dt = 3600**):
 
-1. Use this thermal panel (or wasm `run_thermal_then_dishwasher_preheat(3600)`).
-2. In the procedure panel, load **Dishwasher with DHW preheat available**
-   (`dishwasher_dhw_preheat`) and Run — writes `eco` + `wash_temp_c` = 45.
+1. Click **Thermal → dishwasher preheat**.
+2. The panel shows DHW start → end (°C rise), dishwasher role bindings, and
+   per-step write outcomes (`eco`, `wash_temp_c` = 45).
+3. Spawned dishwasher appears in the device list and is selected.
+
+You can still run the legs separately: **Transfer + tick** on the thermal
+toolbar, then load **Dishwasher with DHW preheat available** in the procedure
+panel and **Run**.
 
 Automated coverage: `cargo test -p homecooked-wasm run_thermal_then_dishwasher`
 and conformance scenario `thermal_then_dishwasher_preheat`.
+
+## Rebuild note
+
+After any Rust change under `crates/homecooked-wasm` (or crates it depends on),
+rebuild the gitignored `pkg/` and hard-refresh the browser so blob-load boot
+picks up new exports:
+
+```bash
+wasm-pack build crates/homecooked-wasm --target web --out-dir ../../apps/simulator-web/pkg
+cd apps/simulator-web && python3 -m http.server 8080
+```
+
+`app.js` still uses the blob-load / `cache: "no-store"` boot path — do not
+switch back to a plain static `import` of `./pkg/homecooked_wasm.js`.
+
+### Optional manual test (orchestrator)
+
+1. Rebuild + serve as above; open <http://127.0.0.1:8080>.
+2. Scroll to **Thermal plant → Orchestrations**.
+3. Leave **dt (s)** at `3600`; click **Thermal → dishwasher preheat**.
+4. Expect: status shows DHW ~35.00 → ~36.20 °C; bindings include dishwasher;
+   steps ok; device list shows a dishwasher.
 
 ## Manual smoke (after wasm-pack)
 
@@ -125,4 +154,6 @@ Automated coverage lives in `crates/homecooked-wasm` native tests:
 `list_appliance_classes` length is 56 and matches `STATIC_CLASS_IDS`;
 `create_device` + `describe` + `get_state` succeed for every tabled id.
 
-After `wasm-pack build`, hard-refresh the browser. `app.js` cache-busts the WASM module URL via `pkg/package.json` so new exports (procedures, thermal) load after rebuilds.
+After `wasm-pack build`, hard-refresh the browser. `app.js` boots via blob-load
+(`cache: "no-store"` fetch of the bindgen JS + rewritten absolute `.wasm` URL)
+so new exports (procedures, thermal, orchestrations) load after rebuilds.
