@@ -813,7 +813,17 @@ Setpoints typically 5–20 °C per zone (`upper` / `lower`). Humidity via
 
 ### Class `beverage_cooler`
 
-No extra points. Setpoint typically 1–10 °C.
+| id | type | unit | range / enum | access | req | description |
+|----|------|------|--------------|--------|-----|-------------|
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving compressor duty |
+| `compressor_on` | bool | — | | r/e | opt | |
+| `high_temp_alarm` | bool | — | | r/e | opt | |
+| `low_temp_alarm` | bool | — | | r/e | opt | Freeze / too-cold risk |
+| `door_ajar` | bool | — | | r/e | opt | Door ajar bit |
+| `can_capacity` | u16 | — | 0–500 | r/e | opt | Rated / estimated can (or bottle) capacity |
+
+Setpoint typically 1–10 °C. Humidity/vibration stay on `wine_cooler`, not here.
 
 ---
 

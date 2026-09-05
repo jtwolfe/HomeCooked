@@ -388,12 +388,21 @@ and setpoints run colder (often 1–10 °C).
 **Typical traits:** `identity`, `power`, `connectivity`, `door_lid`,
 `temperature`, `lighting`, `fault`, `energy`.
 
-**Typical controllable settings:** setpoint, light, eco, door alarm.
+**Typical controllable settings:**
 
-**Typical readable state:** temperature, door, compressor, energy.
+- Setpoint (typically 1–10 °C), lighting, eco, sabbath
 
-**Notes:** Mini-fridges with a tiny freezer box stay `fridge` if that box is
-uncontrolled, or `fridge_freezer` if it has a setpoint.
+**Typical readable state:**
+
+- Temperature, door ajar, compressor, high/low temp alarms
+- Rated / estimated `can_capacity`, energy
+
+**Notes:**
+
+- Mini-fridges with a tiny freezer box stay `fridge` if that box is
+  uncontrolled, or `fridge_freezer` if it has a setpoint.
+- Catalog depth: optional class points include sabbath, eco, compressor, temp
+  alarms, `door_ajar`, and `can_capacity` (see variables-and-settings).
 
 ### `ice_maker`
 

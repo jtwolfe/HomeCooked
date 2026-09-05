@@ -2752,7 +2752,64 @@ const BEVERAGE_COOLER_TRAITS: &[TraitId] = &[
     TraitId::Energy,
 ];
 
-static BEVERAGE_COOLER_POINTS: &[CatalogPoint] = &[];
+static BEVERAGE_COOLER_POINTS: &[CatalogPoint] = &[
+    s(
+        "sabbath_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    ),
+    s(
+        "eco_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "compressor_on",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "high_temp_alarm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "low_temp_alarm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "door_ajar",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "can_capacity",
+        ValueType::U16,
+        None,
+        int(0, 500),
+        AccessMode::RE,
+        false,
+    ),
+];
 
 const KEGERATOR_TRAITS: &[TraitId] = &[
     TraitId::Identity,

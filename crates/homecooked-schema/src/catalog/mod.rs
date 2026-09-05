@@ -474,6 +474,19 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "convertible_zone_mode"
         );
     }
+    // Stream 7 catalog depth: beverage_cooler optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::BeverageCooler {
+        return matches!(
+            point.id,
+            "sabbath_mode"
+                | "eco_mode"
+                | "compressor_on"
+                | "high_temp_alarm"
+                | "low_temp_alarm"
+                | "door_ajar"
+                | "can_capacity"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -1743,6 +1756,49 @@ mod tests {
             .class_points
             .iter()
             .any(|p| p.id == "class.freezer.anti_sweat"));
+    }
+
+    #[test]
+    fn beverage_cooler_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::BeverageCooler).unwrap();
+        for id in [
+            "class.beverage_cooler.sabbath_mode",
+            "class.beverage_cooler.eco_mode",
+            "class.beverage_cooler.compressor_on",
+            "class.beverage_cooler.high_temp_alarm",
+            "class.beverage_cooler.low_temp_alarm",
+            "class.beverage_cooler.door_ajar",
+            "class.beverage_cooler.can_capacity",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical beverage_cooler"
+            );
+        }
+        cap.validate_write("class.beverage_cooler.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.beverage_cooler.eco_mode", &Value::Bool(true))
+            .unwrap();
+        let err = cap
+            .validate_write("class.beverage_cooler.can_capacity", &Value::U16(120))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.beverage_cooler.door_ajar", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.beverage_cooler.compressor_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.beverage_cooler.high_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.beverage_cooler.low_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
     }
 
     #[test]
