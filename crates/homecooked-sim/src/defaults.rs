@@ -285,6 +285,10 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             | ApplianceClassId::Range => Value::F32(ctx.ambient_c),
             _ => Value::F32(numeric_default(point)),
         },
+        "stone_c" | "dome_c" => match ctx.identity.class_id {
+            ApplianceClassId::PizzaOven => Value::F32(ctx.ambient_c),
+            _ => Value::F32(numeric_default(point)),
+        },
         "power_limit_w" => match ctx.identity.class_id {
             ApplianceClassId::Cooktop
             | ApplianceClassId::InductionHob

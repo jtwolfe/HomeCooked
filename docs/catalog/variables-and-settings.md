@@ -1064,9 +1064,18 @@ Setpoint typically 40–90 °C when using °C instead of `level`.
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `stone_c` | f32 | celsius | | r/e | opt | |
-| `dome_c` | f32 | celsius | | r/e | opt | |
-| `top_bottom_balance` | i8 | percent | −100–100 | r/w | opt | + = more top |
+| `stone_c` | f32 | celsius | | r/e | opt | Stone / deck temperature |
+| `dome_c` | f32 | celsius | | r/e | opt | Dome / ceiling temperature |
+| `top_bottom_balance` | i16 | percent | −100–100 | r/w | opt | + = more top heat |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving heater duty |
+| `heater_on` | bool | — | | r/e | opt | Element / heater active |
+| `high_temp_alarm` | bool | — | | r/e | opt | Overtemp / too-hot |
+| `door_ajar` | bool | — | | r/e | opt | Door ajar bit |
+| `timer_s` | duration_s | second | 0–10800 | r/w/e | opt | Cook / countdown timer |
+| `steam_inject` | bool | — | | r/w/e | opt | Steam burst / inject |
+
+Setpoint typically 200–450 °C.
 
 ---
 

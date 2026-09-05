@@ -516,6 +516,22 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "timer_s"
         );
     }
+    // Stream 7 catalog depth: pizza_oven optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::PizzaOven {
+        return matches!(
+            point.id,
+            "stone_c"
+                | "dome_c"
+                | "top_bottom_balance"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "heater_on"
+                | "high_temp_alarm"
+                | "door_ajar"
+                | "timer_s"
+                | "steam_inject"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -1921,6 +1937,58 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.warming_drawer.door_ajar", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn pizza_oven_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::PizzaOven).unwrap();
+        for id in [
+            "class.pizza_oven.stone_c",
+            "class.pizza_oven.dome_c",
+            "class.pizza_oven.top_bottom_balance",
+            "class.pizza_oven.sabbath_mode",
+            "class.pizza_oven.eco_mode",
+            "class.pizza_oven.heater_on",
+            "class.pizza_oven.high_temp_alarm",
+            "class.pizza_oven.door_ajar",
+            "class.pizza_oven.timer_s",
+            "class.pizza_oven.steam_inject",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical pizza_oven"
+            );
+        }
+        cap.validate_write("class.pizza_oven.top_bottom_balance", &Value::I16(25))
+            .unwrap();
+        cap.validate_write("class.pizza_oven.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.pizza_oven.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.pizza_oven.timer_s", &Value::DurationS(900))
+            .unwrap();
+        cap.validate_write("class.pizza_oven.steam_inject", &Value::Bool(true))
+            .unwrap();
+        let err = cap
+            .validate_write("class.pizza_oven.stone_c", &Value::F32(300.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.pizza_oven.dome_c", &Value::F32(350.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.pizza_oven.heater_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.pizza_oven.high_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.pizza_oven.door_ajar", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }

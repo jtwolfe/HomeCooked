@@ -2349,6 +2349,122 @@ mod tests {
     }
 
     #[test]
+    fn pizza_oven_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let oven = sim.spawn(ApplianceClassId::PizzaOven).unwrap();
+
+        assert!(
+            (f32_val(&sim.read_value(&oven, "class.pizza_oven.stone_c").unwrap()) - 20.0).abs()
+                < f32::EPSILON
+        );
+        assert!(
+            (f32_val(&sim.read_value(&oven, "class.pizza_oven.dome_c").unwrap()) - 20.0).abs()
+                < f32::EPSILON
+        );
+        assert_eq!(
+            sim.read_value(&oven, "class.pizza_oven.top_bottom_balance")
+                .unwrap(),
+            Value::I16(0)
+        );
+        assert_eq!(
+            sim.read_value(&oven, "class.pizza_oven.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&oven, "class.pizza_oven.eco_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&oven, "class.pizza_oven.heater_on").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&oven, "class.pizza_oven.high_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&oven, "class.pizza_oven.door_ajar").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&oven, "class.pizza_oven.timer_s").unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&oven, "class.pizza_oven.steam_inject")
+                .unwrap(),
+            Value::Bool(false)
+        );
+
+        sim.write(&oven, "class.pizza_oven.top_bottom_balance", Value::I16(40))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&oven, "class.pizza_oven.top_bottom_balance")
+                .unwrap(),
+            Value::I16(40)
+        );
+        sim.write(&oven, "class.pizza_oven.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&oven, "class.pizza_oven.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&oven, "class.pizza_oven.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&oven, "class.pizza_oven.eco_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&oven, "class.pizza_oven.timer_s", Value::DurationS(600))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&oven, "class.pizza_oven.timer_s").unwrap(),
+            Value::DurationS(600)
+        );
+        sim.write(&oven, "class.pizza_oven.steam_inject", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&oven, "class.pizza_oven.steam_inject")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&oven, "trait.temperature.setpoint_c", Value::F32(400.0))
+            .unwrap();
+        assert!(
+            (f32_val(
+                &sim.read_value(&oven, "trait.temperature.setpoint_c")
+                    .unwrap()
+            ) - 400.0)
+                .abs()
+                < f32::EPSILON
+        );
+
+        let err = sim
+            .write(&oven, "class.pizza_oven.stone_c", Value::F32(300.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&oven, "class.pizza_oven.dome_c", Value::F32(350.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&oven, "class.pizza_oven.heater_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&oven, "class.pizza_oven.high_temp_alarm", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&oven, "class.pizza_oven.door_ajar", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {
