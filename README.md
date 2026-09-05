@@ -48,7 +48,8 @@ is **0.1.0** (peers are rejected only on protocol **major** mismatch).
 `list_all_class_ids` covers the full class index in
 `docs/catalog/appliances.md`. Static capability tables (and therefore
 simulated devices) cover all **25 Tier-A** class ids listed in
-[`docs/ROADMAP.md`](docs/ROADMAP.md) §4.
+[`docs/ROADMAP.md`](docs/ROADMAP.md) §4 and `TIER_A_CLASS_IDS`
+(`crates/homecooked-schema/src/catalog/classes.rs`).
 
 ## Tests
 

@@ -1601,6 +1601,28 @@ const STEAM_OVEN_EXTRA: &[CatalogPoint] = &[
 const STEAM_OVEN_MERGED: [CatalogPoint; 10] = concat2(OVEN_POINTS, STEAM_OVEN_EXTRA);
 const STEAM_OVEN_POINTS: &[CatalogPoint] = &STEAM_OVEN_MERGED;
 
+const STEAM_OVEN_PROGRAMS: &[&str] = &[
+    "bake",
+    "convection_bake",
+    "roast",
+    "convection_roast",
+    "broil",
+    "convection_broil",
+    "proof",
+    "keep_warm",
+    "self_clean",
+    "pyrolytic",
+    "air_fry",
+    "steam_assist",
+    "sabbath",
+    "off",
+    "steam",
+    "combi",
+    "sous_vide",
+    "reheat",
+    "descale",
+];
+
 const TOASTER_OVEN_PROGRAMS: &[&str] = &[
     "toast",
     "bake",
@@ -1950,7 +1972,7 @@ static MULTI_COOKER_POINTS: &[CatalogPoint] = &[
     ),
 ];
 
-/// Roadmap §4 Tier-A class set (25 ids). Tables land in batches.
+/// Roadmap §4 Tier-A class set (25 ids). All have static tables.
 pub const TIER_A_CLASS_IDS: &[ApplianceClassId] = &[
     ApplianceClassId::Washer,
     ApplianceClassId::Dryer,
@@ -2168,7 +2190,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         typical_traits: STEAM_OVEN_TRAITS,
         optional_traits: &[],
         class_points: STEAM_OVEN_POINTS,
-        program_tokens: OVEN_PROGRAMS,
+        program_tokens: STEAM_OVEN_PROGRAMS,
         cycle_phase_tokens: &[],
         typical_setpoint_c: Some((50.0, 250.0)),
         typical_zones: &[],

@@ -10,7 +10,9 @@ pub use simulator::Simulator;
 
 #[cfg(test)]
 mod tests {
-    use homecooked_schema::{ApplianceClassId, ErrorCode, Value, STATIC_CLASS_IDS};
+    use homecooked_schema::{
+        ApplianceClassId, ErrorCode, Value, STATIC_CLASS_IDS, TIER_A_CLASS_IDS,
+    };
 
     use super::*;
 
@@ -28,6 +30,7 @@ mod tests {
         let ids = sim.spawn_static_kitchen().unwrap();
         assert_eq!(ids.len(), STATIC_CLASS_IDS.len());
         assert_eq!(sim.list().len(), STATIC_CLASS_IDS.len());
+        assert_eq!(STATIC_CLASS_IDS, TIER_A_CLASS_IDS);
     }
 
     #[test]
@@ -226,17 +229,8 @@ mod tests {
     #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
-        let batch = [
-            ApplianceClassId::SteamOven,
-            ApplianceClassId::Range,
-            ApplianceClassId::Cooktop,
-            ApplianceClassId::ToasterOven,
-            ApplianceClassId::CoffeeMachine,
-            ApplianceClassId::SousVide,
-            ApplianceClassId::MultiCooker,
-        ];
-        for class in batch {
-            let id = sim.spawn(class).unwrap();
+        for class in TIER_A_CLASS_IDS {
+            let id = sim.spawn(*class).unwrap();
             assert_eq!(
                 sim.read_value(&id, "trait.identity.class_id").unwrap(),
                 Value::Enum(class.as_str().into())
@@ -268,6 +262,10 @@ mod tests {
         .unwrap();
 
         let coffee = sim.spawn(ApplianceClassId::CoffeeMachine).unwrap();
+        assert_eq!(
+            sim.read_value(&coffee, "trait.power.power_state").unwrap(),
+            Value::Enum("standby".into())
+        );
         sim.write(
             &coffee,
             "trait.program.program",
