@@ -312,6 +312,18 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             ApplianceClassId::SlowCooker => Value::Bool(true),
             _ => Value::Bool(false),
         },
+        "pan_present" => match ctx.identity.class_id {
+            ApplianceClassId::BreadMaker => Value::Bool(true),
+            _ => Value::Bool(false),
+        },
+        "crust" => match ctx.identity.class_id {
+            ApplianceClassId::BreadMaker => Value::Enum("medium".into()),
+            _ => first_enum(point).unwrap_or_else(|| Value::Enum("unknown".into())),
+        },
+        "loaf_size" => match ctx.identity.class_id {
+            ApplianceClassId::BreadMaker => Value::Enum("medium".into()),
+            _ => first_enum(point).unwrap_or_else(|| Value::Enum("unknown".into())),
+        },
         "rack_position" => match ctx.identity.class_id {
             ApplianceClassId::ToasterOven => Value::Enum("middle".into()),
             _ => first_enum(point).unwrap_or_else(|| Value::Enum("unknown".into())),

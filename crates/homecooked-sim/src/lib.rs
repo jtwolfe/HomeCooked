@@ -4261,6 +4261,131 @@ mod tests {
     }
 
     #[test]
+    fn bread_maker_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let bread = sim.spawn(ApplianceClassId::BreadMaker).unwrap();
+
+        assert_eq!(
+            sim.read_value(&bread, "class.bread_maker.crust").unwrap(),
+            Value::Enum("medium".into())
+        );
+        assert_eq!(
+            sim.read_value(&bread, "class.bread_maker.loaf_size")
+                .unwrap(),
+            Value::Enum("medium".into())
+        );
+        assert_eq!(
+            sim.read_value(&bread, "class.bread_maker.pan_present")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(
+            sim.read_value(&bread, "class.bread_maker.keep_warm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&bread, "class.bread_maker.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&bread, "class.bread_maker.eco_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&bread, "class.bread_maker.heater_on")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&bread, "class.bread_maker.high_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&bread, "class.bread_maker.lid_open")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&bread, "class.bread_maker.timer_s").unwrap(),
+            Value::DurationS(0)
+        );
+
+        sim.write(
+            &bread,
+            "class.bread_maker.crust",
+            Value::Enum("dark".into()),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&bread, "class.bread_maker.crust").unwrap(),
+            Value::Enum("dark".into())
+        );
+        sim.write(
+            &bread,
+            "class.bread_maker.loaf_size",
+            Value::Enum("large".into()),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&bread, "class.bread_maker.loaf_size")
+                .unwrap(),
+            Value::Enum("large".into())
+        );
+        sim.write(&bread, "class.bread_maker.keep_warm", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&bread, "class.bread_maker.keep_warm")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&bread, "class.bread_maker.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&bread, "class.bread_maker.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&bread, "class.bread_maker.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&bread, "class.bread_maker.eco_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&bread, "class.bread_maker.timer_s", Value::DurationS(1800))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&bread, "class.bread_maker.timer_s").unwrap(),
+            Value::DurationS(1800)
+        );
+
+        let err = sim
+            .write(&bread, "class.bread_maker.pan_present", Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&bread, "class.bread_maker.heater_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &bread,
+                "class.bread_maker.high_temp_alarm",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&bread, "class.bread_maker.lid_open", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {
