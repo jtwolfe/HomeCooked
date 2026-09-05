@@ -507,4 +507,53 @@ mod tests {
             Value::String("dhw-tank".into())
         );
     }
+
+    #[test]
+    fn hvac_thermal_port_read_write() {
+        let mut sim = Simulator::new();
+        let id = sim.spawn(ApplianceClassId::Hvac).unwrap();
+        assert_eq!(
+            sim.read_value(&id, "class.hvac.thermal_port_id").unwrap(),
+            Value::String("coil".into())
+        );
+        assert_eq!(
+            sim.read_value(&id, "class.hvac.thermal_port_direction")
+                .unwrap(),
+            Value::Enum("sink".into())
+        );
+        assert_eq!(
+            sim.read_value(&id, "class.hvac.thermal_port_media")
+                .unwrap(),
+            Value::Enum("water".into())
+        );
+        assert_eq!(
+            sim.read_value(&id, "class.hvac.thermal_port_max_power_w")
+                .unwrap(),
+            Value::F32(5_000.0)
+        );
+        assert_eq!(
+            sim.read_value(&id, "class.hvac.thermal_port_attached_reservoir_id")
+                .unwrap(),
+            Value::String(String::new())
+        );
+        sim.write(
+            &id,
+            "class.hvac.thermal_port_attached_reservoir_id",
+            Value::String("chw-buffer".into()),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&id, "class.hvac.thermal_port_attached_reservoir_id")
+                .unwrap(),
+            Value::String("chw-buffer".into())
+        );
+        let err = sim
+            .write(
+                &id,
+                "class.hvac.thermal_port_media",
+                Value::Enum("air".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
 }

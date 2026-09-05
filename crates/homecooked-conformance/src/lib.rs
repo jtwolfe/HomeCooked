@@ -1224,7 +1224,7 @@ pub fn hub_lab_set_discover_describe() -> ScenarioResult {
     Ok(())
 }
 
-/// (4c) Catalog/sim thermal-port surface on water_heater (Stream 5 DoD).
+/// (4c) Catalog/sim thermal-port surface on water_heater / fridge / hvac (Stream 5).
 pub fn water_heater_thermal_ports() -> ScenarioResult {
     const NAME: &str = "water_heater_thermal_ports";
     let mut sim = Simulator::new();
@@ -1293,6 +1293,62 @@ pub fn water_heater_thermal_ports() -> ScenarioResult {
         return Err(err(
             NAME,
             format!("fridge attached={fridge_attached:?}, expected dhw-tank"),
+        ));
+    }
+
+    // HVAC: hydronic coil sink seeds + attach write.
+    let hvac = sim
+        .spawn(ApplianceClassId::Hvac)
+        .map_err(|e| err(NAME, format!("spawn hvac: {e}")))?;
+    let hvac_id = sim
+        .read_value(&hvac, "class.hvac.thermal_port_id")
+        .map_err(|e| err(NAME, format!("read hvac port_id: {e}")))?;
+    if hvac_id != Value::String("coil".into()) {
+        return Err(err(
+            NAME,
+            format!("hvac port_id={hvac_id:?}, expected coil"),
+        ));
+    }
+    let hvac_dir = sim
+        .read_value(&hvac, "class.hvac.thermal_port_direction")
+        .map_err(|e| err(NAME, format!("read hvac direction: {e}")))?;
+    if hvac_dir != Value::Enum("sink".into()) {
+        return Err(err(
+            NAME,
+            format!("hvac direction={hvac_dir:?}, expected sink"),
+        ));
+    }
+    let hvac_media = sim
+        .read_value(&hvac, "class.hvac.thermal_port_media")
+        .map_err(|e| err(NAME, format!("read hvac media: {e}")))?;
+    if hvac_media != Value::Enum("water".into()) {
+        return Err(err(
+            NAME,
+            format!("hvac media={hvac_media:?}, expected water"),
+        ));
+    }
+    let hvac_max = sim
+        .read_value(&hvac, "class.hvac.thermal_port_max_power_w")
+        .map_err(|e| err(NAME, format!("read hvac max_power: {e}")))?;
+    if hvac_max != Value::F32(5_000.0) {
+        return Err(err(
+            NAME,
+            format!("hvac max_power_w={hvac_max:?}, expected 5000"),
+        ));
+    }
+    sim.write(
+        &hvac,
+        "class.hvac.thermal_port_attached_reservoir_id",
+        Value::String("chw-buffer".into()),
+    )
+    .map_err(|e| err(NAME, format!("write hvac attached_reservoir_id: {e}")))?;
+    let hvac_attached = sim
+        .read_value(&hvac, "class.hvac.thermal_port_attached_reservoir_id")
+        .map_err(|e| err(NAME, format!("read hvac attached: {e}")))?;
+    if hvac_attached != Value::String("chw-buffer".into()) {
+        return Err(err(
+            NAME,
+            format!("hvac attached={hvac_attached:?}, expected chw-buffer"),
         ));
     }
     Ok(())
@@ -1505,6 +1561,10 @@ pub fn all_scenarios() -> &'static [(&'static str, ScenarioFn)] {
         (
             "controller_tcp_dryer_interlock",
             controller_tcp_dryer_interlock,
+        ),
+        (
+            "hub_lab_set_discover_describe",
+            hub_lab_set_discover_describe,
         ),
     ]
 }

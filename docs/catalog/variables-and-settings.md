@@ -1402,6 +1402,11 @@ Filter stages use `trait.filter` zones (`pre`, `ro`, `post`, `remin`).
 | `aux_heat` | bool | — | | r/e | opt | |
 | `defrost` | bool | — | | r/e | opt | Heat pump |
 | `reversing_valve` | enum | — | `heat` `cool` `unknown` | r | opt | |
+| `thermal_port_id` | string | — | local port id | r | opt | Device heat port (e.g. `coil`); see thermal-plant |
+| `thermal_port_direction` | enum | — | `source` `sink` `bidirectional` | r | opt | Seed `sink` (space heat from hot reservoir) |
+| `thermal_port_media` | enum | — | `water` `air` `glycol` `refrigerant_proxy` `unknown` | r | opt | Seed `water` (hydronic coil) |
+| `thermal_port_max_power_w` | f32 | watt | | r | opt | Seed 5000 (lab) |
+| `thermal_port_attached_reservoir_id` | string | — | reservoir id or empty | r/w | opt | Attach/detach plant reservoir |
 
 Fan uses `trait.fan`. Filter uses `trait.filter`. Multi-head: `trait.zone`.
 
