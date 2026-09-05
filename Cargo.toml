@@ -15,6 +15,7 @@ members = [
     "crates/homecooked-bridge",
     "crates/homecooked-transport",
     "crates/homecooked-conformance",
+    "crates/homecooked-hub",
 ]
 
 [workspace.package]
