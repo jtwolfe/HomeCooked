@@ -1330,6 +1330,124 @@ pub fn controller_tcp_dryer_interlock() -> ScenarioResult {
     Ok(())
 }
 
+/// (9c) Controller-sim over TCP: start washer cotton + observe cycle state/phase.
+pub fn controller_tcp_washer_cotton() -> ScenarioResult {
+    const NAME: &str = "controller_tcp_washer_cotton";
+    let ep = ControllerEndpoint::washer_lab().map_err(|e| err(NAME, format!("washer_lab: {e}")))?;
+    let (addr, _shared, _server) = spawn_handler_server("127.0.0.1:0", ep)
+        .map_err(|e| err(NAME, format!("spawn_handler_server: {e}")))?;
+    thread::sleep(Duration::from_millis(20));
+
+    let mut client = TcpClient::connect(addr).map_err(|e| err(NAME, format!("connect: {e}")))?;
+
+    let desc = client
+        .describe(WASHER_CTRL_DEVICE_ID, vec![])
+        .map_err(|e| err(NAME, format!("describe: {e}")))?;
+    if !desc.capability.advertises_trait(TraitId::Cycle) {
+        return Err(err(NAME, "describe missing trait.cycle"));
+    }
+    for point in [
+        "trait.cycle.start",
+        "trait.cycle.cycle_state",
+        "trait.cycle.cycle_phase",
+    ] {
+        if desc.capability.point(point).is_none() {
+            return Err(err(NAME, format!("describe missing {point}")));
+        }
+    }
+
+    // Prepare interlocks safe (matches heater path; door_closed already injected).
+    client
+        .write(
+            WASHER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: QualifiedPointId::parse("class.washer.door_lock")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                value: Value::Bool(true),
+            }],
+        )
+        .map_err(|e| err(NAME, format!("door_lock write: {e}")))?;
+    client
+        .write(
+            WASHER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: QualifiedPointId::parse("class.washer.water_level_pa")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                value: Value::F32(2_000.0),
+            }],
+        )
+        .map_err(|e| err(NAME, format!("water_level write: {e}")))?;
+
+    client
+        .write(
+            WASHER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: QualifiedPointId::parse("trait.cycle.start")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                value: Value::Void,
+            }],
+        )
+        .map_err(|e| err(NAME, format!("cycle start: {e}")))?;
+
+    let read = client
+        .read(
+            WASHER_CTRL_DEVICE_ID,
+            vec![
+                QualifiedPointId::parse("trait.cycle.cycle_state")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                QualifiedPointId::parse("trait.cycle.cycle_phase")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+            ],
+        )
+        .map_err(|e| err(NAME, format!("read cycle: {e}")))?;
+    if read.values[0].value != Some(Value::Enum("running".into())) {
+        return Err(err(
+            NAME,
+            format!("cycle_state={:?}, expected running", read.values[0].value),
+        ));
+    }
+    match read.values[1].value.as_ref() {
+        Some(Value::String(phase)) if !phase.is_empty() && phase != "idle" => {}
+        other => {
+            return Err(err(
+                NAME,
+                format!("cycle_phase={other:?}, expected active catalog phase"),
+            ));
+        }
+    }
+
+    // A few lab ticks — cycle should stay running (full run-to-complete deferred).
+    for i in 0..3 {
+        client
+            .write(
+                WASHER_CTRL_DEVICE_ID,
+                vec![WriteOp {
+                    id: QualifiedPointId::parse("class.washer.sim_tick")
+                        .map_err(|e| err(NAME, e.to_string()))?,
+                    value: Value::Void,
+                }],
+            )
+            .map_err(|e| err(NAME, format!("lab tick {i}: {e}")))?;
+    }
+    let after_ticks = client
+        .read(
+            WASHER_CTRL_DEVICE_ID,
+            vec![QualifiedPointId::parse("trait.cycle.cycle_state")
+                .map_err(|e| err(NAME, e.to_string()))?],
+        )
+        .map_err(|e| err(NAME, format!("read after ticks: {e}")))?;
+    if after_ticks.values[0].value != Some(Value::Enum("running".into())) {
+        return Err(err(
+            NAME,
+            format!(
+                "after ticks cycle_state={:?}, expected running",
+                after_ticks.values[0].value
+            ),
+        ));
+    }
+    Ok(())
+}
+
 /// (8) Optional lab hub: spawn lab set, TCP discover ≥3 devices, describe one.
 pub fn hub_lab_set_discover_describe() -> ScenarioResult {
     const NAME: &str = "hub_lab_set_discover_describe";
@@ -1869,6 +1987,7 @@ pub fn all_scenarios() -> &'static [(&'static str, ScenarioFn)] {
             "controller_tcp_dryer_interlock",
             controller_tcp_dryer_interlock,
         ),
+        ("controller_tcp_washer_cotton", controller_tcp_washer_cotton),
         (
             "hub_lab_set_discover_describe",
             hub_lab_set_discover_describe,
