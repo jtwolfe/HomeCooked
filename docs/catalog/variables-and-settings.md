@@ -1674,8 +1674,14 @@ Cycle remaining via `trait.cycle.remaining_s`. Setpoint resolution typically 0.1
 | `pump_on` | bool | — | | r/e | opt | |
 | `outdoor_c` | f32 | celsius | | r | opt | Weather compensation |
 | `summer_mode` | bool | — | | r/w | opt | CH off, DHW on |
-| `flame_out` | bool | — | | r/e | opt | |
-| `low_pressure` | bool | — | | r/e | opt | |
+| `flame_out` | bool | — | | r/e | opt | Flame failure / flame-out fault |
+| `low_pressure` | bool | — | | r/e | opt | System water pressure low |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving CH/DHW profile |
+| `high_temp_alarm` | bool | — | | r/e | opt | Overheat / flow overtemp alarm |
+| `lockout` | bool | — | | r/e | opt | Safety lockout after flame/ignition faults |
+| `ignition_fail` | bool | — | | r/e | opt | Ignition failure |
+| `timer_s` | duration_s | second | 0–3600 | r/w/e | opt | Delay start / remaining timer |
 
 No raw gas-valve command.
 

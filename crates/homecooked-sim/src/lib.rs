@@ -5353,6 +5353,107 @@ mod tests {
     }
 
     #[test]
+    fn boiler_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let boiler = sim.spawn(ApplianceClassId::Boiler).unwrap();
+
+        assert_eq!(
+            sim.read_value(&boiler, "class.boiler.pressure_bar")
+                .unwrap(),
+            Value::F32(1.5)
+        );
+        assert_eq!(
+            sim.read_value(&boiler, "class.boiler.burner_on").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&boiler, "class.boiler.flame_out").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&boiler, "class.boiler.low_pressure")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&boiler, "class.boiler.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&boiler, "class.boiler.eco_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&boiler, "class.boiler.high_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&boiler, "class.boiler.lockout").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&boiler, "class.boiler.ignition_fail")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&boiler, "class.boiler.timer_s").unwrap(),
+            Value::DurationS(0)
+        );
+
+        sim.write(&boiler, "class.boiler.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&boiler, "class.boiler.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&boiler, "class.boiler.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&boiler, "class.boiler.eco_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&boiler, "class.boiler.timer_s", Value::DurationS(45))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&boiler, "class.boiler.timer_s").unwrap(),
+            Value::DurationS(45)
+        );
+
+        let err = sim
+            .write(&boiler, "class.boiler.pressure_bar", Value::F32(2.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&boiler, "class.boiler.burner_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&boiler, "class.boiler.flame_out", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&boiler, "class.boiler.low_pressure", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&boiler, "class.boiler.high_temp_alarm", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&boiler, "class.boiler.lockout", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&boiler, "class.boiler.ignition_fail", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {

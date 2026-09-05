@@ -1424,12 +1424,14 @@ Whitegoods-adjacent plant in the home.
 
 - CH (central heat) enable, DHW enable, CH setpoint, DHW setpoint
 - Weather-compensation curve (optional), summer mode, pump overrun
+- Sabbath / eco; delay timer
 - Flame / burner is not directly writable
 
 **Typical readable state:**
 
 - Flow / return temp, DHW temp, burner on, modulation percent, pressure bar
-- Pump, faults (ignition, flame-out, low pressure, overheat, flue)
+- Pump, faults (ignition, flame-out, low pressure, overheat / high_temp_alarm,
+  lockout, flue)
 - Outdoor temp if used for compensation
 
 **Notes:**
@@ -1438,6 +1440,9 @@ Whitegoods-adjacent plant in the home.
 - A combi boiler still uses this class (CH + DHW zones), not `water_heater`,
   when CH is present.
 - Pairing with `hvac` thermostats is a system concern; this class is the plant.
+- Catalog depth: optional class points include sabbath, eco, `high_temp_alarm`,
+  `lockout`, `ignition_fail`, and `timer_s`, plus thin-table `burner_on` /
+  `flame_out` / `low_pressure` / `pressure_bar` (see variables-and-settings).
 
 ### `water_softener`
 
