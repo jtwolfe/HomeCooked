@@ -1,0 +1,44 @@
+{
+  "id": "coffee_brew_espresso",
+  "name": "Brew espresso",
+  "description": "Power on, set program espresso, start cycle, wait until boiler ≥ 85 °C, then assert.",
+  "catalog_version": "0.1.0",
+  "devices": [
+    { "role": "coffee_machine", "class_id": "coffee_machine" }
+  ],
+  "steps": [
+    {
+      "id": "power",
+      "action": "command",
+      "target": { "role": "coffee_machine", "point": "trait.power.power_on" },
+      "value": { "type": "void" }
+    },
+    {
+      "id": "program",
+      "action": "write",
+      "target": { "role": "coffee_machine", "point": "trait.program.program" },
+      "value": { "type": "enum", "value": "espresso" }
+    },
+    {
+      "id": "start",
+      "action": "command",
+      "target": { "role": "coffee_machine", "point": "trait.cycle.start" },
+      "value": { "type": "void" }
+    },
+    {
+      "id": "wait_boiler",
+      "action": "wait",
+      "target": { "role": "coffee_machine" },
+      "timeout_s": 30,
+      "guards": [
+        { "point": "class.coffee_machine.boiler_c", "gte": { "type": "f32", "value": 85.0 } }
+      ]
+    },
+    {
+      "id": "assert_boiler",
+      "op": "guard",
+      "target": { "role": "coffee_machine" },
+      "guard": { "point": "class.coffee_machine.boiler_c", "gte": { "type": "f32", "value": 85.0 } }
+    }
+  ]
+}
