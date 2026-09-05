@@ -9,8 +9,8 @@ use homecooked_procedure::{
     SimulatorBackend, StepAction, BUNDLED_EXAMPLE_PROCEDURES, DISHWASHER_DHW_PREHEAT_JSON,
 };
 use homecooked_schema::{
-    catalog_group, AccessMode, ApplianceClassId, DeviceIdentity, ErrorCode, Unit, Value,
-    ValueRange, ValueType, STATIC_CLASS_IDS,
+    catalog_group, class_table, AccessMode, ApplianceClassId, DeviceIdentity, ErrorCode, Unit,
+    Value, ValueRange, ValueType, STATIC_CLASS_IDS,
 };
 use homecooked_sim::Simulator;
 use homecooked_thermal::{
@@ -293,6 +293,21 @@ impl WasmApi {
             })
             .collect();
         serde_json::to_string(&classes).expect("ClassInfo serializes")
+    }
+
+    /// Static `ClassTable.thermal_ports` advertisement as JSON.
+    ///
+    /// Returns `[]` when the class id is unknown, has no static table, or
+    /// advertises no heat ports. Does not read live device `thermal_port_*`
+    /// points.
+    pub fn list_heat_port_specs(class_id: &str) -> String {
+        let Some(class) = ApplianceClassId::from_str_id(class_id) else {
+            return "[]".to_string();
+        };
+        let ports = class_table(class)
+            .map(|table| table.thermal_ports)
+            .unwrap_or(&[]);
+        serde_json::to_string(ports).expect("HeatPortSpec serializes")
     }
 
     pub fn create_device(&mut self, class_id: &str) -> Result<String, ApiError> {
@@ -1054,6 +1069,51 @@ mod tests {
                 seen.push(group);
             }
         }
+    }
+
+    #[test]
+    fn list_heat_port_specs_matches_class_table() {
+        let water: serde_json::Value =
+            serde_json::from_str(&WasmApi::list_heat_port_specs("water_heater")).unwrap();
+        assert_eq!(water.as_array().unwrap().len(), 1);
+        assert_eq!(water[0]["port_id"], "preheat");
+        assert_eq!(water[0]["direction"], "sink");
+        assert_eq!(water[0]["media"], "water");
+        assert_eq!(water[0]["max_power_w"], 2000);
+
+        let fridge: serde_json::Value =
+            serde_json::from_str(&WasmApi::list_heat_port_specs("fridge")).unwrap();
+        assert_eq!(fridge[0]["port_id"], "condenser");
+        assert_eq!(fridge[0]["direction"], "source");
+        assert_eq!(fridge[0]["media"], "water");
+        assert_eq!(fridge[0]["max_power_w"], 120);
+
+        let hvac: serde_json::Value =
+            serde_json::from_str(&WasmApi::list_heat_port_specs("hvac")).unwrap();
+        assert_eq!(hvac[0]["port_id"], "coil");
+        assert_eq!(hvac[0]["direction"], "sink");
+        assert_eq!(hvac[0]["max_power_w"], 5000);
+
+        let dishwasher: serde_json::Value =
+            serde_json::from_str(&WasmApi::list_heat_port_specs("dishwasher")).unwrap();
+        assert_eq!(dishwasher[0]["port_id"], "inlet_preheat");
+        assert_eq!(dishwasher[0]["direction"], "sink");
+        assert_eq!(dishwasher[0]["max_power_w"], 1800);
+
+        let dryer: serde_json::Value =
+            serde_json::from_str(&WasmApi::list_heat_port_specs("dryer")).unwrap();
+        assert_eq!(dryer[0]["port_id"], "exhaust");
+        assert_eq!(dryer[0]["direction"], "source");
+        assert_eq!(dryer[0]["media"], "air");
+        assert_eq!(dryer[0]["max_power_w"], 2000);
+
+        let empty: serde_json::Value =
+            serde_json::from_str(&WasmApi::list_heat_port_specs("kettle")).unwrap();
+        assert_eq!(empty, serde_json::json!([]));
+
+        let unknown: serde_json::Value =
+            serde_json::from_str(&WasmApi::list_heat_port_specs("not_a_class")).unwrap();
+        assert_eq!(unknown, serde_json::json!([]));
     }
 
     #[test]

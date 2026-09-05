@@ -18,6 +18,8 @@ const dtInput = document.getElementById("dt-ms");
 const tickBtn = document.getElementById("tick-btn");
 const autoTick = document.getElementById("auto-tick");
 const writeError = document.getElementById("write-error");
+const catalogHeatPorts = document.getElementById("catalog-heat-ports");
+const catalogHeatPortChips = document.getElementById("catalog-heat-port-chips");
 const thermalPortPanel = document.getElementById("thermal-port-panel");
 const thermalPortChips = document.getElementById("thermal-port-chips");
 const thermalPortAttachInput = document.getElementById("thermal-port-attach-input");
@@ -290,6 +292,38 @@ function thermalPortState(classId, state) {
   return out;
 }
 
+function renderCatalogHeatPorts(classId) {
+  if (!classId || !wasm || typeof wasm.list_heat_port_specs !== "function") {
+    catalogHeatPorts.hidden = true;
+    catalogHeatPortChips.innerHTML = "";
+    return;
+  }
+  let specs = [];
+  try {
+    specs = JSON.parse(wasm.list_heat_port_specs(classId)) || [];
+  } catch {
+    specs = [];
+  }
+  if (!Array.isArray(specs) || specs.length === 0) {
+    catalogHeatPorts.hidden = true;
+    catalogHeatPortChips.innerHTML = "";
+    return;
+  }
+  catalogHeatPorts.hidden = false;
+  catalogHeatPortChips.innerHTML = "";
+  for (const spec of specs) {
+    const li = document.createElement("li");
+    const portId = spec.port_id ?? "—";
+    const direction = spec.direction ?? "—";
+    const media = spec.media ?? "—";
+    const maxW = spec.max_power_w != null ? spec.max_power_w : "—";
+    li.innerHTML =
+      `<span class="hl-label">${portId}</span>` +
+      `<span class="hl-value">${direction} · ${media} · ${maxW} W</span>`;
+    catalogHeatPortChips.appendChild(li);
+  }
+}
+
 function renderThermalPortPanel(classId, state) {
   const ports = thermalPortState(classId, state);
   if (!ports) {
@@ -370,6 +404,7 @@ function renderDevice(desc, state) {
   deviceTitle.textContent = `${name} · ${classId}`;
   deviceIdEl.textContent = desc.identity.device_id;
   renderHighlights(state);
+  renderCatalogHeatPorts(classId);
   renderThermalPortPanel(classId, state);
   rawState.textContent = JSON.stringify(state, null, 2);
 
@@ -514,6 +549,7 @@ async function boot() {
 
   const required = [
     "list_appliance_classes",
+    "list_heat_port_specs",
     "list_example_procedures",
     "get_example_procedure",
     "parse_procedure",

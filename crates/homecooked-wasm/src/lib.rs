@@ -45,6 +45,13 @@ pub fn list_appliance_classes() -> String {
     WasmApi::list_appliance_classes()
 }
 
+/// JSON array of static [`homecooked_schema::HeatPortSpec`] for a class
+/// (`ClassTable.thermal_ports`). Empty array when unknown or none.
+#[wasm_bindgen]
+pub fn list_heat_port_specs(class_id: &str) -> String {
+    WasmApi::list_heat_port_specs(class_id)
+}
+
 /// Spawn a simulated device. Returns the generated `device_id`.
 #[wasm_bindgen]
 pub fn create_device(class_id: &str) -> Result<String, JsError> {
@@ -162,6 +169,16 @@ mod tests {
         assert!(from_fn.contains("\"wine_cooler\""));
         assert!(from_fn.contains("\"hvac\""));
         assert!(from_fn.contains("\"steam_oven\""));
+    }
+
+    #[test]
+    fn bindgen_list_heat_port_specs_matches_api() {
+        let from_fn = list_heat_port_specs("water_heater");
+        let from_api = WasmApi::list_heat_port_specs("water_heater");
+        assert_eq!(from_fn, from_api);
+        assert!(from_fn.contains("\"preheat\""));
+        assert!(from_fn.contains("\"sink\""));
+        assert_eq!(list_heat_port_specs("kettle"), "[]");
     }
 
     #[test]

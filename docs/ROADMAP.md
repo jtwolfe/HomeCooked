@@ -1,6 +1,6 @@
 # HomeCooked roadmap — ~75% project completeness
 
-Version **0.1.35**. Planning doc for a long flesh-out of the catalog, control
+Version **0.1.36**. Planning doc for a long flesh-out of the catalog, control
 stack, and simulator. It does **not** freeze APIs; crate and YAML shapes may
 evolve with the code that implements each stream.
 
@@ -23,7 +23,7 @@ What exists on `main` today (Done highlights called out):
 | `homecooked-protocol` | Envelope, request/response kinds, discovery, JSON, errors (v0.1.0); **invalid Envelope JSON table tests** |
 | `homecooked-core` | Device registry, capability-enforced read/write |
 | `homecooked-sim` | In-memory devices for all 56 statically tabled classes; microwave cook ticks advance `elapsed_s`; water_heater/fridge/hvac/dishwasher/dryer thermal-port seeds + RW attach |
-| `homecooked-wasm` + `apps/simulator-web` | wasm-bindgen JSON API; full-catalog picker (56) + procedure runner (kettle + Domino's + wash-then-dry + oven bake + coffee brew + air fryer cook `run_procedure` E2E) + thermal panel + device `thermal_port_*` UI (auto when `thermal_port_id` present; `water_heater`/`fridge`/`hvac`/`dishwasher`/`dryer`); **WASM fetch+blob load** (module cache defeat) — **Done** |
+| `homecooked-wasm` + `apps/simulator-web` | wasm-bindgen JSON API; full-catalog picker (56) + procedure runner (kettle + Domino's + wash-then-dry + oven bake + coffee brew + air fryer cook `run_procedure` E2E) + thermal panel + device `thermal_port_*` UI (auto when `thermal_port_id` present; `water_heater`/`fridge`/`hvac`/`dishwasher`/`dryer`) + read-only **Catalog heat ports** from `list_heat_port_specs` / `ClassTable.thermal_ports`; **WASM fetch+blob load** (module cache defeat) — **Done** |
 | `homecooked-io-map` | Chassis I/O map serde + validate (washer + dryer fragments) |
 | `homecooked-interlock` | Declarative interlock rules (washer heater/spin; dryer heater/motor) |
 | `homecooked-hal` | Firmware HAL sketch + host `MockHal` |
@@ -322,6 +322,8 @@ multiple small PRs.
    Load demo / Negotiate / Tick / Transfer panel showing reservoirs, ports,
    and last transfer results. Device panel also surfaces catalog
    `thermal_port_*` chips + attach write for `water_heater` / `fridge` / `hvac` / `dishwasher` / `dryer` (auto-gated on `thermal_port_id`).
+   Read-only **Catalog heat ports** chips via wasm `list_heat_port_specs(class_id)`
+   (`ClassTable.thermal_ports` / `HeatPortSpec`) sit alongside the live attach panel.
    **WASM module load:** simulator-web loads bindgen via **fetch + blob URL**
    (cache defeat after rebuilds) — **Done**.
    **Still open:** richer conformance-oriented screens.
@@ -511,3 +513,4 @@ the code that implements them.
 | 0.1.33 | Stream 7 catalog depth: deepen `wine_cooler` optional class points (sabbath/compressor/alarms/vibration_alert/bottle_count + typical humidity setpoint); Tier-B deepen started |
 | 0.1.34 | Stream 7 catalog depth: deepen `ice_maker` optional class points (water_low/scoop_light/max_ice_mode/harvest_fail/scale_alert/delayed_start_s + typical ice bin/filter life) |
 | 0.1.35 | Current-state refresh: ~70% → **~72%** (~71–73% band) of 75% target; cite PRs #54–#57 (schema thermal vocab, `ClassTable.HeatPortSpec`, `wine_cooler` + `ice_maker` optional depth); §2 gaps narrowed in wording, not cleared |
+| 0.1.36 | Stream 7: wasm `list_heat_port_specs(class_id)` exposes `ClassTable.thermal_ports`; simulator-web read-only Catalog heat ports chips alongside live `thermal_port_*` panel |
