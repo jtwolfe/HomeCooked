@@ -29,12 +29,17 @@ What exists on `main` today:
 | `homecooked-hal` | Firmware HAL sketch + host `MockHal` |
 | `homecooked-procedure` | Procedure documents + sequential runner |
 | `homecooked-controller` | Host controller sim: IoMap + MockHal + interlocks + washer cotton cycle |
+| `homecooked-thermal` | First executable thermal plant slice (types, registry, offer/accept, tick) |
 | CI | rustfmt, clippy (`-D warnings`), `cargo test --workspace`, wasm-pack |
 
 **25 Tier-A classes are fully tabled** (see §4).
 
 `list_all_class_ids` already covers the full appliances index; most classes are
-ids-only (no static tables / sim yet). Thermal and bridges remain **design sketches** without dedicated crates; control-system has HAL + controller-sim + io-map/interlock crates (TCP transport still open); procedures has `homecooked-procedure`.
+ids-only (no static tables / sim yet). Thermal has `homecooked-thermal` (plant
+slice; catalog/sim ports still open). Bridges remain a **design sketch**
+without a dedicated crate; control-system has HAL + controller-sim +
+io-map/interlock crates (TCP transport still open); procedures has
+`homecooked-procedure`.
 
 Rough completeness: docs + thin protocol/sim spine ≈ **~30%** of the 75%
 target below. Remaining work is depth (tables, I/O map, interlocks, HAL/sim
@@ -150,14 +155,20 @@ multiple small PRs.
 **Milestones**
 
 1. Schema representation of thermal / hydraulic ports from
-   `docs/standard/thermal-plant.md` (sketch → types).
+   `docs/standard/thermal-plant.md` (sketch → types). **Progressed** —
+   first executable plant slice landed in `homecooked-thermal`
+   (reservoirs, heat ports, offer/accept, tick transfer). Types are
+   crate-local, not yet promoted into `homecooked-schema` / the catalog.
 2. Sim devices that advertise and update a minimal port set (e.g. water heater
-   / HVAC heat interface).
+   / HVAC heat interface). **Still open** — Tier-A class port read/write
+   in `homecooked-sim` is not in this slice.
 3. Docs note what remains vendor / experimental.
 
 **Definition of done**
 
 - At least one Tier-A thermal-capable class exercises port read/write in tests.
+  *(Plant-level fridge-condenser → DHW demo is in `homecooked-thermal`;
+  catalog/sim port points remain follow-up.)*
 
 ### Stream 6 — One real bridge + stubs
 

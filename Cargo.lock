@@ -157,6 +157,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "homecooked-thermal"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "homecooked-wasm"
 version = "0.1.0"
 dependencies = [

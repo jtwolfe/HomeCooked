@@ -1,0 +1,13 @@
+[package]
+name = "homecooked-thermal"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description = "HomeCooked thermal plant slice: reservoirs, heat ports, offer/accept, tick transfer"
+readme = "README.md"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
