@@ -820,6 +820,21 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "timer_s"
         );
     }
+    // Stream 7 catalog depth: waffle_maker optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::WaffleMaker {
+        return matches!(
+            point.id,
+            "shade"
+                | "ready"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "heater_on"
+                | "high_temp_alarm"
+                | "lid_open"
+                | "batter_done"
+                | "timer_s"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -3290,6 +3305,55 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.yogurt_maker.jar_present", &Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn waffle_maker_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::WaffleMaker).unwrap();
+        for id in [
+            "class.waffle_maker.shade",
+            "class.waffle_maker.ready",
+            "class.waffle_maker.sabbath_mode",
+            "class.waffle_maker.eco_mode",
+            "class.waffle_maker.heater_on",
+            "class.waffle_maker.high_temp_alarm",
+            "class.waffle_maker.lid_open",
+            "class.waffle_maker.batter_done",
+            "class.waffle_maker.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical waffle_maker"
+            );
+        }
+        cap.validate_write("class.waffle_maker.shade", &Value::U8(4))
+            .unwrap();
+        cap.validate_write("class.waffle_maker.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.waffle_maker.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.waffle_maker.timer_s", &Value::DurationS(180))
+            .unwrap();
+        let err = cap
+            .validate_write("class.waffle_maker.ready", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.waffle_maker.heater_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.waffle_maker.high_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.waffle_maker.lid_open", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.waffle_maker.batter_done", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }

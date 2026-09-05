@@ -1287,9 +1287,16 @@ Connected waffle iron.
 **Typical traits:** `identity`, `power`, `connectivity`, `temperature`, `cycle`,
 `heater`, `fault`, `energy`, `audio`.
 
-**Typical controllable settings:** shade / temp, count, start.
+**Typical controllable settings:** shade / temp, count, start; sabbath / eco;
+delay timer.
 
-**Typical readable state:** preheat ready, baking, lid, done.
+**Typical readable state:** preheat ready, baking, lid, heater on, high-temp
+alarm, batter done.
+
+**Notes:**
+- Catalog depth: optional class points include sabbath, eco, `heater_on`,
+  `high_temp_alarm`, `lid_open`, `batter_done`, and `timer_s`, plus typical
+  `shade` / `ready` (see variables-and-settings).
 
 ### `pasta_maker`
 

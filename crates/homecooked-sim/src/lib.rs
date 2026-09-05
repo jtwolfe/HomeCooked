@@ -4835,6 +4835,99 @@ mod tests {
     }
 
     #[test]
+    fn waffle_maker_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let wm = sim.spawn(ApplianceClassId::WaffleMaker).unwrap();
+
+        assert_eq!(
+            sim.read_value(&wm, "class.waffle_maker.shade").unwrap(),
+            Value::U8(4)
+        );
+        assert_eq!(
+            sim.read_value(&wm, "class.waffle_maker.ready").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wm, "class.waffle_maker.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wm, "class.waffle_maker.eco_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wm, "class.waffle_maker.heater_on").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wm, "class.waffle_maker.high_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wm, "class.waffle_maker.lid_open").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wm, "class.waffle_maker.batter_done")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wm, "class.waffle_maker.timer_s").unwrap(),
+            Value::DurationS(0)
+        );
+
+        sim.write(&wm, "class.waffle_maker.shade", Value::U8(6))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&wm, "class.waffle_maker.shade").unwrap(),
+            Value::U8(6)
+        );
+        sim.write(&wm, "class.waffle_maker.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&wm, "class.waffle_maker.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&wm, "class.waffle_maker.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&wm, "class.waffle_maker.eco_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&wm, "class.waffle_maker.timer_s", Value::DurationS(180))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&wm, "class.waffle_maker.timer_s").unwrap(),
+            Value::DurationS(180)
+        );
+
+        let err = sim
+            .write(&wm, "class.waffle_maker.ready", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&wm, "class.waffle_maker.heater_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&wm, "class.waffle_maker.high_temp_alarm", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&wm, "class.waffle_maker.lid_open", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&wm, "class.waffle_maker.batter_done", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {

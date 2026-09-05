@@ -1557,8 +1557,15 @@ Cycle remaining via `trait.cycle.remaining_s`. Setpoint resolution typically 0.1
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `shade` | u8 | — | 1–7 | r/w | opt | |
+| `shade` | u8 | — | 1–7 | r/w | opt | Doneness / browning level |
 | `ready` | bool | — | | r/e | opt | Preheat complete |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving preheat / bake profile |
+| `heater_on` | bool | — | | r/e | opt | Plate heater element active |
+| `high_temp_alarm` | bool | — | | r/e | opt | Plate over-temp |
+| `lid_open` | bool | — | | r/e | opt | Lid ajar bit |
+| `batter_done` | bool | — | | r/e | opt | Bake cycle complete / waffle ready |
+| `timer_s` | duration_s | second | 0–3600 | r/w/e | opt | Delay start / remaining bake timer |
 
 ---
 
