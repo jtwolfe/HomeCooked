@@ -11,7 +11,7 @@ pub use simulator::Simulator;
 #[cfg(test)]
 mod tests {
     use homecooked_schema::{
-        ApplianceClassId, ErrorCode, Value, STATIC_CLASS_IDS, TIER_A_CLASS_IDS,
+        ApplianceClassId, ErrorCode, Value, STATIC_CLASS_IDS, TIER_A_CLASS_IDS, TIER_B_CLASS_IDS,
     };
 
     use super::*;
@@ -30,7 +30,17 @@ mod tests {
         let ids = sim.spawn_static_kitchen().unwrap();
         assert_eq!(ids.len(), STATIC_CLASS_IDS.len());
         assert_eq!(sim.list().len(), STATIC_CLASS_IDS.len());
-        assert_eq!(STATIC_CLASS_IDS, TIER_A_CLASS_IDS);
+        assert_eq!(STATIC_CLASS_IDS.len(), 56);
+        assert_eq!(
+            STATIC_CLASS_IDS.len(),
+            TIER_A_CLASS_IDS.len() + TIER_B_CLASS_IDS.len()
+        );
+        for class in TIER_B_CLASS_IDS {
+            assert!(STATIC_CLASS_IDS.contains(class));
+            let mut one = Simulator::new();
+            one.spawn(*class)
+                .unwrap_or_else(|e| panic!("spawn {class}: {e}"));
+        }
     }
 
     #[test]
