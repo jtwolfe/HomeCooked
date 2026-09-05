@@ -1,7 +1,8 @@
-//! Washer cotton cycle state machine (host sim).
+//! Washer cotton and dryer cotton cycle state machines (host sim).
 //!
-//! Aligns with `docs/standard/examples/washer-dryer-io.md` §6. Heat and
-//! tumble are internal sub-states of catalog phase `wash`.
+//! Aligns with `docs/standard/examples/washer-dryer-io.md` §6–§7. Washer heat
+//! and tumble are internal sub-states of catalog phase `wash`. Dryer dry/heat
+//! maps to catalog `heating` / `drying`.
 
 use serde::{Deserialize, Serialize};
 
@@ -26,17 +27,22 @@ impl CycleState {
     }
 }
 
-/// Catalog-facing `trait.cycle.cycle_phase` tokens (heat/tumble → `wash`).
+/// Catalog-facing `trait.cycle.cycle_phase` tokens.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CyclePhase {
     /// No active phase (idle / pre-start).
     None,
+    // Washer catalog phases
     Fill,
     Wash,
     Drain,
     Rinse,
     Spin,
+    // Dryer catalog phases
+    Heating,
+    Drying,
+    Cooling,
     Complete,
 }
 
@@ -49,6 +55,9 @@ impl CyclePhase {
             Self::Drain => "drain",
             Self::Rinse => "rinse",
             Self::Spin => "spin",
+            Self::Heating => "heating",
+            Self::Drying => "drying",
+            Self::Cooling => "cooling",
             Self::Complete => "complete",
         }
     }
@@ -111,6 +120,61 @@ impl Default for CottonOptions {
             wash_tumble_ticks: 3,
             spin_ticks: 3,
             rinse_tumble_ticks: 2,
+        }
+    }
+}
+
+/// Internal dryer cotton runtime states.
+///
+/// Wire outline: Idle → Dry/Heat → Cool → Done (lock is an internal prelude).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DryerState {
+    Idle,
+    Lock,
+    /// Combined dry/heat: blower + heater + tumble until humidity/temp target.
+    Dry,
+    Cool,
+    Done,
+}
+
+impl DryerState {
+    pub fn catalog_phase(self) -> CyclePhase {
+        match self {
+            Self::Idle => CyclePhase::None,
+            Self::Lock => CyclePhase::Heating,
+            Self::Dry => CyclePhase::Drying,
+            Self::Cool => CyclePhase::Cooling,
+            Self::Done => CyclePhase::Complete,
+        }
+    }
+}
+
+/// Setpoints for a dryer cotton program start.
+#[derive(Debug, Clone, PartialEq)]
+pub struct DryOptions {
+    /// Exit Dry when drum temp reaches this (°C), or humidity target, whichever first.
+    pub target_temp_c: f64,
+    /// Exit Dry when `ain.humidity_rh` is at or below this.
+    pub target_humidity_rh: f64,
+    /// Exit Cool when drum temp is at or below this (°C).
+    pub cool_temp_c: f64,
+    /// Tumble rpm during Dry / Cool.
+    pub tumble_rpm: f64,
+    /// Safety cap on Dry ticks.
+    pub max_dry_ticks: u32,
+    /// Safety cap on Cool ticks.
+    pub max_cool_ticks: u32,
+}
+
+impl Default for DryOptions {
+    fn default() -> Self {
+        Self {
+            target_temp_c: 55.0,
+            target_humidity_rh: 25.0,
+            cool_temp_c: 30.0,
+            tumble_rpm: 50.0,
+            max_dry_ticks: 20,
+            max_cool_ticks: 20,
         }
     }
 }

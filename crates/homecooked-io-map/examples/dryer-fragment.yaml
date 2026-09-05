@@ -1,0 +1,49 @@
+# INFORMATIVE EXAMPLE — not a frozen schema
+# chassis.io_map.yaml  — dryer on the laundry backplane
+# Shape from docs/standard/examples/washer-dryer-io.md §3 / §5 (dryer notes).
+version: "0.1.0"
+class_id: dryer
+bindings:
+  - channel: din.door_closed
+    source: { board: lv_sensor, pin: di_0, active: high }
+    point: trait.door_lid.door_state
+    encode: { true: closed, false: open }
+
+  - channel: din.door_lock_fb
+    source: { board: lv_sensor, pin: di_1, active: high }
+    point: trait.door_lid.door_lock_state
+    encode: { true: locked, false: unlocked }
+
+  - channel: ain.drum_temp_c
+    source: { board: lv_sensor, pin: ntc_0 }
+    point: trait.temperature.current_c
+
+  - channel: ain.humidity_rh
+    source: { board: lv_sensor, pin: humidity_0 }
+    point: trait.humidity.current_rh
+
+  - channel: ain.drum_rpm
+    source: { board: lv_sensor, pin: tach_0 }
+    point: trait.motor.rpm
+
+  - channel: din.lint_present
+    source: { board: lv_sensor, pin: di_2, active: high }
+    point: class.dryer.lint_filter
+
+  - channel: aout.door_lock
+    sink: { board: hv_actuator, circuit: lock_solenoid }
+    point: trait.door_lid.door_lock_state
+
+  - channel: aout.heater_enable
+    sink: { board: hv_actuator, circuit: heater }
+    gated_by: [il.heater]
+    point: trait.heater.heater_state
+
+  - channel: aout.blower
+    sink: { board: hv_actuator, circuit: blower }
+    point: trait.fan.fan_state
+
+  - channel: motor.speed_rpm_cmd
+    sink: { board: motor_if, proto: inverter_uart }
+    gated_by: [il.motor]
+    point: trait.motor.rpm_setpoint

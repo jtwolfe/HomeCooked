@@ -7,12 +7,16 @@
 //! and returns [`Decision::Allow`] or [`Decision::Deny`].
 
 mod condition;
+mod dryer;
 mod engine;
 mod error;
 mod value;
 mod washer;
 
 pub use condition::{CmpOp, Compare, Condition};
+pub use dryer::{
+    heater_rule as dryer_heater_rule, motor_rule as dryer_motor_rule, rules as dryer_rules,
+};
 pub use engine::{Action, Decision, ForceSafe, Rule, RuleSet};
 pub use error::Error;
 pub use value::{Command, Snapshot, Value};
@@ -188,6 +192,41 @@ mod tests {
             }
             other => panic!("expected allow with force_safe, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn dryer_heater_allowed_when_locked_and_blower() {
+        let decision = dryer_rules().evaluate(
+            &Snapshot::new()
+                .with("door_locked", true)
+                .with("aout.blower", true),
+            &Command::new("aout.heater_enable", true),
+        );
+        assert!(decision.is_allow(), "{decision:?}");
+    }
+
+    #[test]
+    fn dryer_heater_denied_when_unlocked() {
+        let decision = dryer_rules().evaluate(
+            &Snapshot::new()
+                .with("door_locked", false)
+                .with("din.door_lock_fb", false)
+                .with("aout.blower", true),
+            &Command::new("aout.heater_enable", true),
+        );
+        assert!(decision.is_deny(), "{decision:?}");
+    }
+
+    #[test]
+    fn dryer_heater_denied_without_blower() {
+        let decision = dryer_rules().evaluate(
+            &Snapshot::new()
+                .with("door_locked", true)
+                .with("aout.blower", false)
+                .with("blower_on", false),
+            &Command::new("aout.heater_enable", true),
+        );
+        assert!(decision.is_deny(), "{decision:?}");
     }
 
     #[test]

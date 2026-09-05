@@ -5,7 +5,7 @@ edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 repository.workspace = true
-description = "Host-side controller simulator: IoMap + MockHal + interlocks + washer cycle runtime"
+description = "Host-side controller simulator: IoMap + MockHal + interlocks + washer/dryer cycle runtime"
 readme = "README.md"
 
 [dependencies]
