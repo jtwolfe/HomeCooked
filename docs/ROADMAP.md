@@ -19,15 +19,14 @@ What exists on `main` today:
 |------|--------|
 | Catalog docs | Appliance class index (~56 ids), traits, variables/settings in `docs/catalog/` |
 | Standard docs | Overview, thermal-plant, procedures, bridges, control-system sketches; washer/dryer I/O example |
-| `homecooked-schema` | Serde types, capability model, write validation; **nine** static class tables |
+| `homecooked-schema` | Serde types, capability model, write validation; **25** Tier-A static class tables |
 | `homecooked-protocol` | Envelope, request/response kinds, discovery, JSON, errors (v0.1.0) |
 | `homecooked-core` | Device registry, capability-enforced read/write |
-| `homecooked-sim` | In-memory devices for the nine static classes |
+| `homecooked-sim` | In-memory devices for the 25 Tier-A static classes |
 | `homecooked-wasm` + `apps/simulator-web` | wasm-bindgen JSON API and minimal static UI |
 | CI | rustfmt, clippy (`-D warnings`), `cargo test --workspace`, wasm-pack |
 
-**Nine fully tabled classes today:** `washer`, `dryer`, `fridge`, `dishwasher`,
-`microwave`, `oven`, `induction_hob`, `kettle`, `air_fryer`.
+**25 Tier-A classes are fully tabled** (see §4).
 
 `list_all_class_ids` already covers the full appliances index; most classes are
 ids-only (no static tables / sim yet). Control-system, thermal, procedures, and
@@ -219,7 +218,7 @@ devices:
 | `ice_maker` | |
 | `wine_cooler` | |
 
-Count: **25** proposed Tier-A ids (nine already have static tables).
+Count: **25** Tier-A ids, all with static tables + sim.
 
 ### Tier-B
 

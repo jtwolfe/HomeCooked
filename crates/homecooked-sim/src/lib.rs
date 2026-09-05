@@ -224,6 +224,85 @@ mod tests {
     }
 
     #[test]
+    fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
+        let mut sim = Simulator::new();
+        let batch = [
+            ApplianceClassId::SteamOven,
+            ApplianceClassId::Range,
+            ApplianceClassId::Cooktop,
+            ApplianceClassId::ToasterOven,
+            ApplianceClassId::CoffeeMachine,
+            ApplianceClassId::SousVide,
+            ApplianceClassId::MultiCooker,
+        ];
+        for class in batch {
+            let id = sim.spawn(class).unwrap();
+            assert_eq!(
+                sim.read_value(&id, "trait.identity.class_id").unwrap(),
+                Value::Enum(class.as_str().into())
+            );
+            let power = sim.read_value(&id, "trait.power.power_state").unwrap();
+            assert!(matches!(power, Value::Enum(_)));
+        }
+
+        let steam = sim.spawn(ApplianceClassId::SteamOven).unwrap();
+        sim.write(
+            &steam,
+            "class.steam_oven.steam_mode",
+            Value::Enum("steam".into()),
+        )
+        .unwrap();
+
+        let cooktop = sim.spawn(ApplianceClassId::Cooktop).unwrap();
+        sim.write(&cooktop, "class.cooktop.level#hob_1", Value::U8(4))
+            .unwrap();
+
+        let range = sim.spawn(ApplianceClassId::Range).unwrap();
+        sim.write(&range, "class.range.level#hob_1", Value::U8(2))
+            .unwrap();
+        sim.write(
+            &range,
+            "trait.temperature.setpoint_c#oven",
+            Value::F32(180.0),
+        )
+        .unwrap();
+
+        let coffee = sim.spawn(ApplianceClassId::CoffeeMachine).unwrap();
+        sim.write(
+            &coffee,
+            "trait.program.program",
+            Value::Enum("latte".into()),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&coffee, "class.coffee_machine.water_tank")
+                .unwrap(),
+            Value::Enum("ok".into())
+        );
+
+        let sv = sim.spawn(ApplianceClassId::SousVide).unwrap();
+        sim.write(&sv, "trait.temperature.setpoint_c", Value::F32(55.0))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&sv, "class.sous_vide.low_water").unwrap(),
+            Value::Bool(false)
+        );
+
+        let multi = sim.spawn(ApplianceClassId::MultiCooker).unwrap();
+        sim.write(
+            &multi,
+            "trait.program.program",
+            Value::Enum("pressure".into()),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&multi, "class.multi_cooker.safe_to_open")
+                .unwrap(),
+            Value::Bool(false)
+        );
+    }
+
+    #[test]
     fn kettle_setpoint_write_then_heat() {
         let mut sim = Simulator::new();
         let id = sim.spawn(ApplianceClassId::Kettle).unwrap();

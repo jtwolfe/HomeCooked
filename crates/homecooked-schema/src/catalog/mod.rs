@@ -286,12 +286,9 @@ mod tests {
     #[test]
     fn static_tables_for_encoded_classes() {
         assert_eq!(STATIC_CLASS_IDS.len(), static_class_tables().len());
-        assert_eq!(STATIC_CLASS_IDS.len(), 18);
-        for id in STATIC_CLASS_IDS {
-            assert!(
-                TIER_A_CLASS_IDS.contains(id),
-                "{id} is static but not Tier-A"
-            );
+        assert_eq!(STATIC_CLASS_IDS, TIER_A_CLASS_IDS);
+        assert_eq!(STATIC_CLASS_IDS.len(), 25);
+        for id in TIER_A_CLASS_IDS {
             let table = class_table(*id).expect("static table");
             assert_eq!(table.class_id, *id);
             assert!(
@@ -357,6 +354,52 @@ mod tests {
 
         let hvac = typical_capability(ApplianceClassId::Hvac).unwrap();
         hvac.validate_write("class.hvac.hvac_mode", &Value::Enum("heat".into()))
+            .unwrap();
+    }
+
+    #[test]
+    fn cooking_tier_a_typical_writes() {
+        let steam = typical_capability(ApplianceClassId::SteamOven).unwrap();
+        steam
+            .validate_write("class.steam_oven.steam_mode", &Value::Enum("combi".into()))
+            .unwrap();
+        steam
+            .validate_write("trait.temperature.setpoint_c", &Value::F32(180.0))
+            .unwrap();
+
+        let cooktop = typical_capability(ApplianceClassId::Cooktop).unwrap();
+        cooktop
+            .validate_write("class.cooktop.level#hob_1", &Value::U8(5))
+            .unwrap();
+        let err = cooktop
+            .validate_write("class.cooktop.level#hob_1", &Value::U8(20))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::OutOfRange);
+
+        let range = typical_capability(ApplianceClassId::Range).unwrap();
+        range
+            .validate_write("class.range.level#hob_2", &Value::U8(3))
+            .unwrap();
+        range
+            .validate_write("trait.temperature.setpoint_c#oven", &Value::F32(200.0))
+            .unwrap();
+
+        let coffee = typical_capability(ApplianceClassId::CoffeeMachine).unwrap();
+        coffee
+            .validate_write("trait.program.program", &Value::Enum("espresso".into()))
+            .unwrap();
+
+        let sv = typical_capability(ApplianceClassId::SousVide).unwrap();
+        sv.validate_write("trait.temperature.setpoint_c", &Value::F32(55.0))
+            .unwrap();
+        let err = sv
+            .validate_write("trait.temperature.setpoint_c", &Value::F32(10.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::OutOfRange);
+
+        let multi = typical_capability(ApplianceClassId::MultiCooker).unwrap();
+        multi
+            .validate_write("trait.program.program", &Value::Enum("pressure".into()))
             .unwrap();
     }
 
