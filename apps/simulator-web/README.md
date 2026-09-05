@@ -95,7 +95,23 @@ fixture writes cook settings and starts a cycle; sim ticks advance
 The oven bake sample sets `bake` + 180 °C; sim heats ~10 °C/s while the cycle runs.
 The coffee brew sample powers on, selects `espresso`, and waits on boiler heat (~10 °C/s).
 The air fryer cook sample sets `fries` + 200 °C; sim heats ~10 °C/s while the cycle runs.
-The `wait_dhw_reservoir` sample is a thin `thermal_wait` on plant reservoir `temp_c` (needs a attached ThermalPlant / demo transfer — not a standalone appliance recipe).
+The `wait_dhw_reservoir` sample is a thin `thermal_wait` on plant reservoir `temp_c` (needs an attached ThermalPlant / demo transfer — not a standalone appliance recipe). Soft-decline (`offer_fridge_dhw_soft`) and continuous re-queue (`wait_dhw_with_requeue`) fixtures are also bundled.
+
+### Thermal procedures (dedicated slice)
+
+The **Thermal procedures** block under the Procedure panel lists fixtures that
+use `thermal_wait` / `thermal_offer` (picker options are prefixed `[thermal]`).
+One-click buttons call wasm `run_thermal_procedure(id)`, which:
+
+1. Resets/attaches the fridge→DHW demo plant (`create_thermal_demo`).
+2. For tick-only `wait_dhw_reservoir`, primes a demo transfer so the wait can complete.
+3. Runs the fixture via `run_procedure`.
+
+Step outcomes show badges derived from the run result (accept power W, soft
+decline → continue, fallback accept, requeue polls, final reservoir temp °C) —
+no invented metrics. This is a thin lab UI, not a full conformance console.
+
+Automated coverage: `cargo test -p homecooked-wasm run_thermal_procedure`.
 
 ## Thermal plant panel
 
@@ -115,7 +131,7 @@ results / reply.
 
 ### Dual-path: thermal then dishwasher preheat
 
-Procedures cannot call thermal APIs yet. The **Orchestrations** block on the
+The **Orchestrations** block on the
 Thermal plant panel exposes a one-click button that calls wasm
 `run_thermal_then_dishwasher_preheat(dt)` (default **dt = 3600**):
 

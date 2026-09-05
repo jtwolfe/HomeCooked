@@ -1,7 +1,7 @@
 {
   "id": "offer_fridge_dhw",
   "name": "Offer fridge condenser heat to DHW preheat",
-  "description": "Thin procedure⇄thermal bridge: thermal_offer (alias offer_transfer) submits a TransferOffer to the attached ThermalPlant and immediately negotiates (accept at max allowable power, or decline). When duration_s is set, one plant tick of that length applies the queued accept (fridge→DHW demo). Requires SimulatorBackend + ThermalPlant (e.g. fridge_condenser_dhw_demo). See offer_fridge_dhw_soft for soft decline + thin fallback; wait_dhw_with_requeue for continuous re-queue across wait polls. Dedicated wasm UI remains deferred.",
+  "description": "Thin procedure⇄thermal bridge: thermal_offer (alias offer_transfer) submits a TransferOffer to the attached ThermalPlant and immediately negotiates (accept at max allowable power, or decline). When duration_s is set, one plant tick of that length applies the queued accept (fridge→DHW demo). Requires SimulatorBackend + ThermalPlant (e.g. fridge_condenser_dhw_demo). See offer_fridge_dhw_soft for soft decline + thin fallback; wait_dhw_with_requeue for continuous re-queue across wait polls. Dedicated thin wasm UI: simulator-web Thermal procedures + run_thermal_procedure.",
   "catalog_version": "0.1.0",
   "protocol_version": "0.1.0",
   "devices": [],

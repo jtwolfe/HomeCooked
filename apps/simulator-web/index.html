@@ -126,6 +126,8 @@ python3 -m http.server 8080</pre>
         <p class="muted procedure-lede">
           Pick a bundled recipe or paste procedure JSON. Run auto-binds roles
           to existing sim devices (and spawns missing required classes).
+          Thermal fixtures are marked in the picker and have one-click
+          buttons under <strong>Thermal procedures</strong>.
         </p>
         <div class="procedure-toolbar">
           <label class="field compact grow">
@@ -139,6 +141,18 @@ python3 -m http.server 8080</pre>
             Parse
           </button>
           <button id="run-procedure-btn" type="button">Run</button>
+        </div>
+        <div class="thermal-procedures-block">
+          <h3 class="thermal-subhead">Thermal procedures</h3>
+          <p class="muted thermal-lede">
+            Bundled <code>thermal_wait</code> / <code>thermal_offer</code>
+            fixtures. One-click attaches the fridge→DHW demo plant
+            (<code>run_thermal_procedure</code>) then runs — soft decline,
+            fallback accept power, requeue polls, and final temp show in
+            step outcomes below. Not a full conformance console.
+          </p>
+          <div id="thermal-procedure-buttons" class="thermal-procedure-buttons"></div>
+          <p id="thermal-procedure-hint" class="muted thermal-port-hint" hidden></p>
         </div>
         <label class="field">
           <span>Procedure JSON</span>

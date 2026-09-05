@@ -118,6 +118,15 @@ pub fn run_procedure(json: &str) -> Result<String, JsError> {
     with_api_mut(|api| api.run_procedure(json)).map_err(js_err)
 }
 
+/// Attach fridge→DHW demo plant, then run a bundled thermal procedure by id.
+///
+/// One-click helper for simulator-web thermal fixtures (`offer_fridge_dhw*`,
+/// `wait_dhw_*`). Returns the same JSON as [`run_procedure`].
+#[wasm_bindgen]
+pub fn run_thermal_procedure(id: &str) -> Result<String, JsError> {
+    with_api_mut(|api| api.run_thermal_procedure(id)).map_err(js_err)
+}
+
 /// Create/reset the fridge condenser → DHW demo thermal plant. Returns thermal_state JSON.
 #[wasm_bindgen]
 pub fn create_thermal_demo() -> Result<String, JsError> {
@@ -189,6 +198,14 @@ mod tests {
         assert!(from_fn.contains("\"kettle_heat_80\""));
         assert!(from_fn.contains("\"reheat_dominos_microwave\""));
         assert!(from_fn.contains("\"dishwasher_dhw_preheat\""));
+    }
+
+    #[test]
+    fn bindgen_run_thermal_procedure_soft() {
+        let raw = run_thermal_procedure("offer_fridge_dhw_soft").unwrap();
+        assert!(raw.contains("completed"));
+        assert!(raw.contains("thermal_offer"));
+        assert!(raw.contains("120"));
     }
 
     #[test]
