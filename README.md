@@ -55,7 +55,7 @@ is **0.1.0** (peers are rejected only on protocol **major** mismatch).
 | `homecooked-transport` | [`crates/homecooked-transport`](crates/homecooked-transport) | Lab TCP transport for protocol envelopes (length-prefixed JSON + optional PSK); sim or pluggable `RequestHandler` server + client ([overview.md](docs/standard/overview.md) §6) |
 | `homecooked-hub` | [`crates/homecooked-hub`](crates/homecooked-hub) | Optional lab hub: multi-device sim registry behind one TCP listener (not required for devices) |
 | `homecooked-conformance` | [`crates/homecooked-conformance`](crates/homecooked-conformance) | Light Stream 7 conformance smoke (catalog↔schema↔sim↔protocol↔TCP) |
-| simulator-web | [`apps/simulator-web`](apps/simulator-web) | Static HTML/JS UI: full catalog picker (Tier-A ∪ Tier-B), procedure runner, thermal plant panel, device **thermal port** chips + read-only **Catalog heat ports** (`list_heat_port_specs` / `ClassTable.thermal_ports`) |
+| simulator-web | [`apps/simulator-web`](apps/simulator-web) | Static HTML/JS UI: full catalog picker (Tier-A ∪ Tier-B), procedure runner, thermal plant panel, device **thermal port** chips + Catalog heat ports + **thin Conformance** panel (`list_conformance_scenarios` / lab checks) |
 
 `list_all_class_ids` covers the full class index in
 `docs/catalog/appliances.md`. Static capability tables (and therefore

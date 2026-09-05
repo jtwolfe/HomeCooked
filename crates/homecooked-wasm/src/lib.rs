@@ -10,6 +10,7 @@
 //! ```
 
 mod api;
+mod lab_checks;
 
 use std::cell::RefCell;
 
@@ -164,6 +165,22 @@ pub fn run_thermal_then_dishwasher_preheat(dt_s: f32) -> Result<String, JsError>
     with_api_mut(|api| api.run_thermal_then_dishwasher_preheat(dt_s)).map_err(js_err)
 }
 
+/// JSON array of conformance scenario catalog rows
+/// (`docs/conformance/scenarios.json`): name, tags, native_only, summary.
+#[wasm_bindgen]
+pub fn list_conformance_scenarios() -> String {
+    lab_checks::list_conformance_scenarios()
+}
+
+/// Run one thin in-process lab check by scenario name.
+///
+/// Runnable subset uses schema/sim/procedure/thermal only. Native-only rows
+/// return `{ passed: false, native_only: true }` with a cargo-test hint.
+#[wasm_bindgen]
+pub fn run_conformance_lab_check(name: &str) -> Result<String, JsError> {
+    lab_checks::run_conformance_lab_check(name).map_err(js_err)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -234,5 +251,26 @@ mod tests {
         assert!(raw.contains("36.2") || raw.contains("36.200"));
         assert!(raw.contains("\"completed\"") || raw.contains("completed"));
         assert!(raw.contains("dishwasher"));
+    }
+
+    #[test]
+    fn bindgen_list_conformance_scenarios_matches() {
+        let from_fn = list_conformance_scenarios();
+        let from_mod = lab_checks::list_conformance_scenarios();
+        assert_eq!(from_fn, from_mod);
+        assert!(from_fn.contains("\"catalog_hygiene\""));
+        assert!(
+            from_fn.contains("\"native_only\":true") || from_fn.contains("\"native_only\": true")
+        );
+    }
+
+    #[test]
+    fn bindgen_run_conformance_lab_check_hygiene_and_denial() {
+        let h = run_conformance_lab_check("catalog_hygiene").unwrap();
+        assert!(h.contains("\"passed\":true") || h.contains("\"passed\": true"));
+        let w = run_conformance_lab_check("write_denial_matrix").unwrap();
+        assert!(w.contains("\"passed\":true") || w.contains("\"passed\": true"));
+        let n = run_conformance_lab_check("hub_lab_set_discover_describe").unwrap();
+        assert!(n.contains("native_only"));
     }
 }

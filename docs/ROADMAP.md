@@ -1,6 +1,6 @@
 # HomeCooked roadmap — ~75% project completeness
 
-Version **0.1.105**. Planning doc for a long flesh-out of the catalog, control
+Version **0.1.106**. Planning doc for a long flesh-out of the catalog, control
 stack, and simulator. It does **not** freeze APIs; crate and YAML shapes may
 evolve with the code that implements each stream.
 
@@ -23,7 +23,7 @@ What exists on `main` today (Done highlights called out):
 | `homecooked-protocol` | Envelope, request/response kinds, discovery, JSON, errors (v0.1.0); **invalid Envelope JSON table tests** |
 | `homecooked-core` | Device registry, capability-enforced read/write |
 | `homecooked-sim` | In-memory devices for all 56 statically tabled classes; microwave cook ticks advance `elapsed_s`; water_heater/fridge/hvac/dishwasher/dryer thermal-port seeds + RW attach |
-| `homecooked-wasm` + `apps/simulator-web` | wasm-bindgen JSON API; full-catalog picker (56) + procedure runner (kettle + Domino's + wash-then-dry + oven bake + coffee brew + air fryer cook `run_procedure` E2E) + **Thermal procedures** one-click (`run_thermal_procedure` + outcome badges) + thermal panel + device `thermal_port_*` UI (auto when `thermal_port_id` present; `water_heater`/`fridge`/`hvac`/`dishwasher`/`dryer`) + read-only **Catalog heat ports** from `list_heat_port_specs` / `ClassTable.thermal_ports`; **WASM fetch+blob load** (module cache defeat) — **Done** |
+| `homecooked-wasm` + `apps/simulator-web` | wasm-bindgen JSON API; full-catalog picker (56) + procedure runner (kettle + Domino's + wash-then-dry + oven bake + coffee brew + air fryer cook `run_procedure` E2E) + **Thermal procedures** one-click (`run_thermal_procedure` + outcome badges) + thermal panel + device `thermal_port_*` UI (auto when `thermal_port_id` present; `water_heater`/`fridge`/`hvac`/`dishwasher`/`dryer`) + read-only **Catalog heat ports** from `list_heat_port_specs` / `ClassTable.thermal_ports`; **thin Conformance panel** (`list_conformance_scenarios` / `run_conformance_lab_check` + `docs/conformance/scenarios.json`; wasm lab-check subset; TCP/bridge/hub/controller native-only) ; **WASM fetch+blob load** (module cache defeat) — **Done** |
 | `homecooked-io-map` | Chassis I/O map serde + validate (washer + dryer fragments) |
 | `homecooked-interlock` | Declarative interlock rules (washer heater/spin; dryer heater/motor) |
 | `homecooked-hal` | Firmware HAL sketch + host `MockHal` |
@@ -60,7 +60,7 @@ serial RTU / CHIP still deferred); TLS (still out of scope for lab transport); *
 (all 31 have optional-depth passes; all listed undepened Tier-A classes now have optional-depth passes (0 remaining); see §4); procedure⇄thermal **dedicated wasm UI** landed thin
 (Thermal procedures subsection + `run_thermal_procedure` + outcome badges for accept/soft/counter/requeue/temp;
 plant Counter replies + schema plant-dialogue types landed; live plant engine /
-real bridges / TLS / full conformance console still deferred); washer/dryer
+real bridges / TLS still deferred; **thin conformance console landed** — full browser CI still deferred); washer/dryer
 **typical_capability over lab TCP** landed (0.1.99) — full HAL binding for every
 typical point still not required (CottonOptions / DryOptions / cancel-pause-resume already landed).
 
@@ -88,7 +88,7 @@ fuller typed multi-round as separate steps; washer/dryer lab
 typical_capability-over-wire landed — full HAL binding for every typical point
 still not required; dedicated thermal procedure wasm UI landed thin in 0.1.102;
 plant Counter replies landed in 0.1.103; schema plant-dialogue types in 0.1.104;
-Modbus TCP lab path in 0.1.105).
+Modbus TCP lab path in 0.1.105; thin conformance console in 0.1.106).
 
 ---
 
@@ -134,8 +134,9 @@ production firmware:
   `HeatPortSpec` / `Reservoir` / `HeatPort` / transfer messages) +
   `ClassTable.thermal_ports` live in `homecooked-schema`; live `ThermalPlant`
   engine (registry / negotiate / tick) remains in `homecooked-thermal`.
-- **Richer UI** — picker + procedure runner + thermal panel + port chips are
-  in; conformance-oriented / deeper screens remain.
+- **Richer UI** — picker + procedure runner + thermal panel + port chips +
+  **thin conformance console** (catalog browse + wasm lab-check subset) are
+  in; fuller browser CI / deeper screens remain deferred.
 - **Deeper catalog optional points** — thin tables cover all 31 Tier-B ids;
   optional-point depth landed (PRs **#56–#57, #63–#64, #66–#73** + follow-on) on **56** classes —
   Tier-A `wine_cooler` + `ice_maker` + `sous_vide` + `multi_cooker` + `toaster_oven`
@@ -212,7 +213,8 @@ production firmware:
   `offer_fridge_dhw` / `offer_fridge_dhw_soft` / `offer_fridge_dhw_counter` /
   `wait_dhw_with_requeue` + conformance) are present; **dedicated wasm/UI**
   (Thermal procedures one-click + outcome badges + `run_thermal_procedure`)
-  landed thin — not a full conformance console; plant Counter replies landed
+  landed thin; thin conformance console landed (0.1.106) — not full browser CI;
+  plant Counter replies landed
   (0.1.103); schema plant-dialogue types (0.1.104). Dual-path dishwasher demo can still
   orchestrate transfer outside the procedure JSON.
 - **TLS** — lab TCP stays cleartext (+ optional PSK); TLS/OAuth remain out of
@@ -444,7 +446,11 @@ multiple small PRs.
    (`ClassTable.thermal_ports` / `HeatPortSpec`) sit alongside the live attach panel.
    **WASM module load:** simulator-web loads bindgen via **fetch + blob URL**
    (cache defeat after rebuilds) — **Done**.
-   **Still open:** richer conformance-oriented screens.
+   **Thin conformance console landed (0.1.106)** — catalog browse + tag filter +
+   wasm lab-check subset (`catalog_hygiene` / tier describe / `write_denial_matrix` /
+   kettle procedure / thermal demo / `water_heater_thermal_ports`); TCP / Modbus TCP /
+   hub / controller / bridge stay native-only. **Still deferred:** full browser CI
+   runner; CHIP / serial RTU / TLS.
 2. Conformance suite: catalog id hygiene, capability advertisement rules,
    protocol major-version rejection, representative write denials.
    **Partial (smoke + denial matrix)** — `homecooked-conformance` runs named
@@ -469,8 +475,8 @@ multiple small PRs.
 
 - wasm-pack build remains in CI; UI documented in `apps/simulator-web`.
   *(Picker + procedure runner + thermal plant panel + catalog thermal-port
-  device chips + list/spawn coverage is in; smoke suite + write-denial matrix
-  are in; richer UI still open.)*
+  device chips + list/spawn coverage + thin conformance console are in; smoke
+  suite + write-denial matrix are in; full browser CI still deferred.)*
 - Conformance failures are actionable (named assertions, not a single opaque
   binary).
   *(Smoke suite + per-case `write_denial_matrix` failures; further matrices
@@ -584,7 +590,7 @@ passes (`humidifier` + `beverage_cooler` + `kegerator` + `warming_drawer` + `piz
 | later | `feat/bridges-modbus` | 6 — Modbus + stubs (first slice) |
 | later | `feat/matter-mock-bridge` | 6 — Matter mock fabric + kettle map |
 | later | `feat/simulator-tier-a-ui` | 7 — grouped Tier-A picker (first UI slice) |
-| later | WASM UI + conformance suite | 7 — picker + procedure UI (kettle/Domino's/wash-then-dry/oven bake/coffee brew/air fryer cook) + thermal UI + device port chips + blob-load done; smoke suite + write-denial matrix + hub-in-suite done; richer UI remaining |
+| later | WASM UI + conformance suite | 7 — picker + procedure UI (kettle/Domino's/wash-then-dry/oven bake/coffee brew/air fryer cook) + thermal UI + device port chips + blob-load + **thin conformance console** done; smoke suite + write-denial matrix + hub-in-suite done; full browser CI remaining |
 | later | Tier-B thin tables | 2 — **Done** (31 Tier-B → 56 total static + sim) |
 | later | catalog optional depth | 7 — **Series progress** (#56–#73 + follow-on): 56 classes deepened (`wine_cooler` + `ice_maker` + `sous_vide` + `multi_cooker` + `toaster_oven` + `dehumidifier` + `range_hood` + `steam_oven` + `cooktop` + `humidifier` + `freezer` + `fridge_freezer` + `beverage_cooler` + `kegerator` + `warming_drawer` + `pizza_oven` + `electric_grill` + `electric_smoker` + `espresso_machine` + `drip_coffee_maker` + `coffee_grinder` + `water_dispenser` + `toaster` + `blender` + `food_processor` + `stand_mixer` + `juicer` + `rice_cooker` + `slow_cooker` + `bread_maker` + `dehydrator` + `vacuum_sealer` + `ice_cream_maker` + `yogurt_maker` + `waffle_maker` + `pasta_maker` + `steam_cooker` + `garbage_disposal` + `trash_compactor` + `boiler` + `water_softener` + `water_filter` + `washer` + `dryer` + `washer_dryer` + `fridge` + `dishwasher` + `microwave` + `oven` + `range` + `induction_hob` + `air_fryer` + `kettle` + `coffee_machine` + `water_heater` + `hvac`); **0/31 Tier-B still thin**; all listed undepened Tier-A classes now have optional-depth passes (0 remaining); honest caveats still apply for real bridges, TLS, full HAL binding for every typical point, etc.
 | later | lab hub + PSK | 4 — **Done** (`homecooked-hub`, transport PSK) |
@@ -707,3 +713,4 @@ the code that implements them.
 | 0.1.103 | Stream 3/5: plant **Counter** replies (`TransferReply::Counter` when `0 < available max < offer.min`; procedure `accept_counter` auto-accepts suggested band; fallback still covers unanswered Counter); fixture `offer_fridge_dhw_counter` + conformance `procedure_thermal_offer_counter`; Still-open refresh (schema plant runtime / real bridges / TLS / full conformance console remain deferred) |
 | 0.1.104 | Stream 5: promote plant **dialogue** types (`ReservoirRole` / `Reservoir` / `HeatPort` / `PortRef` / `PowerBandW` / `TransferTarget` / `TransferOffer` / `TransferAccept` / `TransferDecline` / `TransferCounter` / `TransferReply` / `TransferResult`) into `homecooked-schema`; thermal re-exports; live `ThermalPlant` engine stays in `homecooked-thermal`; Still-open refresh (real bridges / TLS / full conformance console remain deferred) |
 | 0.1.105 | Stream 6: Modbus **TCP lab** path (`spawn_modbus_tcp_lab` + `ModbusTcpClient`; minimal MBAP FC01/FC03/FC05/FC06 over in-memory water_heater map on `127.0.0.1:0`; no `tokio-modbus`); integration + conformance smoke; Still-open refresh (serial RTU / CHIP / TLS / full conformance console remain deferred) |
+| 0.1.106 | Stream 7: **thin conformance console** (`docs/conformance/scenarios.json` + wasm `list_conformance_scenarios` / `run_conformance_lab_check` lab-check subset + simulator-web Conformance panel); TCP/bridge/hub/controller native-only; CHIP / serial RTU / TLS / full browser CI still deferred |

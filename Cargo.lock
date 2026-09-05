@@ -98,6 +98,8 @@ dependencies = [
  "homecooked-sim",
  "homecooked-thermal",
  "homecooked-transport",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

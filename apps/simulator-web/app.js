@@ -57,6 +57,17 @@ const orchStatus = document.getElementById("orch-status");
 const orchFail = document.getElementById("orch-fail");
 const orchBindings = document.getElementById("orch-bindings");
 const orchSteps = document.getElementById("orch-steps");
+const conformanceTagFilter = document.getElementById("conformance-tag-filter");
+const conformanceRunnableOnly = document.getElementById("conformance-runnable-only");
+const conformanceRunAllBtn = document.getElementById("conformance-run-all-btn");
+const conformanceError = document.getElementById("conformance-error");
+const conformanceSummary = document.getElementById("conformance-summary");
+const conformanceList = document.getElementById("conformance-list");
+
+/** @type {Array<{name:string,tags:string[],native_only:boolean,summary?:string}>} */
+let conformanceScenarios = [];
+/** @type {Record<string, {passed:boolean, message?:string, native_only?:boolean}>} */
+let conformanceResults = {};
 
 let wasm = null;
 let selectedId = null;
@@ -563,6 +574,8 @@ async function boot() {
     "thermal_tick",
     "thermal_demo_transfer",
     "run_thermal_then_dishwasher_preheat",
+    "list_conformance_scenarios",
+    "run_conformance_lab_check",
   ];
   const missing = required.filter((name) => typeof wasm[name] !== "function");
   if (missing.length) {
@@ -582,6 +595,7 @@ async function boot() {
   fillProcedureSelect(examples);
   fillThermalProcedureButtons(examples);
   await loadSelectedProcedure();
+  initConformancePanel();
 
   appEl.hidden = false;
   setStatus("Simulator ready");
@@ -1198,3 +1212,191 @@ async function runThermalThenDishwasher() {
     setStatus("Orchestration failed", true);
   }
 }
+
+function showConformanceError(err) {
+  const bits = [];
+  try {
+    const j = typeof err === "string" ? JSON.parse(err) : err;
+    if (j && j.message) bits.push(j.message);
+    if (j && j.code) bits.push(j.code);
+  } catch (_) {
+    /* plain */
+  }
+  conformanceError.hidden = bits.length === 0 && !err;
+  conformanceError.textContent = bits.join(" · ") || String(err);
+}
+
+function clearConformanceError() {
+  conformanceError.hidden = true;
+  conformanceError.textContent = "";
+}
+
+function initConformancePanel() {
+  conformanceScenarios = JSON.parse(wasm.list_conformance_scenarios());
+  conformanceResults = {};
+  const tags = new Set();
+  for (const s of conformanceScenarios) {
+    for (const tag of s.tags || []) tags.add(tag);
+  }
+  conformanceTagFilter.innerHTML = "";
+  const all = document.createElement("option");
+  all.value = "";
+  all.textContent = "All tags";
+  conformanceTagFilter.appendChild(all);
+  for (const tag of [...tags].sort()) {
+    const opt = document.createElement("option");
+    opt.value = tag;
+    opt.textContent = tag;
+    conformanceTagFilter.appendChild(opt);
+  }
+  renderConformanceList();
+}
+
+function filteredConformanceScenarios() {
+  const tag = conformanceTagFilter.value;
+  const runnableOnly = conformanceRunnableOnly.checked;
+  return conformanceScenarios.filter((s) => {
+    if (runnableOnly && s.native_only) return false;
+    if (tag && !(s.tags || []).includes(tag)) return false;
+    return true;
+  });
+}
+
+function renderConformanceList() {
+  const rows = filteredConformanceScenarios();
+  conformanceList.innerHTML = "";
+  const runnable = conformanceScenarios.filter((s) => !s.native_only).length;
+  const native = conformanceScenarios.length - runnable;
+  conformanceSummary.hidden = false;
+  conformanceSummary.textContent = `${conformanceScenarios.length} scenarios · ${runnable} wasm lab-checks · ${native} native-only · showing ${rows.length}`;
+
+  for (const s of rows) {
+    const li = document.createElement("li");
+    li.className = "conformance-row" + (s.native_only ? " native-only" : " runnable");
+    const result = conformanceResults[s.name];
+    if (result) {
+      if (result.native_only) li.classList.add("hint");
+      else li.classList.add(result.passed ? "ok" : "fail");
+    }
+
+    const head = document.createElement("div");
+    head.className = "conformance-row-head";
+
+    const title = document.createElement("div");
+    title.className = "conformance-title";
+    const name = document.createElement("code");
+    name.textContent = s.name;
+    title.appendChild(name);
+    const badges = document.createElement("span");
+    badges.className = "conformance-tags";
+    for (const tag of s.tags || []) {
+      const b = document.createElement("span");
+      b.className = "step-badge";
+      b.textContent = tag;
+      badges.appendChild(b);
+    }
+    if (s.native_only) {
+      const n = document.createElement("span");
+      n.className = "step-badge badge-native";
+      n.textContent = "native_only";
+      badges.appendChild(n);
+    } else {
+      const r = document.createElement("span");
+      r.className = "step-badge badge-accept";
+      r.textContent = "wasm";
+      badges.appendChild(r);
+    }
+    title.appendChild(badges);
+    head.appendChild(title);
+
+    if (!s.native_only) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "secondary conformance-run-btn";
+      btn.textContent = "Run lab check";
+      btn.addEventListener("click", () => runConformanceLabCheck(s.name));
+      head.appendChild(btn);
+    }
+
+    li.appendChild(head);
+
+    if (s.summary) {
+      const sum = document.createElement("p");
+      sum.className = "muted conformance-row-summary";
+      sum.textContent = s.summary;
+      li.appendChild(sum);
+    }
+
+    const status = document.createElement("p");
+    status.className = "conformance-row-status";
+    if (result) {
+      if (result.native_only) {
+        status.textContent =
+          result.message ||
+          "native_only — cargo test -p homecooked-conformance";
+      } else if (result.passed) {
+        status.textContent = "pass";
+        status.classList.add("ok");
+      } else {
+        status.textContent = `fail${result.message ? " — " + result.message : ""}`;
+        status.classList.add("fail");
+      }
+    } else if (s.native_only) {
+      status.className = "muted conformance-row-status";
+      status.textContent = "cargo test -p homecooked-conformance";
+    } else {
+      status.className = "muted conformance-row-status";
+      status.textContent = "not run";
+    }
+    li.appendChild(status);
+    conformanceList.appendChild(li);
+  }
+}
+
+function runConformanceLabCheck(name) {
+  clearConformanceError();
+  try {
+    const out = JSON.parse(wasm.run_conformance_lab_check(name));
+    conformanceResults[name] = out;
+    renderConformanceList();
+    if (out.native_only) {
+      setStatus(`${name}: native-only (cargo suite)`);
+    } else if (out.passed) {
+      setStatus(`${name}: pass`);
+    } else {
+      setStatus(`${name}: fail`, true);
+    }
+  } catch (err) {
+    showConformanceError(err);
+    setStatus("Lab check failed", true);
+  }
+}
+
+function runAllConformanceLabChecks() {
+  clearConformanceError();
+  const runnable = conformanceScenarios.filter((s) => !s.native_only);
+  let passed = 0;
+  let failed = 0;
+  try {
+    for (const s of runnable) {
+      const out = JSON.parse(wasm.run_conformance_lab_check(s.name));
+      conformanceResults[s.name] = out;
+      if (out.passed) passed += 1;
+      else failed += 1;
+    }
+    renderConformanceList();
+    setStatus(
+      failed
+        ? `Lab checks: ${passed} pass, ${failed} fail`
+        : `Lab checks: ${passed} pass`,
+      failed > 0,
+    );
+  } catch (err) {
+    showConformanceError(err);
+    setStatus("Lab checks failed", true);
+  }
+}
+
+conformanceTagFilter.addEventListener("change", () => renderConformanceList());
+conformanceRunnableOnly.addEventListener("change", () => renderConformanceList());
+conformanceRunAllBtn.addEventListener("click", () => runAllConformanceLabChecks());

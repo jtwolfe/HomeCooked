@@ -1,0 +1,218 @@
+[
+  {
+    "name": "tier_a_catalog_sim_describe",
+    "tags": ["catalog"],
+    "native_only": false,
+    "summary": "Every Tier-A class: typical_capability + sim spawn + describe class id"
+  },
+  {
+    "name": "tier_b_catalog_sim_describe",
+    "tags": ["catalog"],
+    "native_only": false,
+    "summary": "Every Tier-B class: typical_capability + sim spawn + describe class id"
+  },
+  {
+    "name": "catalog_hygiene",
+    "tags": ["catalog"],
+    "native_only": false,
+    "summary": "STATIC_CLASS_IDS ↔ ClassTable; no duplicate class/trait point ids"
+  },
+  {
+    "name": "write_denial_matrix",
+    "tags": ["catalog"],
+    "native_only": false,
+    "summary": "Table-driven Tier-A write denials (range / RO / enum / type / foreign)"
+  },
+  {
+    "name": "washer_cotton_controller",
+    "tags": ["controller"],
+    "native_only": true,
+    "summary": "Host washer cotton controller path reaches Done (HAL + interlocks)"
+  },
+  {
+    "name": "procedure_kettle_happy_path",
+    "tags": ["procedure"],
+    "native_only": false,
+    "summary": "Kettle heat procedure completes with current_c >= 75"
+  },
+  {
+    "name": "procedure_oven_bake_180",
+    "tags": ["procedure"],
+    "native_only": true,
+    "summary": "Oven bake fixture against sim heat tick (cargo suite)"
+  },
+  {
+    "name": "procedure_coffee_brew_espresso",
+    "tags": ["procedure"],
+    "native_only": true,
+    "summary": "Coffee brew fixture against sim boiler heat tick (cargo suite)"
+  },
+  {
+    "name": "procedure_air_fryer_cook_200",
+    "tags": ["procedure"],
+    "native_only": true,
+    "summary": "Air fryer cook fixture against sim heat tick (cargo suite)"
+  },
+  {
+    "name": "procedure_wash_then_dry",
+    "tags": ["procedure"],
+    "native_only": true,
+    "summary": "Wash-then-dry multi-device procedure (cargo suite)"
+  },
+  {
+    "name": "thermal_fridge_dhw_demo",
+    "tags": ["thermal"],
+    "native_only": false,
+    "summary": "Fridge condenser → DHW plant negotiate + tick (35→36.2 °C)"
+  },
+  {
+    "name": "thermal_then_dishwasher_preheat",
+    "tags": ["thermal", "procedure"],
+    "native_only": true,
+    "summary": "Dual-path thermal then dishwasher_dhw_preheat (cargo suite)"
+  },
+  {
+    "name": "procedure_thermal_wait_dhw",
+    "tags": ["procedure", "thermal"],
+    "native_only": true,
+    "summary": "thermal_wait on DHW reservoir (cargo suite)"
+  },
+  {
+    "name": "procedure_thermal_offer_dhw",
+    "tags": ["procedure", "thermal"],
+    "native_only": true,
+    "summary": "thermal_offer fridge→DHW accept (cargo suite)"
+  },
+  {
+    "name": "procedure_thermal_offer_soft_decline",
+    "tags": ["procedure", "thermal"],
+    "native_only": true,
+    "summary": "thermal_offer soft decline + fallback (cargo suite)"
+  },
+  {
+    "name": "procedure_thermal_offer_counter",
+    "tags": ["procedure", "thermal"],
+    "native_only": true,
+    "summary": "thermal_offer plant Counter + accept_counter (cargo suite)"
+  },
+  {
+    "name": "procedure_thermal_wait_requeue",
+    "tags": ["procedure", "thermal"],
+    "native_only": true,
+    "summary": "thermal_wait continuous requeue_offer (cargo suite)"
+  },
+  {
+    "name": "water_heater_thermal_ports",
+    "tags": ["thermal", "catalog"],
+    "native_only": false,
+    "summary": "Catalog/sim thermal_port_* seeds + attach RW (5 classes)"
+  },
+  {
+    "name": "modbus_water_heater_roundtrip",
+    "tags": ["bridge"],
+    "native_only": true,
+    "summary": "In-memory Modbus map ↔ water_heater points"
+  },
+  {
+    "name": "modbus_tcp_water_heater_lab",
+    "tags": ["bridge", "tcp"],
+    "native_only": true,
+    "summary": "Modbus TCP lab MBAP over localhost (native only)"
+  },
+  {
+    "name": "matter_kettle_roundtrip",
+    "tags": ["bridge"],
+    "native_only": true,
+    "summary": "Matter mock fabric ↔ kettle points"
+  },
+  {
+    "name": "zigbee_kettle_roundtrip",
+    "tags": ["bridge"],
+    "native_only": true,
+    "summary": "Zigbee mock network ↔ kettle points"
+  },
+  {
+    "name": "bacnet_kettle_roundtrip",
+    "tags": ["bridge"],
+    "native_only": true,
+    "summary": "BACnet mock device ↔ kettle points"
+  },
+  {
+    "name": "tcp_kettle_discover_describe_read_write",
+    "tags": ["tcp"],
+    "native_only": true,
+    "summary": "Lab TCP JSON envelopes against sim kettle"
+  },
+  {
+    "name": "tcp_psk_good_secret_describe_ping",
+    "tags": ["tcp"],
+    "native_only": true,
+    "summary": "Lab TCP PSK describe + ping"
+  },
+  {
+    "name": "controller_tcp_washer_interlock",
+    "tags": ["controller", "tcp"],
+    "native_only": true,
+    "summary": "Washer controller TCP heater interlock allow/deny"
+  },
+  {
+    "name": "controller_tcp_dryer_interlock",
+    "tags": ["controller", "tcp"],
+    "native_only": true,
+    "summary": "Dryer controller TCP heater interlock allow/deny"
+  },
+  {
+    "name": "controller_tcp_washer_cotton",
+    "tags": ["controller", "tcp"],
+    "native_only": true,
+    "summary": "Washer cotton cycle start over lab TCP"
+  },
+  {
+    "name": "controller_tcp_washer_cotton_options",
+    "tags": ["controller", "tcp"],
+    "native_only": true,
+    "summary": "Washer CottonOptions adjacent writes before cycle start"
+  },
+  {
+    "name": "controller_tcp_dryer_cycle",
+    "tags": ["controller", "tcp"],
+    "native_only": true,
+    "summary": "Dryer cycle start over lab TCP"
+  },
+  {
+    "name": "controller_tcp_dryer_dry_options",
+    "tags": ["controller", "tcp"],
+    "native_only": true,
+    "summary": "Dryer DryOptions adjacent writes before cycle start"
+  },
+  {
+    "name": "controller_tcp_washer_cycle_pause_cancel",
+    "tags": ["controller", "tcp"],
+    "native_only": true,
+    "summary": "Washer cycle pause/resume/cancel over lab TCP"
+  },
+  {
+    "name": "controller_tcp_dryer_cycle_pause_cancel",
+    "tags": ["controller", "tcp"],
+    "native_only": true,
+    "summary": "Dryer cycle pause/resume/cancel over lab TCP"
+  },
+  {
+    "name": "controller_tcp_washer_typical_capability",
+    "tags": ["controller", "tcp"],
+    "native_only": true,
+    "summary": "Washer typical_capability over lab TCP Describe"
+  },
+  {
+    "name": "controller_tcp_dryer_typical_capability",
+    "tags": ["controller", "tcp"],
+    "native_only": true,
+    "summary": "Dryer typical_capability over lab TCP Describe"
+  },
+  {
+    "name": "hub_lab_set_discover_describe",
+    "tags": ["hub", "tcp"],
+    "native_only": true,
+    "summary": "Optional LabHub multi-device discover/describe over TCP"
+  }
+]
