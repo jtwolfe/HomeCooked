@@ -1124,7 +1124,12 @@ delay, keep-warm after.
 
 **Typical readable state:** running, remaining, probe temp (optional), lid.
 
-**Notes:** If the product is a pressure multi-cooker, use `multi_cooker`.
+**Notes:**
+- If the product is a pressure multi-cooker, use `multi_cooker`.
+- Catalog depth: optional class points include `pot_present`, `keep_warm`,
+  sabbath, eco, `heater_on`, `high_temp_alarm`, `lid_open`, and `timer_s`
+  (see variables-and-settings). Required `heat_level` and `cook_s` remain the
+  primary cook controls.
 
 ### `multi_cooker`
 

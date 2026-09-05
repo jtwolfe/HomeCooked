@@ -4143,6 +4143,124 @@ mod tests {
     }
 
     #[test]
+    fn slow_cooker_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let slow = sim.spawn(ApplianceClassId::SlowCooker).unwrap();
+
+        assert_eq!(
+            sim.read_value(&slow, "class.slow_cooker.heat_level")
+                .unwrap(),
+            Value::Enum("low".into())
+        );
+        assert_eq!(
+            sim.read_value(&slow, "class.slow_cooker.cook_s").unwrap(),
+            Value::DurationS(600)
+        );
+        assert_eq!(
+            sim.read_value(&slow, "class.slow_cooker.pot_present")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(
+            sim.read_value(&slow, "class.slow_cooker.keep_warm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&slow, "class.slow_cooker.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&slow, "class.slow_cooker.eco_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&slow, "class.slow_cooker.heater_on")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&slow, "class.slow_cooker.high_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&slow, "class.slow_cooker.lid_open").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&slow, "class.slow_cooker.timer_s").unwrap(),
+            Value::DurationS(0)
+        );
+
+        sim.write(
+            &slow,
+            "class.slow_cooker.heat_level",
+            Value::Enum("high".into()),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&slow, "class.slow_cooker.heat_level")
+                .unwrap(),
+            Value::Enum("high".into())
+        );
+        sim.write(&slow, "class.slow_cooker.cook_s", Value::DurationS(28800))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&slow, "class.slow_cooker.cook_s").unwrap(),
+            Value::DurationS(28800)
+        );
+        sim.write(&slow, "class.slow_cooker.keep_warm", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&slow, "class.slow_cooker.keep_warm")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&slow, "class.slow_cooker.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&slow, "class.slow_cooker.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&slow, "class.slow_cooker.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&slow, "class.slow_cooker.eco_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&slow, "class.slow_cooker.timer_s", Value::DurationS(1800))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&slow, "class.slow_cooker.timer_s").unwrap(),
+            Value::DurationS(1800)
+        );
+
+        let err = sim
+            .write(&slow, "class.slow_cooker.pot_present", Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&slow, "class.slow_cooker.heater_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &slow,
+                "class.slow_cooker.high_temp_alarm",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&slow, "class.slow_cooker.lid_open", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {
