@@ -4479,6 +4479,143 @@ mod tests {
     }
 
     #[test]
+    fn vacuum_sealer_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let vac = sim.spawn(ApplianceClassId::VacuumSealer).unwrap();
+
+        assert_eq!(
+            sim.read_value(&vac, "class.vacuum_sealer.mode").unwrap(),
+            Value::Enum("vacuum_seal".into())
+        );
+        assert_eq!(
+            sim.read_value(&vac, "class.vacuum_sealer.moist").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&vac, "class.vacuum_sealer.vacuum_kpa")
+                .unwrap(),
+            Value::F32(0.0)
+        );
+        assert_eq!(
+            sim.read_value(&vac, "class.vacuum_sealer.bag_detect")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(
+            sim.read_value(&vac, "class.vacuum_sealer.form_factor")
+                .unwrap(),
+            Value::Enum("bar".into())
+        );
+        assert_eq!(
+            sim.read_value(&vac, "class.vacuum_sealer.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&vac, "class.vacuum_sealer.eco_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&vac, "class.vacuum_sealer.pump_on").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&vac, "class.vacuum_sealer.seal_heater_on")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&vac, "class.vacuum_sealer.lid_locked")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(
+            sim.read_value(&vac, "class.vacuum_sealer.seal_fail")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&vac, "class.vacuum_sealer.timer_s").unwrap(),
+            Value::DurationS(0)
+        );
+
+        sim.write(
+            &vac,
+            "class.vacuum_sealer.mode",
+            Value::Enum("seal_only".into()),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&vac, "class.vacuum_sealer.mode").unwrap(),
+            Value::Enum("seal_only".into())
+        );
+        sim.write(&vac, "class.vacuum_sealer.moist", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&vac, "class.vacuum_sealer.moist").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&vac, "class.vacuum_sealer.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&vac, "class.vacuum_sealer.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&vac, "class.vacuum_sealer.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&vac, "class.vacuum_sealer.eco_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&vac, "class.vacuum_sealer.timer_s", Value::DurationS(30))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&vac, "class.vacuum_sealer.timer_s").unwrap(),
+            Value::DurationS(30)
+        );
+
+        let err = sim
+            .write(&vac, "class.vacuum_sealer.vacuum_kpa", Value::F32(20.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&vac, "class.vacuum_sealer.bag_detect", Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &vac,
+                "class.vacuum_sealer.form_factor",
+                Value::Enum("chamber".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&vac, "class.vacuum_sealer.pump_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &vac,
+                "class.vacuum_sealer.seal_heater_on",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&vac, "class.vacuum_sealer.lid_locked", Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&vac, "class.vacuum_sealer.seal_fail", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {

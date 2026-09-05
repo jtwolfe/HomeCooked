@@ -774,6 +774,23 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "tray_count"
         );
     }
+    // Stream 7 catalog depth: vacuum_sealer optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::VacuumSealer {
+        return matches!(
+            point.id,
+            "moist"
+                | "vacuum_kpa"
+                | "bag_detect"
+                | "form_factor"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "pump_on"
+                | "seal_heater_on"
+                | "lid_locked"
+                | "seal_fail"
+                | "timer_s"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -3079,6 +3096,71 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.dehydrator.tray_count", &Value::U8(8))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn vacuum_sealer_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::VacuumSealer).unwrap();
+        for id in [
+            "class.vacuum_sealer.mode",
+            "class.vacuum_sealer.moist",
+            "class.vacuum_sealer.vacuum_kpa",
+            "class.vacuum_sealer.bag_detect",
+            "class.vacuum_sealer.form_factor",
+            "class.vacuum_sealer.sabbath_mode",
+            "class.vacuum_sealer.eco_mode",
+            "class.vacuum_sealer.pump_on",
+            "class.vacuum_sealer.seal_heater_on",
+            "class.vacuum_sealer.lid_locked",
+            "class.vacuum_sealer.seal_fail",
+            "class.vacuum_sealer.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical vacuum_sealer"
+            );
+        }
+        cap.validate_write("class.vacuum_sealer.mode", &Value::Enum("seal_only".into()))
+            .unwrap();
+        cap.validate_write("class.vacuum_sealer.moist", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.vacuum_sealer.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.vacuum_sealer.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.vacuum_sealer.timer_s", &Value::DurationS(30))
+            .unwrap();
+        let err = cap
+            .validate_write("class.vacuum_sealer.vacuum_kpa", &Value::F32(20.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.vacuum_sealer.bag_detect", &Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write(
+                "class.vacuum_sealer.form_factor",
+                &Value::Enum("chamber".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.vacuum_sealer.pump_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.vacuum_sealer.seal_heater_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.vacuum_sealer.lid_locked", &Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.vacuum_sealer.seal_fail", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }

@@ -272,7 +272,9 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             _ => Value::Bool(false),
         },
         "lid_locked" => match ctx.identity.class_id {
-            ApplianceClassId::Blender | ApplianceClassId::FoodProcessor => Value::Bool(true),
+            ApplianceClassId::Blender
+            | ApplianceClassId::FoodProcessor
+            | ApplianceClassId::VacuumSealer => Value::Bool(true),
             _ => Value::Bool(false),
         },
         "boiler_c" => Value::F32(20.0),
@@ -318,6 +320,10 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
         },
         "pan_present" => match ctx.identity.class_id {
             ApplianceClassId::BreadMaker => Value::Bool(true),
+            _ => Value::Bool(false),
+        },
+        "bag_detect" => match ctx.identity.class_id {
+            ApplianceClassId::VacuumSealer => Value::Bool(true),
             _ => Value::Bool(false),
         },
         "crust" => match ctx.identity.class_id {
