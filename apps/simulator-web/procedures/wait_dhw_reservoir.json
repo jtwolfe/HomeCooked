@@ -1,0 +1,18 @@
+{
+  "id": "wait_dhw_reservoir",
+  "name": "Wait until DHW reservoir is warm",
+  "description": "Thin procedure⇄thermal bridge: thermal_wait on plant reservoir temp_c. Attach a ThermalPlant (e.g. fridge_condenser_dhw_demo) via SimulatorBackend; negotiate a fridge→DHW transfer before or let ticks apply a queued accept. Does not invent parallel appliance classes.",
+  "catalog_version": "0.1.0",
+  "protocol_version": "0.1.0",
+  "devices": [],
+  "steps": [
+    {
+      "id": "wait_dhw_gte",
+      "action": "thermal_wait",
+      "reservoir_id": "dhw-tank",
+      "cmp": "gte",
+      "temp_c": 36.0,
+      "timeout_s": 7200
+    }
+  ]
+}

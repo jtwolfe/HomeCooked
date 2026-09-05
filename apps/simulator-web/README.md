@@ -69,7 +69,7 @@ The lower **Procedure** panel loads a bundled recipe or accepts pasted
 procedure JSON, then runs it through `homecooked-procedure` against the
 current simulator world.
 
-1. Pick a sample (**Heat kettle to 80C**, Domino’s microwave, **Wash then dry**, **Oven bake at 180C**, **Brew espresso**, or **Air fryer cook at 200C**)
+1. Pick a sample (**Heat kettle to 80C**, Domino’s microwave, **Wash then dry**, **Oven bake at 180C**, **Brew espresso**, **Air fryer cook at 200C**, or **Wait until DHW reservoir is warm**)
    or paste JSON.
 2. **Load sample** fills the editor (WASM `get_example_procedure`, with a
    fetch fallback to `procedures/*.json`).
@@ -91,6 +91,7 @@ fixture writes cook settings and starts a cycle; sim ticks advance
 The oven bake sample sets `bake` + 180 °C; sim heats ~10 °C/s while the cycle runs.
 The coffee brew sample powers on, selects `espresso`, and waits on boiler heat (~10 °C/s).
 The air fryer cook sample sets `fries` + 200 °C; sim heats ~10 °C/s while the cycle runs.
+The `wait_dhw_reservoir` sample is a thin `thermal_wait` on plant reservoir `temp_c` (needs a attached ThermalPlant / demo transfer — not a standalone appliance recipe).
 
 ## Thermal plant panel
 
