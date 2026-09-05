@@ -109,6 +109,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "homecooked-procedure"
+version = "0.1.0"
+dependencies = [
+ "homecooked-core",
+ "homecooked-schema",
+ "homecooked-sim",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "homecooked-protocol"
 version = "0.1.0"
 dependencies = [

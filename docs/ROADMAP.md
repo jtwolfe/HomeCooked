@@ -109,7 +109,8 @@ multiple small PRs.
 **Milestones**
 
 1. Crate for procedure / recipe documents as ordered HomeCooked steps
-   (aligned with `docs/standard/procedures.md`).
+   (aligned with `docs/standard/procedures.md`). First slice:
+   `homecooked-procedure` (serde + validate + sequential runner).
 2. Simulator can load and run a small library (e.g. washer `cotton` outline
    at the *client* procedure level, not micro-stepping HV).
 3. Failures surface as protocol / capability errors, never as interlock bypass.
