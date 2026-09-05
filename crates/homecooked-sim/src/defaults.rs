@@ -366,6 +366,10 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             ApplianceClassId::BreadMaker => Value::Bool(true),
             _ => Value::Bool(false),
         },
+        "cookware_ok" => match ctx.identity.class_id {
+            ApplianceClassId::InductionHob => Value::Bool(true),
+            _ => Value::Bool(false),
+        },
         "bag_detect" => match ctx.identity.class_id {
             ApplianceClassId::VacuumSealer => Value::Bool(true),
             _ => Value::Bool(false),

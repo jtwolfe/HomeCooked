@@ -1496,6 +1496,10 @@ const COOKTOP_POINTS: &[CatalogPoint] = &[
     cmd("resume_all", Some(CatalogRange::CommandVoid), false),
 ];
 
+/// Induction extras on top of `COOKTOP_POINTS`. Cooktop optional depth
+/// (boost/timer/bridge/pan_detect/residual_heat/…) already lives on the
+/// shared cooktop slice — do not re-declare those ids here. Stream 7
+/// undepened Tier-A deepen adds sabbath/eco/power_share/auto_boost/overtemp.
 const INDUCTION_HOB_EXTRA: &[CatalogPoint] = &[
     CatalogPoint::variable(
         "pan_present",
@@ -1556,9 +1560,51 @@ const INDUCTION_HOB_EXTRA: &[CatalogPoint] = &[
         AccessMode::RW,
         false,
     ),
+    // Stream 7 undepened Tier-A deepen: induction-specific depth not already
+    // on COOKTOP_POINTS (timer_s / residual_heat / pan_detect stay there).
+    s(
+        "sabbath_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    ),
+    s(
+        "eco_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    s(
+        "power_share",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    s(
+        "auto_boost",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "overtemp_alarm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
 ];
 
-const INDUCTION_HOB_MERGED: [CatalogPoint; 25] = concat2(COOKTOP_POINTS, INDUCTION_HOB_EXTRA);
+const INDUCTION_HOB_MERGED: [CatalogPoint; 30] = concat2(COOKTOP_POINTS, INDUCTION_HOB_EXTRA);
 const INDUCTION_HOB_POINTS: &[CatalogPoint] = &INDUCTION_HOB_MERGED;
 
 const KETTLE_TRAITS: &[TraitId] = &[

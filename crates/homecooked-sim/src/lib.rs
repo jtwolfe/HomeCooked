@@ -7368,6 +7368,286 @@ mod tests {
     }
 
     #[test]
+    fn induction_hob_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let hob = sim.spawn(ApplianceClassId::InductionHob).unwrap();
+
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.level#hob_1")
+                .unwrap(),
+            Value::U8(0)
+        );
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.residual_heat#hob_1")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.pan_present#hob_1")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.boost#hob_1")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.timer_s#hob_1")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.keep_warm#hob_1")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.power_limit_w")
+                .unwrap(),
+            Value::U32(7200)
+        );
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.paused").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.surface_c#hob_1")
+                .unwrap(),
+            Value::F32(20.0)
+        );
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.pan_detect#hob_1")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.pan_size#hob_1")
+                .unwrap(),
+            Value::Enum("none".into())
+        );
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.power_w#hob_1")
+                .unwrap(),
+            Value::U16(0)
+        );
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.limiter_active")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.cookware_ok")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.temp_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.flex_group")
+                .unwrap(),
+            Value::String(String::new())
+        );
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.eco_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.power_share")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.auto_boost")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.overtemp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hob, "trait.child_lock.child_lock").unwrap(),
+            Value::Bool(false)
+        );
+
+        sim.write(&hob, "class.induction_hob.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&hob, "class.induction_hob.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.eco_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&hob, "class.induction_hob.power_share", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.power_share")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&hob, "class.induction_hob.auto_boost", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.auto_boost")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&hob, "class.induction_hob.temp_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.temp_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(
+            &hob,
+            "class.induction_hob.flex_group",
+            Value::String("hob_2".into()),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.flex_group")
+                .unwrap(),
+            Value::String("hob_2".into())
+        );
+        sim.write(&hob, "class.induction_hob.boost#hob_1", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.boost#hob_1")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(
+            &hob,
+            "class.induction_hob.timer_s#hob_2",
+            Value::DurationS(900),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.timer_s#hob_2")
+                .unwrap(),
+            Value::DurationS(900)
+        );
+        sim.write(
+            &hob,
+            "class.induction_hob.keep_warm#hob_3",
+            Value::Bool(true),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.keep_warm#hob_3")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&hob, "class.induction_hob.power_limit_w", Value::U32(4800))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.power_limit_w")
+                .unwrap(),
+            Value::U32(4800)
+        );
+        sim.write(&hob, "class.induction_hob.level#hob_1", Value::U8(7))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hob, "class.induction_hob.level#hob_1")
+                .unwrap(),
+            Value::U8(7)
+        );
+        sim.write(&hob, "trait.child_lock.child_lock", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hob, "trait.child_lock.child_lock").unwrap(),
+            Value::Bool(true)
+        );
+
+        let err = sim
+            .write(
+                &hob,
+                "class.induction_hob.overtemp_alarm",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &hob,
+                "class.induction_hob.limiter_active",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&hob, "class.induction_hob.cookware_ok", Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &hob,
+                "class.induction_hob.pan_present#hob_1",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &hob,
+                "class.induction_hob.pan_detect#hob_1",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &hob,
+                "class.induction_hob.residual_heat#hob_1",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&hob, "class.induction_hob.paused", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&hob, "class.induction_hob.power_w#hob_1", Value::U16(1500))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &hob,
+                "class.induction_hob.pan_size#hob_1",
+                Value::Enum("large".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &hob,
+                "class.induction_hob.hotspot_alert#hob_1",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn dishwasher_thermal_port_read_write() {
         let mut sim = Simulator::new();
         let id = sim.spawn(ApplianceClassId::Dishwasher).unwrap();
