@@ -223,6 +223,18 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             ApplianceClassId::MultiCooker => Value::Bool(true),
             _ => Value::Bool(false),
         },
+        "rack_position" => match ctx.identity.class_id {
+            ApplianceClassId::ToasterOven => Value::Enum("middle".into()),
+            _ => first_enum(point).unwrap_or_else(|| Value::Enum("unknown".into())),
+        },
+        "slices" => match ctx.identity.class_id {
+            ApplianceClassId::ToasterOven => Value::U8(2),
+            _ => Value::U8(int_min(point, 0) as u8),
+        },
+        "toast_shade" => match ctx.identity.class_id {
+            ApplianceClassId::ToasterOven => Value::U8(4),
+            _ => Value::U8(int_min(point, 0) as u8),
+        },
         "water_temp_c" => match ctx.identity.class_id {
             ApplianceClassId::IceMaker => Value::F32(12.0),
             _ => Value::F32(numeric_default(point)),

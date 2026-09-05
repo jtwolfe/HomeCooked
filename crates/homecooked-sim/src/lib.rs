@@ -719,6 +719,160 @@ mod tests {
     }
 
     #[test]
+    fn toaster_oven_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let to = sim.spawn(ApplianceClassId::ToasterOven).unwrap();
+
+        assert_eq!(
+            sim.read_value(&to, "class.toaster_oven.toast_shade")
+                .unwrap(),
+            Value::U8(4)
+        );
+        assert_eq!(
+            sim.read_value(&to, "class.toaster_oven.crumb_tray")
+                .unwrap(),
+            Value::Enum("ok".into())
+        );
+        assert_eq!(
+            sim.read_value(&to, "class.toaster_oven.door_open").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&to, "class.toaster_oven.timer_remaining_s")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&to, "class.toaster_oven.delayed_start_s")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&to, "class.toaster_oven.rack_position")
+                .unwrap(),
+            Value::Enum("middle".into())
+        );
+        assert_eq!(
+            sim.read_value(&to, "class.toaster_oven.bagel").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&to, "class.toaster_oven.preheating")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&to, "class.toaster_oven.slices").unwrap(),
+            Value::U8(2)
+        );
+        assert_eq!(
+            sim.read_value(&to, "class.toaster_oven.toast_done")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&to, "class.toaster_oven.convection_fan")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&to, "class.toaster_oven.cook_s").unwrap(),
+            Value::DurationS(600)
+        );
+        assert_eq!(
+            sim.read_value(&to, "trait.cycle.remaining_s").unwrap(),
+            Value::DurationS(0)
+        );
+
+        sim.write(&to, "class.toaster_oven.toast_shade", Value::U8(6))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&to, "class.toaster_oven.toast_shade")
+                .unwrap(),
+            Value::U8(6)
+        );
+        sim.write(
+            &to,
+            "class.toaster_oven.delayed_start_s",
+            Value::DurationS(120),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&to, "class.toaster_oven.delayed_start_s")
+                .unwrap(),
+            Value::DurationS(120)
+        );
+        sim.write(
+            &to,
+            "class.toaster_oven.rack_position",
+            Value::Enum("upper".into()),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&to, "class.toaster_oven.rack_position")
+                .unwrap(),
+            Value::Enum("upper".into())
+        );
+        sim.write(&to, "class.toaster_oven.bagel", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&to, "class.toaster_oven.bagel").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&to, "class.toaster_oven.slices", Value::U8(4))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&to, "class.toaster_oven.slices").unwrap(),
+            Value::U8(4)
+        );
+        sim.write(&to, "class.toaster_oven.convection_fan", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&to, "class.toaster_oven.convection_fan")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&to, "class.toaster_oven.cook_s", Value::DurationS(1200))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&to, "class.toaster_oven.cook_s").unwrap(),
+            Value::DurationS(1200)
+        );
+        let err = sim
+            .write(&to, "class.toaster_oven.door_open", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &to,
+                "class.toaster_oven.timer_remaining_s",
+                Value::DurationS(30),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&to, "class.toaster_oven.preheating", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&to, "class.toaster_oven.toast_done", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &to,
+                "class.toaster_oven.crumb_tray",
+                Value::Enum("ok".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&to, "trait.cycle.remaining_s", Value::DurationS(120))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {

@@ -217,6 +217,13 @@ fn extra_typical_trait_point(table: &ClassTable, trait_id: TraitId, point: &Cata
     {
         return true;
     }
+    // Toaster oven: cycle remaining is typical toast/bake timer telemetry.
+    if table.class_id == ApplianceClassId::ToasterOven
+        && trait_id == TraitId::Cycle
+        && point.id == "remaining_s"
+    {
+        return true;
+    }
     false
 }
 
@@ -291,6 +298,27 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "saute_level"
                 | "overpressure_alarm"
                 | "lid_mismatch"
+        );
+    }
+    // Stream 7 catalog depth: toaster-oven optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::ToasterOven {
+        return matches!(
+            point.id,
+            "toast_shade"
+                | "crumb_tray"
+                | "door_open"
+                | "timer_remaining_s"
+                | "delayed_start_s"
+                | "rack_position"
+                | "bagel"
+                | "preheating"
+                | "slices"
+                | "toast_done"
+                | "convection_fan"
+                | "broil_level"
+                | "cook_s"
+                | "element_bake"
+                | "element_broil"
         );
     }
     // Stream 5: device-facing thermal-port surface on Tier-A water_heater / fridge / hvac / dishwasher / dryer.
@@ -788,6 +816,94 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.multi_cooker.pressure_kpa", &Value::F32(50.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("trait.cycle.remaining_s", &Value::DurationS(100))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn toaster_oven_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::ToasterOven).unwrap();
+        for id in [
+            "class.toaster_oven.toast_shade",
+            "class.toaster_oven.crumb_tray",
+            "class.toaster_oven.door_open",
+            "class.toaster_oven.timer_remaining_s",
+            "class.toaster_oven.delayed_start_s",
+            "class.toaster_oven.rack_position",
+            "class.toaster_oven.bagel",
+            "class.toaster_oven.preheating",
+            "class.toaster_oven.slices",
+            "class.toaster_oven.toast_done",
+            "class.toaster_oven.convection_fan",
+            "class.toaster_oven.broil_level",
+            "class.toaster_oven.cook_s",
+            "class.toaster_oven.element_bake",
+            "class.toaster_oven.element_broil",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical toaster_oven"
+            );
+        }
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Cycle)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.cycle.remaining_s"));
+        cap.validate_write("class.toaster_oven.toast_shade", &Value::U8(4))
+            .unwrap();
+        cap.validate_write("class.toaster_oven.delayed_start_s", &Value::DurationS(300))
+            .unwrap();
+        cap.validate_write(
+            "class.toaster_oven.rack_position",
+            &Value::Enum("middle".into()),
+        )
+        .unwrap();
+        cap.validate_write("class.toaster_oven.bagel", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.toaster_oven.slices", &Value::U8(2))
+            .unwrap();
+        cap.validate_write("class.toaster_oven.convection_fan", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write(
+            "class.toaster_oven.broil_level",
+            &Value::Enum("high".into()),
+        )
+        .unwrap();
+        cap.validate_write("class.toaster_oven.cook_s", &Value::DurationS(900))
+            .unwrap();
+        let err = cap
+            .validate_write("class.toaster_oven.door_open", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write(
+                "class.toaster_oven.timer_remaining_s",
+                &Value::DurationS(30),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.toaster_oven.crumb_tray", &Value::Enum("ok".into()))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.toaster_oven.preheating", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.toaster_oven.toast_done", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.toaster_oven.element_bake", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap

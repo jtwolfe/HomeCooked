@@ -891,12 +891,23 @@ Oven points plus:
 ### Class `toaster_oven`
 
 Subset of `oven` modes: `toast` `bake` `broil` `air_fry` `keep_warm`
-`convection`. Extra:
+`convection`. Oven-shared optional points (`broil_level`, `convection_fan`,
+`cook_s`, `element_bake`, `element_broil`, …) plus toaster-specific:
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `toast_shade` | u8 | — | 1–7 | r/w | opt | |
-| `crumb_tray` | enum | — | `ok` `missing` `unknown` | r/e | opt | |
+| `toast_shade` | u8 | — | 1–7 | r/w | opt | Toast darkness |
+| `crumb_tray` | enum | — | `ok` `missing` `unknown` | r/e | opt | Crumb tray present / status |
+| `door_open` | bool | — | | r/e | opt | Simple cavity door ajar bit |
+| `timer_remaining_s` | duration_s | second | 0–43200 | r/e | opt | Toast/bake countdown |
+| `delayed_start_s` | duration_s | second | 0–86400 | r/w | opt | Delayed cook start |
+| `rack_position` | enum | — | `lower` `middle` `upper` | r/w | opt | Rack / shelf position |
+| `bagel` | bool | — | | r/w | opt | Bagel / one-side toast mode |
+| `preheating` | bool | — | | r/e | opt | Preheat in progress |
+| `slices` | u8 | — | 1–6 | r/w | opt | Toast slice / portion count |
+| `toast_done` | bool | — | | r/e | opt | End-of-toast / cycle complete latch |
+
+Cycle remaining via `trait.cycle.remaining_s`.
 
 ---
 
