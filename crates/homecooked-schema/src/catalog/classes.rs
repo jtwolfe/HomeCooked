@@ -689,7 +689,31 @@ const DRYER_THERMAL_PORTS: &[HeatPortSpec] = &[HeatPortSpec::new(
 const DRYER_MERGED: [CatalogPoint; 21] = concat3(DRYER_BASE, DRYER_DEPTH, THERMAL_PORT_POINTS);
 const DRYER_POINTS: &[CatalogPoint] = &DRYER_MERGED;
 
-const FRIDGE_MERGED: [CatalogPoint; 12] = concat2(COLD_CABINET_POINTS, THERMAL_PORT_POINTS);
+/// Fridge-only optional depth (Stream 7 undepened Tier-A). Shared
+/// vacation/sabbath/eco/defrost/compressor/high_temp/power_fail stay on
+/// `COLD_CABINET_POINTS`; fridge merges door/alarms extras + thermal ports
+/// (freezer / fridge_freezer deepen via their own EXTRA slices).
+static FRIDGE_EXTRA: &[CatalogPoint] = &[
+    v(
+        "door_ajar",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "low_temp_alarm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+];
+
+const FRIDGE_MERGED: [CatalogPoint; 14] =
+    concat3(COLD_CABINET_POINTS, FRIDGE_EXTRA, THERMAL_PORT_POINTS);
 const FRIDGE_POINTS: &[CatalogPoint] = &FRIDGE_MERGED;
 
 /// Freezer-only optional depth (Stream 7). Shared cold-cabinet points stay on

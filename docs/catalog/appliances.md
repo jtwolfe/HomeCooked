@@ -309,6 +309,11 @@ ice box that is not a controllable freezer zone).
   `out_of_range`.
 - Optional `thermal_port_*` class points advertise a condenser heat port for
   plant coupling (not a parallel thermal class; see thermal-plant).
+- Catalog depth: fridge-only extras (`door_ajar`, `low_temp_alarm`) merge onto
+  shared cold-cabinet points (vacation/sabbath/eco/defrost/compressor/high_temp/
+  power_fail) while keeping condenser thermal ports. Freezer / fridge_freezer
+  deepen via their own EXTRA slices (do not copy freezer-only anti_sweat /
+  fast_freeze / frost_clean onto fridge).
 - A fridge that also has a freezer compartment **must** use `fridge_freezer`
   (or expose a `freezer` zone). Do not overload `fridge` with a freezer
   setpoint.
