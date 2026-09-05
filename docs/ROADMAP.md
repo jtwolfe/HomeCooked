@@ -1,6 +1,6 @@
 # HomeCooked roadmap — ~75% project completeness
 
-Version **0.1.39**. Planning doc for a long flesh-out of the catalog, control
+Version **0.1.40**. Planning doc for a long flesh-out of the catalog, control
 stack, and simulator. It does **not** freeze APIs; crate and YAML shapes may
 evolve with the code that implements each stream.
 
@@ -42,14 +42,14 @@ simulator-web blob-load; procedure library (kettle + Domino's + wash-then-dry +
 `oven_bake_180` + `coffee_brew_espresso` + `air_fryer_cook_200`); controller-sim-over-TCP interlock smoke (washer + dryer) + washer/dryer cycle start/phase;
 catalog `thermal_port_*` on `water_heater` / `fridge` / `hvac` / `dishwasher` / `dryer` + sim UI chips;
 schema thermal vocabulary + `ClassTable.thermal_ports` (`HeatPortSpec`) + wasm/UI heat-port specs;
-optional-point depth on `wine_cooler` + `ice_maker`; `write_denial_matrix` + `catalog_hygiene` conformance.
+optional-point depth on `wine_cooler` + `ice_maker` + `sous_vide`; `write_denial_matrix` + `catalog_hygiene` conformance.
 
 **Still open (beyond / still thin vs a strict §2 reading):** promote full plant
 **runtime** into schema (`Media` / `PortDirection` / `TempBandC` / `HeatPortSpec`
 + `ClassTable.thermal_ports` landed; `ThermalPlant` / transfer dialogue still
 crate-local); **real bridge SDKs** (Modbus serial/TCP or Matter/CHIP — mocks only
 today); TLS (still out of scope for lab transport); fuller Tier-B / catalog optional
-depth beyond `wine_cooler` + `ice_maker`; procedure⇄thermal **offer/negotiate-as-steps**
+depth beyond `wine_cooler` + `ice_maker` + `sous_vide`; procedure⇄thermal **offer/negotiate-as-steps**
 (and fuller wasm/UI wiring; thin `thermal_wait` is present); **CottonOptions** /
 **DryOptions** (and cancel/pause / typical_capability) over the wire.
 
@@ -58,10 +58,10 @@ Domino's / wash-then-dry / oven / coffee / air fryer + thin `thermal_wait`) +
 HAL / controller TCP (washer+dryer interlock + washer/dryer cycle start/phase) +
 hub-in-suite + thermal-port surface (5 classes + UI + schema vocabulary /
 `ClassTable.HeatPortSpec` + wasm heat-port chips) + bridge mocks + write-denial
-matrix + early catalog depth (`wine_cooler` / `ice_maker`) ≈ **~75% of the §2
+matrix + early catalog depth (`wine_cooler` / `ice_maker` / `sous_vide`) ≈ **~75% of the §2
 in-scope bar, met in spirit** for lab/software depth (was ~30% at roadmap start;
 ~72% at the v0.1.35 refresh). PRs **#54–#60** (schema thermal vocab,
-`ClassTable.thermal_ports`, `wine_cooler` + `ice_maker` optional depth, heat-port
+`ClassTable.thermal_ports`, `wine_cooler` + `ice_maker` + `sous_vide` optional depth, heat-port
 specs UI, washer cotton-over-TCP start/phase) close the recent grind enough that
 calling the target **substantially achieved** is honest — not that every §2 bullet
 is production-complete. This is **not** IEC certification, production firmware,
@@ -114,9 +114,10 @@ production firmware:
 - **Richer UI** — picker + procedure runner + thermal panel + port chips are
   in; conformance-oriented / deeper screens remain.
 - **Deeper catalog optional points** — thin tables cover all 31 Tier-B ids;
-  optional-point depth landed on Tier-A `wine_cooler` + `ice_maker` (alarms /
-  sabbath / bottle_count / humidity; ice bin/filter life + harvest/scale
-  alerts); remaining thin Tier-B classes (and other Tier-A) can follow.
+  optional-point depth landed on Tier-A `wine_cooler` + `ice_maker` + `sous_vide`
+  (alarms / sabbath / bottle_count / humidity; ice bin/filter life + harvest/scale
+  alerts; sous-vide water/lid/timer/overtemp + cycle remaining); remaining thin
+  Tier-B classes (and other Tier-A) can follow.
 - **Procedure⇄thermal depth** — thin `thermal_wait` on reservoir `temp_c` is
   present (`wait_dhw_reservoir` + conformance); offer/accept/negotiate as
   procedure steps and wasm/UI wiring remain open. Dual-path dishwasher demo
@@ -401,7 +402,7 @@ devices:
 | `dehumidifier` | |
 | `range_hood` | |
 | `toaster_oven` | |
-| `sous_vide` | |
+| `sous_vide` | Optional depth: water_level_ok/lid_closed/timer_remaining/target_done/overtemp/delayed_start/alarm_offset + cycle remaining |
 | `multi_cooker` | |
 | `ice_maker` | Optional depth: water/scale/harvest alerts, scoop light, max-ice, delayed start + ice bin/filter life |
 | `wine_cooler` | Optional depth: sabbath/compressor/alarms/vibration/bottle_count + humidity setpoint |
@@ -469,7 +470,7 @@ Count: **31** Tier-B ids, all with thin static tables + sim.
 | later | `feat/simulator-tier-a-ui` | 7 — grouped Tier-A picker (first UI slice) |
 | later | WASM UI + conformance suite | 7 — picker + procedure UI (kettle/Domino's/wash-then-dry/oven bake/coffee brew/air fryer cook) + thermal UI + device port chips + blob-load done; smoke suite + write-denial matrix + hub-in-suite done; richer UI remaining |
 | later | Tier-B thin tables | 2 — **Done** (31 Tier-B → 56 total static + sim) |
-| later | catalog optional depth | 7 — **Started** (`wine_cooler` + `ice_maker`; more classes open) |
+| later | catalog optional depth | 7 — **Started** (`wine_cooler` + `ice_maker` + `sous_vide`; more classes open) |
 | later | lab hub + PSK | 4 — **Done** (`homecooked-hub`, transport PSK) |
 | later | bridge mocks (Matter/Zigbee/BACnet) | 6 — **Done** (thin mocks; real SDKs still open) |
 | later | dryer controller cycle | 4 — **Done** |
@@ -524,3 +525,4 @@ the code that implements them.
 | 0.1.37 | Stream 4: washer controller TCP cotton start (`trait.cycle.start` + readable `cycle_state`/`cycle_phase` + `class.washer.sim_tick`); conformance `controller_tcp_washer_cotton`; CottonOptions/cancel/dryer cycle-over-TCP deferred |
 | 0.1.38 | Current-state refresh: **~75% of the §2 in-scope bar met in spirit** for lab/software depth; cite PRs #54–#60 (thermal vocab + HeatPortSpec + UI, Tier-B wine_cooler/ice_maker, cotton-over-TCP); Still open reframed as beyond/thin (real bridge SDKs, plant runtime schema, TLS, fuller Tier-B, procedure offer/negotiate, dryer cycle-over-TCP, CottonOptions over wire); no IEC / production-firmware claim |
 | 0.1.39 | Stream 4: dryer controller TCP cycle start (`trait.cycle.start` + readable `cycle_state`/`cycle_phase` + `class.dryer.sim_tick`); conformance `controller_tcp_dryer_cycle`; CottonOptions/DryOptions/cancel/pause deferred |
+| 0.1.40 | Stream 7 catalog depth: deepen `sous_vide` optional class points (water_level_ok/lid_closed/timer_remaining_s/target_done/overtemp_alarm/delayed_start_s/alarm_offset_c + typical cycle remaining) |

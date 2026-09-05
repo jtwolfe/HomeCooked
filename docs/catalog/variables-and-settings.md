@@ -1223,10 +1223,17 @@ Head up → `safety_interlock` on start.
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
 | `low_water` | bool | — | | r/e | req | Cuts heat |
-| `circulating` | bool | — | | r/e | opt | |
-| `cook_s` | duration_s | second | 0–259200 | r/w | opt | |
+| `circulating` | bool | — | | r/e | opt | Pump / circulator running |
+| `cook_s` | duration_s | second | 0–259200 | r/w | opt | Cook duration setpoint |
+| `water_level_ok` | bool | — | | r/e | opt | Bath level healthy (inverse of low_water when both present) |
+| `lid_closed` | bool | — | | r/e | opt | Cover / lid closed |
+| `timer_remaining_s` | duration_s | second | 0–259200 | r/e | opt | Cook timer remaining |
+| `target_done` | bool | — | | r/e | opt | Cook duration / target reached |
+| `overtemp_alarm` | bool | — | | r/e | opt | Bath over-temperature alarm |
+| `delayed_start_s` | duration_s | second | 0–86400 | r/w | opt | Delayed cook start |
+| `alarm_offset_c` | f32 | celsius | −5–5 | r/w | opt | Done / alert offset from setpoint |
 
-Setpoint resolution typically 0.1 °C.
+Cycle remaining via `trait.cycle.remaining_s`. Setpoint resolution typically 0.1 °C.
 
 ---
 
