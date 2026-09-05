@@ -469,6 +469,57 @@ const COLD_CABINET_POINTS: &[CatalogPoint] = &[
     ),
 ];
 
+/// Minimal device-facing thermal-port surface (Stream 5). Attachments on existing
+/// classes — not parallel appliance classes. See `docs/standard/thermal-plant.md`.
+const THERMAL_PORT_DIRECTION: &[&str] = &["source", "sink", "bidirectional"];
+const THERMAL_PORT_MEDIA: &[&str] = &["water", "air", "glycol", "refrigerant_proxy", "unknown"];
+
+static THERMAL_PORT_POINTS: &[CatalogPoint] = &[
+    v(
+        "thermal_port_id",
+        ValueType::String,
+        None,
+        None,
+        AccessMode::R,
+        false,
+    ),
+    v(
+        "thermal_port_direction",
+        ValueType::Enum,
+        None,
+        en(THERMAL_PORT_DIRECTION),
+        AccessMode::R,
+        false,
+    ),
+    v(
+        "thermal_port_media",
+        ValueType::Enum,
+        None,
+        en(THERMAL_PORT_MEDIA),
+        AccessMode::R,
+        false,
+    ),
+    v(
+        "thermal_port_max_power_w",
+        ValueType::F32,
+        Some(Unit::Watt),
+        None,
+        AccessMode::R,
+        false,
+    ),
+    s(
+        "thermal_port_attached_reservoir_id",
+        ValueType::String,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+];
+
+const FRIDGE_MERGED: [CatalogPoint; 12] = concat2(COLD_CABINET_POINTS, THERMAL_PORT_POINTS);
+const FRIDGE_POINTS: &[CatalogPoint] = &FRIDGE_MERGED;
+
 const DISHWASHER_TRAITS: &[TraitId] = &[
     TraitId::Identity,
     TraitId::Power,
@@ -1266,7 +1317,7 @@ const WATER_HEATER_MODE: &[&str] = &[
 ];
 const WATER_HEATER_FORM: &[&str] = &["tank", "tankless", "heat_pump"];
 
-static WATER_HEATER_POINTS: &[CatalogPoint] = &[
+static WATER_HEATER_BASE: &[CatalogPoint] = &[
     s(
         "mode",
         ValueType::Enum,
@@ -1325,6 +1376,9 @@ static WATER_HEATER_POINTS: &[CatalogPoint] = &[
         false,
     ),
 ];
+
+const WATER_HEATER_MERGED: [CatalogPoint; 13] = concat2(WATER_HEATER_BASE, THERMAL_PORT_POINTS);
+const WATER_HEATER_POINTS: &[CatalogPoint] = &WATER_HEATER_MERGED;
 
 const HVAC_TRAITS: &[TraitId] = &[
     TraitId::Identity,
@@ -3430,7 +3484,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         class_id: ApplianceClassId::Fridge,
         typical_traits: FRIDGE_TRAITS,
         optional_traits: FRIDGE_OPTIONAL_TRAITS,
-        class_points: COLD_CABINET_POINTS,
+        class_points: FRIDGE_POINTS,
         program_tokens: &[],
         cycle_phase_tokens: &[],
         typical_setpoint_c: Some((1.0, 7.0)),

@@ -273,6 +273,8 @@ ice box that is not a controllable freezer zone).
 
 - Setpoint range is typically about 1–7 °C. Writes outside advertised range are
   `out_of_range`.
+- Optional `thermal_port_*` class points advertise a condenser heat port for
+  plant coupling (not a parallel thermal class; see thermal-plant).
 - A fridge that also has a freezer compartment **must** use `fridge_freezer`
   (or expose a `freezer` zone). Do not overload `fridge` with a freezer
   setpoint.
@@ -1211,6 +1213,8 @@ instrumented tankless) for potable water. Not a space-heating boiler.
 - Tankless units use the same class with flow-based state (`flow_l_min`,
   `outlet_temp_c`) and no tank remaining estimate.
 - Distinct from `boiler` (hydronic / space heat) and `kettle` (countertop).
+- Optional `thermal_port_*` class points advertise a DHW-preheat heat port
+  (device telemetry surface; plant objects stay in `homecooked-thermal`).
 
 ### `boiler`
 

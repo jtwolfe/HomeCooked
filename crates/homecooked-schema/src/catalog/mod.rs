@@ -184,7 +184,14 @@ fn extra_typical_trait_point(table: &ClassTable, trait_id: TraitId, point: &Cata
 
 /// Optional class points that the typical model still advertises for demos.
 fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
-    table.class_id == ApplianceClassId::Dishwasher && point.id == "wash_temp_c"
+    if table.class_id == ApplianceClassId::Dishwasher && point.id == "wash_temp_c" {
+        return true;
+    }
+    // Stream 5: device-facing thermal-port surface on Tier-A water_heater / fridge.
+    matches!(
+        table.class_id,
+        ApplianceClassId::WaterHeater | ApplianceClassId::Fridge
+    ) && point.id.starts_with("thermal_port_")
 }
 
 fn specialize_trait_point(
@@ -411,6 +418,45 @@ mod tests {
                 assert!(is_snake_case_id(p.id));
             }
         }
+    }
+
+    #[test]
+    fn water_heater_and_fridge_thermal_port_points() {
+        let wh = typical_capability(ApplianceClassId::WaterHeater).unwrap();
+        assert!(wh
+            .class_points
+            .iter()
+            .any(|p| p.id == "class.water_heater.thermal_port_attached_reservoir_id"));
+        wh.validate_write(
+            "class.water_heater.thermal_port_attached_reservoir_id",
+            &Value::String("dhw-tank".into()),
+        )
+        .unwrap();
+        let err = wh
+            .validate_write(
+                "class.water_heater.thermal_port_direction",
+                &Value::Enum("sink".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+
+        let fridge = typical_capability(ApplianceClassId::Fridge).unwrap();
+        assert!(fridge
+            .class_points
+            .iter()
+            .any(|p| p.id == "class.fridge.thermal_port_max_power_w"));
+        fridge
+            .validate_write(
+                "class.fridge.thermal_port_attached_reservoir_id",
+                &Value::String("dhw-tank".into()),
+            )
+            .unwrap();
+        // Freezer keeps cold-cabinet points only (no thermal port surface yet).
+        let freezer = typical_capability(ApplianceClassId::Freezer).unwrap();
+        assert!(!freezer
+            .class_points
+            .iter()
+            .any(|p| p.id.contains("thermal_port_")));
     }
 
     #[test]

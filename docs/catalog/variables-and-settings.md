@@ -720,6 +720,11 @@ child_lock, audio.
 | `compressor_on` | bool | — | | r/e | opt | |
 | `high_temp_alarm` | bool | — | | r/e | opt | |
 | `power_fail_ms` | timestamp_ms | — | | r/e | opt | Last outage |
+| `thermal_port_id` | string | — | local port id | r | opt | Device heat port (e.g. `condenser`); see thermal-plant |
+| `thermal_port_direction` | enum | — | `source` `sink` `bidirectional` | r | opt | Seed `source` (condenser reject) |
+| `thermal_port_media` | enum | — | `water` `air` `glycol` `refrigerant_proxy` `unknown` | r | opt | Seed `water` (matches plant demo) |
+| `thermal_port_max_power_w` | f32 | watt | | r | opt | Seed 120 (demo) |
+| `thermal_port_attached_reservoir_id` | string | — | reservoir id or empty | r/w | opt | Attach/detach plant reservoir |
 
 Fridge `setpoint_c` typical 1–7. `super_mode` is super-cool.
 
@@ -1319,6 +1324,11 @@ Setpoint resolution typically 0.1 °C.
 | `dry_fire` | bool | — | | r/e | opt | |
 | `recirc_on` | bool | — | | r/w/e | opt | |
 | `form_factor` | enum | — | `tank` `tankless` `heat_pump` | r | opt | |
+| `thermal_port_id` | string | — | local port id | r | opt | Device heat port (e.g. `preheat`); see thermal-plant |
+| `thermal_port_direction` | enum | — | `source` `sink` `bidirectional` | r | opt | Seed `sink` (DHW preheat) |
+| `thermal_port_media` | enum | — | `water` `air` `glycol` `refrigerant_proxy` `unknown` | r | opt | Seed `water` |
+| `thermal_port_max_power_w` | f32 | watt | | r | opt | Seed 2000 (demo) |
+| `thermal_port_attached_reservoir_id` | string | — | reservoir id or empty | r/w | opt | Attach/detach plant reservoir |
 
 ---
 
