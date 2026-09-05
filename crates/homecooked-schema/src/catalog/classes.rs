@@ -1622,7 +1622,10 @@ const KETTLE_TRAITS: &[TraitId] = &[
 
 const KETTLE_OPTIONAL_TRAITS: &[TraitId] = &[TraitId::ChildLock];
 
-static KETTLE_POINTS: &[CatalogPoint] = &[
+/// Thin kettle boil surface (required on_base + keep_warm/boil_dry).
+/// Depth points live in `KETTLE_DEPTH` so optional Tier-A deepen does not
+/// rewrite the Matter/procedure boil core (setpoint + cycle + on_base interlock).
+static KETTLE_BASE: &[CatalogPoint] = &[
     s(
         "keep_warm",
         ValueType::Bool,
@@ -1649,6 +1652,66 @@ static KETTLE_POINTS: &[CatalogPoint] = &[
         false,
     ),
 ];
+
+/// Kettle optional depth (Stream 7 undepened Tier-A). Water-heating /
+/// espresso_machine / water_dispenser template (sabbath/eco/heater_on/alarms/
+/// lid/timer). Reuses thin-table `keep_warm` / `keep_warm_s` / `boil_dry` (not
+/// parallel holds). Do not duplicate required `on_base` or Temperature setpoint.
+/// Heater trait already typical (`heater_state`); class `heater_on` is compact
+/// RE telemetry like water_dispenser / espresso / oven.
+static KETTLE_DEPTH: &[CatalogPoint] = &[
+    s(
+        "sabbath_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    ),
+    s(
+        "eco_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "heater_on",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "high_temp_alarm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "lid_open",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "timer_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 3600),
+        AccessMode::RWE,
+        false,
+    ),
+];
+
+const KETTLE_MERGED: [CatalogPoint; 10] = concat2(KETTLE_BASE, KETTLE_DEPTH);
+const KETTLE_POINTS: &[CatalogPoint] = &KETTLE_MERGED;
 
 const AIR_FRYER_TRAITS: &[TraitId] = &[
     TraitId::Identity,

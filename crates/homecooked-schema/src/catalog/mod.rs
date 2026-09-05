@@ -316,6 +316,27 @@ fn extra_typical_trait_point(table: &ClassTable, trait_id: TraitId, point: &Cata
 
 /// Optional class points that the typical model still advertises for demos.
 fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
+    // Stream 7 undepened Tier-A deepen: kettle optional telemetry/settings.
+    // Advertise thin-table keep_warm/keep_warm_s/boil_dry; add depth
+    // sabbath/eco/heater_on/high_temp_alarm/lid_open/timer_s.
+    // Do not duplicate required on_base (already required) or Temperature
+    // setpoint. Heater trait already typical — class heater_on is compact RE
+    // telemetry (water_dispenser / espresso_machine template), not a trait
+    // replacement. Matter mock / boil surfaces unchanged.
+    if table.class_id == ApplianceClassId::Kettle {
+        return matches!(
+            point.id,
+            "keep_warm"
+                | "keep_warm_s"
+                | "boil_dry"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "heater_on"
+                | "high_temp_alarm"
+                | "lid_open"
+                | "timer_s"
+        );
+    }
     // Stream 7 undepened Tier-A deepen: air_fryer optional telemetry/settings.
     // Advertise thin-table shake_enable/shake_due/preheat/basket_present/sync_finish;
     // add depth sabbath/eco/heater_on/fan_on/high_temp_alarm/door_ajar/timer_s.
@@ -5205,6 +5226,93 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("trait.temperature.preheat_complete", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn kettle_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::Kettle).unwrap();
+        for id in [
+            // Required boil surface still present.
+            "class.kettle.on_base",
+            // Thin-table optional advertised in typical.
+            "class.kettle.keep_warm",
+            "class.kettle.keep_warm_s",
+            "class.kettle.boil_dry",
+            // Depth points.
+            "class.kettle.sabbath_mode",
+            "class.kettle.eco_mode",
+            "class.kettle.heater_on",
+            "class.kettle.high_temp_alarm",
+            "class.kettle.lid_open",
+            "class.kettle.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical kettle"
+            );
+        }
+        // Heater trait already typical.
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Heater)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.heater.heater_state"));
+        // Single kitchen timer_s — distinct from keep_warm_s.
+        assert_eq!(
+            cap.class_points
+                .iter()
+                .filter(|p| p.id == "class.kettle.timer_s")
+                .count(),
+            1
+        );
+        assert_eq!(
+            cap.class_points
+                .iter()
+                .filter(|p| p.id == "class.kettle.keep_warm_s")
+                .count(),
+            1
+        );
+        assert_eq!(
+            cap.class_points
+                .iter()
+                .filter(|p| p.id == "class.kettle.on_base")
+                .count(),
+            1
+        );
+
+        cap.validate_write("class.kettle.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.kettle.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.kettle.timer_s", &Value::DurationS(600))
+            .unwrap();
+        cap.validate_write("class.kettle.keep_warm", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.kettle.keep_warm_s", &Value::DurationS(1800))
+            .unwrap();
+        let err = cap
+            .validate_write("class.kettle.on_base", &Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.kettle.boil_dry", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.kettle.heater_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.kettle.high_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.kettle.lid_open", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }

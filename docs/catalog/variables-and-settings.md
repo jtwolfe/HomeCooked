@@ -1360,12 +1360,21 @@ optional and safety-gated (`remote_brew_enabled` bool, r/w, opt).
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `keep_warm` | bool | — | | r/w/e | opt | |
-| `keep_warm_s` | duration_s | second | 0–3600 | r/w | opt | |
-| `on_base` | bool | — | | r/e | req | |
-| `boil_dry` | bool | — | | r/e | opt | Latched trip |
+| `keep_warm` | bool | — | | r/w/e | opt | Keep-warm enable (typical) |
+| `keep_warm_s` | duration_s | second | 0–3600 | r/w | opt | Keep-warm hold duration (typical; 0 = until cancel) |
+| `on_base` | bool | — | | r/e | req | On base / docked (required surface) |
+| `boil_dry` | bool | — | | r/e | opt | Latched boil-dry trip (typical) |
+| `sabbath_mode` | bool | — | | r/w/e | opt | Suppress beeps / delay display |
+| `eco_mode` | bool | — | | r/w | opt | Prefer lower average heater duty |
+| `heater_on` | bool | — | | r/e | opt | Element / heater active telemetry |
+| `high_temp_alarm` | bool | — | | r/e | opt | Overtemp / too-hot |
+| `lid_open` | bool | — | | r/e | opt | Lid open bit |
+| `timer_s` | duration_s | second | 0–3600 | r/w/e | opt | Kitchen timer (distinct from `keep_warm_s`) |
 
-Heat while `on_base=false` → `safety_interlock`.
+Optional depth (eleventh undepened Tier-A deepen): sabbath/eco/heater_on/
+high_temp_alarm/lid_open/timer_s; typical also advertises thin-table
+`keep_warm` / `keep_warm_s` / `boil_dry`. Required `on_base` unchanged.
+`trait.heater` already typical. Heat while `on_base=false` → `safety_interlock`.
 
 ---
 
