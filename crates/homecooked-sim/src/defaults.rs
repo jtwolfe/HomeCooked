@@ -183,6 +183,10 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
         "setpoint_c" => Value::F32(ctx.setpoint_c),
         "space_c" => Value::F32(21.0),
         "hvac_mode" => Value::Enum("auto".into()),
+        "heat_setpoint_c" => Value::F32(20.0),
+        "cool_setpoint_c" => Value::F32(24.0),
+        "deadband_c" => Value::F32(2.0),
+        "outdoor_c" => Value::F32(12.0),
         "combo_mode" => Value::Enum("wash_and_dry".into()),
         "ch_enable" => Value::Bool(true),
         "ch_setpoint_c" => Value::F32(60.0),
@@ -399,8 +403,9 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             _ => Value::U8(int_min(point, 0) as u8),
         },
         "fan_speed" => match ctx.identity.class_id {
-            ApplianceClassId::Dehumidifier => Value::U8(2),
-            ApplianceClassId::RangeHood => Value::U8(2),
+            ApplianceClassId::Dehumidifier
+            | ApplianceClassId::Hvac
+            | ApplianceClassId::RangeHood => Value::U8(2),
             _ => Value::U8(int_min(point, 0) as u8),
         },
         "light_level" => match ctx.identity.class_id {
@@ -482,18 +487,21 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             ApplianceClassId::WaterDispenser => Value::Percent(85.0),
             ApplianceClassId::WaterSoftener => Value::Percent(90.0),
             ApplianceClassId::WaterFilter => Value::Percent(75.0),
+            ApplianceClassId::Hvac => Value::Percent(80.0),
             _ => Value::Percent(0.0),
         },
         "current_rh" => match ctx.identity.class_id {
             ApplianceClassId::WineCooler => Value::Percent(60.0),
             ApplianceClassId::Dehumidifier => Value::Percent(55.0),
             ApplianceClassId::Humidifier => Value::Percent(40.0),
+            ApplianceClassId::Hvac => Value::Percent(45.0),
             _ => Value::Percent(0.0),
         },
         "setpoint_rh" => match ctx.identity.class_id {
             ApplianceClassId::WineCooler => Value::Percent(60.0),
             ApplianceClassId::Dehumidifier => Value::Percent(45.0),
             ApplianceClassId::Humidifier => Value::Percent(45.0),
+            ApplianceClassId::Hvac => Value::Percent(45.0),
             _ => Value::Percent(0.0),
         },
         "output_level" => match ctx.identity.class_id {

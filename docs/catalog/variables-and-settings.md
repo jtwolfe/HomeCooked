@@ -1881,13 +1881,21 @@ life uses `trait.filter.life_percent`. Measured flow uses
 | `aux_heat` | bool | — | | r/e | opt | |
 | `defrost` | bool | — | | r/e | opt | Heat pump |
 | `reversing_valve` | enum | — | `heat` `cool` `unknown` | r | opt | |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `fan_on` | bool | — | | r/e | opt | Indoor fan running (compact RE beside Fan trait) |
+| `high_temp_alarm` | bool | — | | r/e | opt | Space overtemp |
+| `low_temp_alarm` | bool | — | | r/e | opt | Space undertemp |
+| `timer_s` | duration_s | second | 0–3600 | r/w/e | opt | Delay / hold timer |
 | `thermal_port_id` | string | — | local port id | r | opt | Device heat port (e.g. `coil`); see thermal-plant |
 | `thermal_port_direction` | enum | — | `source` `sink` `bidirectional` | r | opt | Seed `sink` (space heat from hot reservoir) |
 | `thermal_port_media` | enum | — | `water` `air` `glycol` `refrigerant_proxy` `unknown` | r | opt | Seed `water` (hydronic coil) |
 | `thermal_port_max_power_w` | f32 | watt | | r | opt | Seed 5000 (lab) |
 | `thermal_port_attached_reservoir_id` | string | — | reservoir id or empty | r/w | opt | Attach/detach plant reservoir |
 
-Fan uses `trait.fan`. Filter uses `trait.filter`. Multi-head: `trait.zone`.
+Fan uses `trait.fan` (`fan_speed` typical; class `fan_on` is compact RE).
+Filter uses `trait.filter` (`life_percent` typical). Humidity setpoint uses
+`trait.humidity.setpoint_rh`. Multi-head: `trait.zone`. Reuse thin `eco` /
+`defrost` / `compressor_on` (no parallel `eco_mode` / `defrost_active`).
 
 ---
 

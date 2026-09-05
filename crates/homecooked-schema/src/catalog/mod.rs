@@ -252,6 +252,20 @@ fn extra_typical_trait_point(table: &ClassTable, trait_id: TraitId, point: &Cata
     {
         return true;
     }
+    // HVAC: humidity setpoint + fan speed + filter life are typical climate extras.
+    // Do not advertise Temperature setpoint (class heat/cool setpoints already
+    // cover closed-loop climate; typical_setpoint_c is None).
+    if table.class_id == ApplianceClassId::Hvac {
+        if trait_id == TraitId::Humidity && point.id == "setpoint_rh" {
+            return true;
+        }
+        if trait_id == TraitId::Fan && point.id == "fan_speed" {
+            return true;
+        }
+        if trait_id == TraitId::Filter && point.id == "life_percent" {
+            return true;
+        }
+    }
     // Range hood: fan speed + light dimming + grease-filter life are typical.
     if table.class_id == ApplianceClassId::RangeHood {
         if trait_id == TraitId::Fan && point.id == "fan_speed" {
@@ -341,6 +355,37 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "high_temp_alarm"
                 | "low_temp_alarm"
                 | "leak_alarm"
+                | "timer_s"
+        )
+    {
+        return true;
+    }
+    // Stream 7 undepened Tier-A deepen: hvac optional telemetry/settings.
+    // Advertise thin-table heat/cool setpoints/deadband/outdoor/hold/quiet/eco/
+    // compressor_on/aux_heat/defrost/reversing_valve; add depth sabbath/fan_on/
+    // high_temp_alarm/low_temp_alarm/timer_s. Reuse eco (not eco_mode) and
+    // defrost (not defrost_active). Do not duplicate required hvac_mode /
+    // space_c or thermal_port_* (fall through to Stream 5). Fan trait already
+    // typical — class fan_on is compact RE (air_fryer / dehumidifier template).
+    // Filter life via trait.filter.life_percent, not a class filter_life.
+    if table.class_id == ApplianceClassId::Hvac
+        && matches!(
+            point.id,
+            "heat_setpoint_c"
+                | "cool_setpoint_c"
+                | "deadband_c"
+                | "outdoor_c"
+                | "hold"
+                | "quiet"
+                | "eco"
+                | "compressor_on"
+                | "aux_heat"
+                | "defrost"
+                | "reversing_valve"
+                | "sabbath_mode"
+                | "fan_on"
+                | "high_temp_alarm"
+                | "low_temp_alarm"
                 | "timer_s"
         )
     {
@@ -5539,6 +5584,170 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.water_heater.leak_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn hvac_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::Hvac).unwrap();
+        for id in [
+            // Required climate surface still present.
+            "class.hvac.hvac_mode",
+            "class.hvac.space_c",
+            // Thin-table climate surface advertised in typical.
+            "class.hvac.heat_setpoint_c",
+            "class.hvac.cool_setpoint_c",
+            "class.hvac.deadband_c",
+            "class.hvac.outdoor_c",
+            "class.hvac.hold",
+            "class.hvac.quiet",
+            "class.hvac.eco",
+            "class.hvac.compressor_on",
+            "class.hvac.aux_heat",
+            "class.hvac.defrost",
+            "class.hvac.reversing_valve",
+            // Depth points.
+            "class.hvac.sabbath_mode",
+            "class.hvac.fan_on",
+            "class.hvac.high_temp_alarm",
+            "class.hvac.low_temp_alarm",
+            "class.hvac.timer_s",
+            // Thermal-port surface still present (unchanged).
+            "class.hvac.thermal_port_id",
+            "class.hvac.thermal_port_attached_reservoir_id",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical hvac"
+            );
+        }
+        // Fan / Filter / Humidity extras; Temperature setpoint not advertised
+        // (class heat/cool setpoints cover closed-loop climate).
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Fan)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.fan.fan_speed"));
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Filter)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.filter.life_percent"));
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Humidity)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.humidity.setpoint_rh"));
+        assert!(!cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Temperature)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.temperature.setpoint_c"));
+        // Reuse eco / defrost / compressor_on — no parallel eco_mode /
+        // defrost_active; single kitchen timer_s.
+        assert!(!cap
+            .class_points
+            .iter()
+            .any(|p| p.id == "class.hvac.eco_mode"));
+        assert!(!cap
+            .class_points
+            .iter()
+            .any(|p| p.id == "class.hvac.defrost_active"));
+        assert_eq!(
+            cap.class_points
+                .iter()
+                .filter(|p| p.id == "class.hvac.compressor_on")
+                .count(),
+            1
+        );
+        assert_eq!(
+            cap.class_points
+                .iter()
+                .filter(|p| p.id == "class.hvac.timer_s")
+                .count(),
+            1
+        );
+        assert_eq!(
+            cap.class_points
+                .iter()
+                .filter(|p| p.id == "class.hvac.eco")
+                .count(),
+            1
+        );
+
+        cap.validate_write("class.hvac.hvac_mode", &Value::Enum("heat".into()))
+            .unwrap();
+        cap.validate_write("class.hvac.heat_setpoint_c", &Value::F32(20.0))
+            .unwrap();
+        cap.validate_write("class.hvac.cool_setpoint_c", &Value::F32(24.0))
+            .unwrap();
+        cap.validate_write("class.hvac.deadband_c", &Value::F32(2.0))
+            .unwrap();
+        cap.validate_write("class.hvac.hold", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.hvac.quiet", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.hvac.eco", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.hvac.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.hvac.timer_s", &Value::DurationS(900))
+            .unwrap();
+        cap.validate_write("trait.humidity.setpoint_rh", &Value::Percent(45.0))
+            .unwrap();
+        cap.validate_write("trait.fan.fan_speed", &Value::U8(2))
+            .unwrap();
+        let err = cap
+            .validate_write("class.hvac.space_c", &Value::F32(22.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.hvac.outdoor_c", &Value::F32(10.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.hvac.compressor_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.hvac.aux_heat", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.hvac.defrost", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.hvac.reversing_valve", &Value::Enum("cool".into()))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.hvac.fan_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.hvac.high_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.hvac.low_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("trait.filter.life_percent", &Value::Percent(50.0))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }

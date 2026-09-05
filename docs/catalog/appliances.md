@@ -1627,6 +1627,14 @@ appliance.
   face) with `boiler` as a separate plant device if both are connected.
 - Optional `thermal_port_*` class points advertise a hydronic coil heat port
   for plant coupling (device telemetry; plant objects stay in `homecooked-thermal`).
+- Catalog depth: optional sabbath/fan_on/high_temp_alarm/low_temp_alarm/timer_s;
+  typical also advertises thin-table heat/cool setpoints/deadband/outdoor/hold/
+  quiet/eco/compressor_on/aux_heat/defrost/reversing_valve. Required `hvac_mode` /
+  `space_c` + `thermal_port_*` unchanged. Reuse thin `eco` (not `eco_mode`) and
+  `defrost` (not `defrost_active`). Fan trait already typical — class `fan_on`
+  is compact RE telemetry. Humidity setpoint / fan speed / filter life via
+  `trait.humidity.setpoint_rh` / `trait.fan.fan_speed` /
+  `trait.filter.life_percent`.
 
 ### `dehumidifier`
 
