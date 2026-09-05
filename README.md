@@ -48,7 +48,7 @@ is **0.1.0** (peers are rejected only on protocol **major** mismatch).
 | `homecooked-controller` | [`crates/homecooked-controller`](crates/homecooked-controller) | Host controller sim: IoMap + MockHal + interlocks + washer cotton / dryer cycles ([control-system.md](docs/standard/control-system.md)) |
 | `homecooked-thermal` | [`crates/homecooked-thermal`](crates/homecooked-thermal) | Thermal plant slice: reservoirs, heat ports, offer/accept, tick transfer ([thermal-plant.md](docs/standard/thermal-plant.md)) |
 | `homecooked-bridge` | [`crates/homecooked-bridge`](crates/homecooked-bridge) | Fabric bridges: Modbus + Matter + Zigbee + BACnet mock adapters ([bridges.md](docs/standard/bridges.md)) |
-| `homecooked-transport` | [`crates/homecooked-transport`](crates/homecooked-transport) | Lab TCP transport for protocol envelopes (length-prefixed JSON); sim-backed server + client ([overview.md](docs/standard/overview.md) §6) |
+| `homecooked-transport` | [`crates/homecooked-transport`](crates/homecooked-transport) | Lab TCP transport for protocol envelopes (length-prefixed JSON + optional PSK); sim-backed server + client ([overview.md](docs/standard/overview.md) §6) |
 | `homecooked-conformance` | [`crates/homecooked-conformance`](crates/homecooked-conformance) | Light Stream 7 conformance smoke (catalog↔schema↔sim↔protocol↔TCP) |
 | simulator-web | [`apps/simulator-web`](apps/simulator-web) | Static HTML/JS UI: Tier-A picker, procedure runner, thermal plant panel |
 
@@ -94,7 +94,9 @@ Tier-A picker, rebuild/serve commands, manual smoke) and
 ## TCP lab transport
 
 Cleartext TCP binding for protocol envelopes (no TLS / OAuth). Framing is
-**length-prefixed JSON** (`u32` BE length + compact envelope). See
+**length-prefixed JSON** (`u32` BE length + compact envelope). Optional lab
+**PSK pairing** refuses anonymous clients when configured (dedicated auth
+preamble; not a TLS substitute). See
 [`crates/homecooked-transport`](crates/homecooked-transport).
 
 ```bash

@@ -13,6 +13,8 @@ homecooked-core = { path = "../homecooked-core" }
 homecooked-protocol = { path = "../homecooked-protocol" }
 homecooked-schema = { path = "../homecooked-schema" }
 homecooked-sim = { path = "../homecooked-sim" }
+serde = { workspace = true }
+serde_json = { workspace = true }
 
 [[example]]
 name = "homecooked-tcp-demo"

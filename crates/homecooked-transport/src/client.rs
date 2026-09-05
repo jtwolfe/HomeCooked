@@ -12,29 +12,58 @@ use homecooked_schema::{ApplianceClassId, QualifiedPointId, TraitId, Value};
 
 use crate::error::TransportError;
 use crate::frame::{read_envelope, write_envelope};
+use crate::psk::{client_handshake, psk_from_env};
 
 /// Default I/O timeout for lab clients (seconds).
 pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// Blocking TCP client for request/response exchanges.
+#[derive(Debug)]
 pub struct TcpClient {
     stream: TcpStream,
 }
 
 impl TcpClient {
-    /// Connect to `addr` (e.g. `"127.0.0.1:9876"`).
+    /// Connect to `addr` with no PSK (open lab).
     pub fn connect(addr: impl ToSocketAddrs) -> Result<Self, TransportError> {
+        Self::connect_with_psk(addr, None)
+    }
+
+    /// Connect and, if `psk` is `Some`, complete the lab PSK auth preamble.
+    pub fn connect_with_psk(
+        addr: impl ToSocketAddrs,
+        psk: Option<&str>,
+    ) -> Result<Self, TransportError> {
         let stream = TcpStream::connect(addr)?;
         stream.set_read_timeout(Some(DEFAULT_TIMEOUT))?;
         stream.set_write_timeout(Some(DEFAULT_TIMEOUT))?;
         stream.set_nodelay(true)?;
-        Ok(Self { stream })
+        let mut client = Self { stream };
+        if let Some(secret) = psk {
+            client.finish_psk(secret)?;
+        }
+        Ok(client)
     }
 
-    /// Connect with an explicit I/O timeout.
+    /// Connect using `HOMECOOKED_TCP_PSK` when set; otherwise open (no preamble).
+    pub fn connect_from_env(addr: impl ToSocketAddrs) -> Result<Self, TransportError> {
+        let owned = psk_from_env();
+        Self::connect_with_psk(addr, owned.as_deref())
+    }
+
+    /// Connect with an explicit I/O timeout (no PSK).
     pub fn connect_timeout(
         addr: impl ToSocketAddrs,
         timeout: Duration,
+    ) -> Result<Self, TransportError> {
+        Self::connect_timeout_with_psk(addr, timeout, None)
+    }
+
+    /// Connect with timeout and optional lab PSK.
+    pub fn connect_timeout_with_psk(
+        addr: impl ToSocketAddrs,
+        timeout: Duration,
+        psk: Option<&str>,
     ) -> Result<Self, TransportError> {
         let mut last_err = None;
         for a in addr.to_socket_addrs()? {
@@ -43,7 +72,11 @@ impl TcpClient {
                     stream.set_read_timeout(Some(timeout))?;
                     stream.set_write_timeout(Some(timeout))?;
                     stream.set_nodelay(true)?;
-                    return Ok(Self { stream });
+                    let mut client = Self { stream };
+                    if let Some(secret) = psk {
+                        client.finish_psk(secret)?;
+                    }
+                    return Ok(client);
                 }
                 Err(e) => last_err = Some(e),
             }
@@ -51,6 +84,12 @@ impl TcpClient {
         Err(last_err
             .unwrap_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "no addresses"))
             .into())
+    }
+
+    fn finish_psk(&mut self, psk: &str) -> Result<(), TransportError> {
+        let mut writer = self.stream.try_clone()?;
+        let mut reader = BufReader::new(self.stream.try_clone()?);
+        client_handshake(&mut reader, &mut writer, psk)
     }
 
     /// Send `request` and read one response envelope.

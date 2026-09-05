@@ -198,6 +198,8 @@ dependencies = [
  "homecooked-protocol",
  "homecooked-schema",
  "homecooked-sim",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
