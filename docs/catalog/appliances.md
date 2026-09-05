@@ -149,18 +149,21 @@ using water, detergent, and a rotating drum.
 - Spin speed (rpm) or `spin_off` / `rinse_hold`
 - Soil / stain level, load size, extra rinse, prewash, steam, soak
 - Detergent and softener dose (if auto-dosing)
-- Delay start, remote start enable, child lock, end-of-cycle signal
-- Water hardness override (if not using `water_softener` telemetry)
+- Delay start (`trait.time_schedule.delay_start_s` / class `timer_s`), remote
+  start enable, child lock, end-of-cycle signal
+- Sabbath / eco mode, water hardness override (if not using `water_softener`
+  telemetry)
 
 **Typical readable state:**
 
 - Cycle state (`idle`, `delayed`, `running`, `paused`, `rinsing`, `spinning`,
   `draining`, `complete`, `error`)
 - Phase, progress percent, remaining / elapsed time
-- Drum / door lock, door open, water level, inlet valve, drain pump
+- Drum / door lock (`door_locked`), door ajar (`door_ajar`), water level, inlet
+  valve, drain pump
 - Drum rpm, motor current, tub temperature
-- Detergent / softener / bleach reservoir levels
-- Unbalance, leak, overflow, drain-fail, door-unlocked-while-running
+- Detergent / softener / bleach reservoir levels + `detergent_low`
+- Unbalance, leak, overflow (`overflow_alarm`), water temp alarm, drain-fail
 - Energy and water consumed this cycle / lifetime
 - Fault codes and maintenance (clean drum, clean filter)
 
@@ -174,6 +177,10 @@ using water, detergent, and a rotating drum.
 - Heat-pump or steam washers still use this class; extra traits `heater` /
   `humidity` are optional.
 - Compact / portable washers omit auto-dose and sometimes temperature control.
+- Catalog depth: optional class points include sabbath, eco, `door_ajar`,
+  `door_locked`, `water_temp_alarm`, `overflow_alarm`, `detergent_low`, and
+  `timer_s`, plus typical `detergent_level_percent` / `unbalance`; delay start
+  also uses `trait.time_schedule.delay_start_s` (see variables-and-settings).
 
 ### `dryer`
 

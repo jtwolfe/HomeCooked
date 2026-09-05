@@ -253,6 +253,10 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             ApplianceClassId::CoffeeGrinder => Value::Percent(70.0),
             _ => Value::Percent(0.0),
         },
+        "detergent_level_percent" => match ctx.identity.class_id {
+            ApplianceClassId::Washer => Value::Percent(80.0),
+            _ => Value::Percent(0.0),
+        },
         "hot_setpoint_c" => match ctx.identity.class_id {
             ApplianceClassId::WaterDispenser => Value::F32(90.0),
             _ => Value::F32(numeric_default(point)),

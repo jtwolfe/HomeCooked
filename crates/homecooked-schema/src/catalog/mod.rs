@@ -277,6 +277,13 @@ fn extra_typical_trait_point(table: &ClassTable, trait_id: TraitId, point: &Cata
             return true;
         }
     }
+    // Washer: delay start is typical laundry scheduling (reuse TimeSchedule).
+    if table.class_id == ApplianceClassId::Washer
+        && trait_id == TraitId::TimeSchedule
+        && point.id == "delay_start_s"
+    {
+        return true;
+    }
     // Steam oven: cycle remaining + water hardness are typical.
     if table.class_id == ApplianceClassId::SteamOven {
         if trait_id == TraitId::Cycle && point.id == "remaining_s" {
@@ -293,6 +300,22 @@ fn extra_typical_trait_point(table: &ClassTable, trait_id: TraitId, point: &Cata
 fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
     if table.class_id == ApplianceClassId::Dishwasher && point.id == "wash_temp_c" {
         return true;
+    }
+    // Stream 7 undepened Tier-A deepen: washer optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::Washer {
+        return matches!(
+            point.id,
+            "detergent_level_percent"
+                | "unbalance"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "door_ajar"
+                | "door_locked"
+                | "water_temp_alarm"
+                | "overflow_alarm"
+                | "detergent_low"
+                | "timer_s"
+        );
     }
     // Stream 3: coffee brew procedure waits on boiler telemetry.
     if table.class_id == ApplianceClassId::CoffeeMachine
@@ -4136,6 +4159,75 @@ mod tests {
                 assert!(is_snake_case_id(p.id), "trait.{}.{}", t, p.id);
             }
         }
+    }
+
+    #[test]
+    fn washer_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::Washer).unwrap();
+        for id in [
+            "class.washer.detergent_level_percent",
+            "class.washer.unbalance",
+            "class.washer.sabbath_mode",
+            "class.washer.eco_mode",
+            "class.washer.door_ajar",
+            "class.washer.door_locked",
+            "class.washer.water_temp_alarm",
+            "class.washer.overflow_alarm",
+            "class.washer.detergent_low",
+            "class.washer.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical washer"
+            );
+        }
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::TimeSchedule)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.time_schedule.delay_start_s"));
+        cap.validate_write("class.washer.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.washer.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.washer.timer_s", &Value::DurationS(3600))
+            .unwrap();
+        cap.validate_write("trait.time_schedule.delay_start_s", &Value::DurationS(1800))
+            .unwrap();
+        let err = cap
+            .validate_write(
+                "class.washer.detergent_level_percent",
+                &Value::Percent(50.0),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.washer.unbalance", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.washer.door_ajar", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.washer.door_locked", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.washer.water_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.washer.overflow_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.washer.detergent_low", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
     }
 
     #[test]
