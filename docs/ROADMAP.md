@@ -1,6 +1,6 @@
 # HomeCooked roadmap — ~75% project completeness
 
-Version **0.1.17**. Planning doc for a long flesh-out of the catalog, control
+Version **0.1.18**. Planning doc for a long flesh-out of the catalog, control
 stack, and simulator. It does **not** freeze APIs; crate and YAML shapes may
 evolve with the code that implements each stream.
 
@@ -28,12 +28,12 @@ What exists on `main` today (Done highlights called out):
 | `homecooked-interlock` | Declarative interlock rules (washer heater/spin; dryer heater/motor) |
 | `homecooked-hal` | Firmware HAL sketch + host `MockHal` |
 | `homecooked-procedure` | Procedure documents + sequential runner; Domino's microwave + wash-then-dry multi-device fixtures complete against sim |
-| `homecooked-controller` | Host controller sim: IoMap + MockHal + interlocks + washer cotton / **dryer cycle** (Idle→Dry→Cool→Done) — **Done** |
+| `homecooked-controller` | Host controller sim: IoMap + MockHal + interlocks + washer cotton / **dryer cycle**; **lab TCP endpoint** (`ControllerEndpoint` interlock deny) — **Done** |
 | `homecooked-thermal` | First executable thermal plant slice (types, registry, offer/accept, tick); plant types still crate-local |
 | `homecooked-bridge` | **Modbus + Matter + Zigbee + BACnet mocks** (no real serial/TCP/CHIP/z2m/BACnet stacks) — **Done** |
-| `homecooked-transport` | Lab TCP JSON envelopes; **optional PSK pairing**; sim-backed server + client smoke; **malformed frame table tests** — **Done** |
+| `homecooked-transport` | Lab TCP JSON envelopes; **optional PSK pairing**; sim-backed server + **pluggable `RequestHandler`**; malformed frame table tests — **Done** |
 | `homecooked-hub` | Optional multi-device lab TCP aggregator (**not required for devices**) — **Done** |
-| `homecooked-conformance` | Stream 7 smoke: Tier-A / Tier-B / cotton / kettle + wash-then-dry procedures / thermal / `water_heater_thermal_ports` / Modbus / Matter / Zigbee / BACnet / TCP / TCP PSK / hub lab set |
+| `homecooked-conformance` | Stream 7 smoke: Tier-A / Tier-B / cotton / kettle + wash-then-dry procedures / thermal / `water_heater_thermal_ports` / Modbus / Matter / Zigbee / BACnet / TCP / TCP PSK / `controller_tcp_washer_interlock` / hub lab set |
 | CI | rustfmt, clippy (`-D warnings`), `cargo test --workspace`, wasm-pack |
 
 **Done (thin / lab depth):** Tier-A+B **56** static tables + sim; dryer controller cycle; bridge family mocks;
@@ -42,7 +42,7 @@ lab TCP + PSK; optional hub; simulator-web blob-load; Domino's microwave Run via
 
 **Still open toward 75%:** promote plant types into schema (beyond device port
 points); real bridge SDKs; deeper conformance matrices; richer UI;
-controller-sim-over-TCP; deeper Tier-B optional points.
+deeper Tier-B optional points; richer controller device-role over TCP (cycle start / typical caps).
 
 Rough completeness: foundation + Tier-A/B tables + procedure/HAL/TCP/hub + bridge
 mocks + UI/smoke ≈ **~55%** of the 75% target below (was ~30% at roadmap start).
@@ -147,17 +147,21 @@ multiple small PRs.
 2. ~~Controller-sim: bind an I/O map + interlocks + washer cycle runtime.~~
    **Done (host API)** — `homecooked-controller` runs washer `cotton` and
    dryer Idle→Heat/Dry→Cool→Done on MockHal with class interlocks
-   (`washer_rules` / `dryer_rules`); protocol device-role registration left
-   thin / tests drive `Controller` directly.
+   (`washer_rules` / `dryer_rules`); thin lab device-role via
+   `ControllerEndpoint` (TCP interlock smoke); fuller typical_capability /
+   cycle-over-TCP still follow-up.
 3. ~~TCP transport for the existing protocol envelope (one peer = one sim
    controller).~~ **Done (lab smoke)** — `homecooked-transport`: length-prefixed
    JSON framing, sim-backed TCP server + client, integration tests for
    describe / read / write (kettle + washer). **Optional lab PSK pairing**
    (dedicated auth preamble; refuse anonymous clients when configured).
-   **TLS / OAuth still out of scope.** Full controller-sim-over-TCP
-   (interlock-gated actuator via wire) remains a thin follow-up; host
-   controller unit tests already cover cotton and dryer cycles + interlock
-   denies (incl. dryer heat blocked when door unlocked).
+   **TLS / OAuth still out of scope.**
+   ~~Controller-sim-over-TCP~~ **Done (lab smoke)** —
+   `ControllerEndpoint` + `spawn_handler_server`: TCP write of washer heater
+   succeeds when water+lock, returns `safety_interlock` when dry. Host unit
+   tests still cover cotton/dryer cycles + dryer heat blocked when unlocked.
+   Deeper device-role (typical_capability, cycle start over TCP, dryer TCP)
+   remains optional follow-up.
 
 4. ~~Optional multi-device lab hub~~ **Done (thin)** — `homecooked-hub`
    wraps `Simulator` / `DeviceHub`, reuses `homecooked-transport` TCP + optional
@@ -169,8 +173,9 @@ multiple small PRs.
 
 - ~~Integration test: client over TCP → describe / read / write against a sim
   device.~~ **Met** for protocol round-trip via `homecooked-transport` tests.
-  Controller-sim + interlock path over TCP is optional follow-up (host API
-  already tested in `homecooked-controller`).
+  ~~Controller-sim + interlock path over TCP~~ **Met (lab smoke)** —
+  `homecooked-controller` `tcp_interlock` + conformance
+  `controller_tcp_washer_interlock`.
 - No claim of production firmware, TLS, OAuth, or certified safety path.
   Lab PSK is a shared-secret handshake only (cleartext over cleartext TCP).
 
@@ -267,7 +272,7 @@ multiple small PRs.
    scenarios (Tier-A catalog/sim/describe, washer cotton controller, kettle
    procedure, wash-then-dry, thermal fridge→DHW, thermal→dishwasher preheat
    dual-path, Modbus water_heater, Matter/Zigbee/BACnet
-   kettle, TCP kettle, TCP PSK describe/ping, optional lab hub discover/describe).
+   kettle, TCP kettle, TCP PSK describe/ping, controller TCP washer interlock, optional lab hub discover/describe).
    **Protocol/transport robustness (table-driven):** `homecooked-transport`
    malformed length-prefixed frames + `homecooked-protocol` invalid Envelope
    JSON (oversize length, truncated body/header, invalid UTF-8, unknown kind,
@@ -384,7 +389,7 @@ Count: **31** Tier-B ids, all with thin static tables + sim.
 | B | `feat/io-map-interlocks` | 1 — io_map + interlock crates |
 | later | Tier-A table batches | 2 |
 | later | procedure + sim | 3 |
-| later | HAL + controller-sim + TCP | 4 — TCP lab smoke done (`homecooked-transport`) |
+| later | HAL + controller-sim + TCP | 4 — TCP lab smoke + controller-sim-over-TCP lab smoke done |
 | later | thermal ports | 5 — **Done (thin)** water_heater+fridge catalog/sim ports; plant types still crate-local |
 | later | `feat/bridges-modbus` | 6 — Modbus + stubs (first slice) |
 | later | `feat/matter-mock-bridge` | 6 — Matter mock fabric + kettle map |
@@ -423,3 +428,4 @@ the code that implements them.
 | 0.1.15 | Stream 7 tooling: protocol/transport malformed-frame + invalid Envelope JSON table tests; `cargo fuzz` deferred |
 | 0.1.16 | Stream 7 tooling: contributor guide for adding a class (`docs/catalog/ADDING_A_CLASS.md` + `CONTRIBUTING.md`) |
 | 0.1.17 | Stream 5: optional `thermal_port_*` catalog points on `water_heater` + `fridge`; sim RW + conformance `water_heater_thermal_ports`; plant types still crate-local |
+| 0.1.18 | Stream 4: controller-sim-over-TCP lab smoke (`ControllerEndpoint` + `RequestHandler` TCP; washer heater allow/deny; conformance `controller_tcp_washer_interlock`) |

@@ -11,7 +11,10 @@ use homecooked_bridge::{
     ForeignRef, MatterAttrValue, MatterBridge, MatterRaw, ModbusBridge, PointRef, ZigbeeAttrValue,
     ZigbeeBridge, ZigbeeRaw,
 };
-use homecooked_controller::{Controller, CottonOptions, CyclePhase, CycleState, WasherState};
+use homecooked_controller::{
+    Controller, ControllerEndpoint, CottonOptions, CyclePhase, CycleState, WasherState,
+    WASHER_CTRL_DEVICE_ID,
+};
 use homecooked_core::DeviceId;
 use homecooked_hal::ChannelId;
 use homecooked_hub::{LabHub, LAB_KETTLE_ID};
@@ -28,7 +31,10 @@ use homecooked_sim::Simulator;
 use homecooked_thermal::{
     energy_kwh, PortRef, PowerBandW, ThermalPlant, TransferOffer, TransferReply, TransferTarget,
 };
-use homecooked_transport::{spawn_server, spawn_server_with_config, ServerConfig, TcpClient};
+use homecooked_transport::{
+    spawn_handler_server, spawn_server, spawn_server_with_config, ServerConfig, TcpClient,
+    TransportError,
+};
 
 /// Named smoke scenario failure (printed by the suite runner).
 #[derive(Debug)]
@@ -957,6 +963,104 @@ pub fn tcp_psk_good_secret_describe_ping() -> ScenarioResult {
     Ok(())
 }
 
+/// (9) Controller-sim over TCP: washer heater allow + interlock deny.
+pub fn controller_tcp_washer_interlock() -> ScenarioResult {
+    const NAME: &str = "controller_tcp_washer_interlock";
+    let ep = ControllerEndpoint::washer_lab().map_err(|e| err(NAME, format!("washer_lab: {e}")))?;
+    let (addr, _shared, _server) = spawn_handler_server("127.0.0.1:0", ep)
+        .map_err(|e| err(NAME, format!("spawn_handler_server: {e}")))?;
+    thread::sleep(Duration::from_millis(20));
+
+    let mut client = TcpClient::connect(addr).map_err(|e| err(NAME, format!("connect: {e}")))?;
+
+    let desc = client
+        .describe(WASHER_CTRL_DEVICE_ID, vec![])
+        .map_err(|e| err(NAME, format!("describe: {e}")))?;
+    if desc.capability.class_id != ApplianceClassId::Washer {
+        return Err(err(
+            NAME,
+            format!(
+                "describe class={:?}, expected Washer",
+                desc.capability.class_id
+            ),
+        ));
+    }
+
+    client
+        .write(
+            WASHER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: QualifiedPointId::parse("class.washer.door_lock")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                value: Value::Bool(true),
+            }],
+        )
+        .map_err(|e| err(NAME, format!("door_lock write: {e}")))?;
+    client
+        .write(
+            WASHER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: QualifiedPointId::parse("class.washer.water_level_pa")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                value: Value::F32(2_000.0),
+            }],
+        )
+        .map_err(|e| err(NAME, format!("water_level write: {e}")))?;
+    client
+        .write(
+            WASHER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: QualifiedPointId::parse("class.washer.heater_enable")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                value: Value::Bool(true),
+            }],
+        )
+        .map_err(|e| err(NAME, format!("heater allow write: {e}")))?;
+
+    client
+        .write(
+            WASHER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: QualifiedPointId::parse("class.washer.heater_enable")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                value: Value::Bool(false),
+            }],
+        )
+        .map_err(|e| err(NAME, format!("heater off: {e}")))?;
+    client
+        .write(
+            WASHER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: QualifiedPointId::parse("class.washer.water_level_pa")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                value: Value::F32(0.0),
+            }],
+        )
+        .map_err(|e| err(NAME, format!("drain water: {e}")))?;
+
+    let denied = client.write(
+        WASHER_CTRL_DEVICE_ID,
+        vec![WriteOp {
+            id: QualifiedPointId::parse("class.washer.heater_enable")
+                .map_err(|e| err(NAME, e.to_string()))?,
+            value: Value::Bool(true),
+        }],
+    );
+    match denied {
+        Err(TransportError::Remote(body)) => {
+            if body.code != homecooked_schema::ErrorCode::SafetyInterlock {
+                return Err(err(
+                    NAME,
+                    format!("deny code={:?}, expected SafetyInterlock", body.code),
+                ));
+            }
+        }
+        Ok(_) => return Err(err(NAME, "expected heater deny, got WriteOk")),
+        Err(e) => return Err(err(NAME, format!("unexpected deny err: {e}"))),
+    }
+    Ok(())
+}
+
 /// (8) Optional lab hub: spawn lab set, TCP discover ≥3 devices, describe one.
 pub fn hub_lab_set_discover_describe() -> ScenarioResult {
     const NAME: &str = "hub_lab_set_discover_describe";
@@ -1123,6 +1227,10 @@ pub fn all_scenarios() -> &'static [(&'static str, ScenarioFn)] {
         (
             "tcp_psk_good_secret_describe_ping",
             tcp_psk_good_secret_describe_ping,
+        ),
+        (
+            "controller_tcp_washer_interlock",
+            controller_tcp_washer_interlock,
         ),
     ]
 }

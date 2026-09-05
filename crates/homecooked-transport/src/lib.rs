@@ -14,7 +14,8 @@
 //! # Scope
 //!
 //! - Host server: accept TCP, decode request, dispatch via
-//!   [`homecooked_sim::Simulator`] (registry + capability checks), encode response.
+//!   [`homecooked_sim::Simulator`] **or** any [`RequestHandler`] (e.g. a
+//!   controller-sim endpoint), encode response.
 //! - Client helper: connect, send Discover / Describe / Read / Write, read response.
 //! - **Optional lab PSK** (cleartext shared secret). **No TLS, no OAuth**.
 //!
@@ -23,14 +24,18 @@
 mod client;
 mod error;
 pub mod frame;
+mod handler;
 pub mod psk;
 mod server;
 
 pub use client::{TcpClient, DEFAULT_TIMEOUT};
 pub use error::TransportError;
 pub use frame::{read_envelope, write_envelope, MAX_FRAME_BYTES};
+pub use handler::RequestHandler;
 pub use psk::{psk_from_env, ServerConfig, PSK_ENV};
 pub use server::{
-    accept_loop, bind, serve_connection, serve_one, shared_sim, spawn_server,
-    spawn_server_with_config, SharedSim, SpawnedServer,
+    accept_handler_loop, accept_loop, bind, serve_connection, serve_handler_connection, serve_one,
+    shared_handler, shared_sim, spawn_handler_server, spawn_handler_server_with_config,
+    spawn_server, spawn_server_with_config, SharedHandler, SharedSim, SpawnedHandlerServer,
+    SpawnedServer,
 };

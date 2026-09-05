@@ -38,5 +38,8 @@ Also covered by `cargo test --workspace` (CI).
    kettle on an ephemeral port (`homecooked-transport`)
 10. **tcp_psk_good_secret_describe_ping** — TCP PSK pairing with a good shared
    secret: describe + ping against a sim kettle (`homecooked-transport`)
-11. **hub_lab_set_discover_describe** — optional `LabHub` lab set over TCP:
+11. **controller_tcp_washer_interlock** — TCP client against washer
+   `ControllerEndpoint`: heater allow when water+lock, `safety_interlock` deny
+   when dry (`homecooked-controller` + `homecooked-transport`)
+12. **hub_lab_set_discover_describe** — optional `LabHub` lab set over TCP:
    Discover ≥3 devices, describe kettle (`homecooked-hub`)

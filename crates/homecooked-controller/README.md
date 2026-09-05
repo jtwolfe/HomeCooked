@@ -38,10 +38,10 @@ the inlet is open (washer), drains on pump, drops humidity while drying, mirrors
 door lock feedback, and tracks drum rpm — enough for sensor-driven transitions
 in tests.
 
-**Not in this crate:** real GPIO, full HomeCooked protocol device-role
-registration (drive controllers directly from tests). Lab TCP for protocol
-envelopes is in `homecooked-transport` (auth/TLS out of scope); wiring these
-controllers onto that transport is optional follow-up.
+**Lab TCP (thin):** [`ControllerEndpoint`](src/endpoint.rs) maps a small
+washer capability onto MockHal so clients over `homecooked-transport` get
+`safety_interlock` on denied actuator writes. Full catalog device-role /
+cycle-over-TCP depth and dryer TCP remain follow-up. No GPIO, TLS, or OAuth.
 
 ## Tests
 
@@ -50,9 +50,11 @@ cargo test -p homecooked-controller
 cargo test -p homecooked-controller cotton_cycle_reaches_done -- --nocapture
 cargo test -p homecooked-controller dryer_cycle_reaches_done -- --nocapture
 cargo test -p homecooked-controller dryer_heat_blocked_if_door_unlocked -- --nocapture
+cargo test -p homecooked-controller --test tcp_interlock
 ```
 
 ## Roadmap
 
 Stream 4 in [`docs/ROADMAP.md`](../../docs/ROADMAP.md): HAL sketch (done) →
-**controller-sim (washer + dryer)** → TCP lab smoke (`homecooked-transport`).
+**controller-sim (washer + dryer)** → TCP lab smoke (`homecooked-transport`) →
+**controller-sim-over-TCP** lab smoke (`ControllerEndpoint` + interlock deny).

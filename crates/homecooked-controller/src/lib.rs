@@ -12,10 +12,11 @@
 //!
 //! # Protocol / TCP
 //!
-//! This crate exposes a direct [`Controller`] / [`DryerController`] API for
-//! tests and host tools. Advertising these as HomeCooked devices over the wire
-//! protocol is a deliberate follow-up. Lab TCP for protocol envelopes lives in
-//! `homecooked-transport` (Stream 4 milestone 3 smoke).
+//! [`ControllerEndpoint`] is a thin lab device-role adapter: protocol
+//! describe/read/write map onto MockHal channels so interlock denies surface
+//! as `safety_interlock` over [`homecooked_transport`] TCP
+//! (`spawn_handler_server`). Full catalog device-role / cycle-over-TCP depth
+//! remains follow-up. Lab only — no TLS / OAuth.
 //!
 //! # Example
 //!
@@ -38,6 +39,7 @@
 mod controller;
 mod cycle;
 mod dryer_controller;
+mod endpoint;
 mod error;
 mod plant;
 
@@ -47,5 +49,6 @@ mod tests;
 pub use controller::{write_hal, Controller};
 pub use cycle::{CottonOptions, CyclePhase, CycleState, DryOptions, DryerState, WasherState};
 pub use dryer_controller::{write_dryer_hal, DryerController};
+pub use endpoint::{lab_washer_capability, ControllerEndpoint, WASHER_CTRL_DEVICE_ID};
 pub use error::Error;
 pub use plant::{DRAIN_RATE_PA, FILL_RATE_PA, WATER_PRESENT_PA};

@@ -3,9 +3,11 @@
 Lab **TCP transport** for HomeCooked protocol envelopes. Closes Stream 4
 milestone 3 in [`docs/ROADMAP.md`](../../docs/ROADMAP.md) (smoke path).
 
-Host server accepts TCP connections, decodes a framed request, dispatches via
-`homecooked-sim` / `homecooked-core` (`Simulator` → `DeviceHub`), and encodes
-the response. A small client helper sends Discover / Describe / Read / Write.
+Host server accepts TCP connections, decodes a framed request, and dispatches
+via `homecooked-sim` / `homecooked-core` (`Simulator` → `DeviceHub`) **or** any
+[`RequestHandler`](src/handler.rs) (e.g. `homecooked-controller`
+`ControllerEndpoint` for interlock-gated HAL writes). A small client helper
+sends Discover / Describe / Read / Write.
 
 **Out of scope:** TLS, OAuth / device auth, production session policy.
 
@@ -75,7 +77,8 @@ cargo test -p homecooked-transport
 
 Integration tests bind `127.0.0.1:0` and round-trip describe / read / write
 against kettle and washer sims (including an out-of-range write denial), plus
-PSK good / bad / missing / open-lab cases.
+PSK good / bad / missing / open-lab cases. Controller interlock-over-TCP lives
+in `homecooked-controller` (`--test tcp_interlock`) via `spawn_handler_server`.
 
 ## Library sketch
 

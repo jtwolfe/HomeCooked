@@ -107,6 +107,9 @@ dependencies = [
  "homecooked-hal",
  "homecooked-interlock",
  "homecooked-io-map",
+ "homecooked-protocol",
+ "homecooked-schema",
+ "homecooked-transport",
  "serde",
  "serde_yaml",
 ]
