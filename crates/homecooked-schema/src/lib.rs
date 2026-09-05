@@ -5,7 +5,9 @@
 //! versions are both **0.1.0**. Shared thermal vocabulary (`Media`,
 //! `PortDirection`, `TempBandC`, `HeatPortSpec`) aligns with catalog
 //! `thermal_port_*` tokens; `ClassTable.thermal_ports` carries static
-//! `HeatPortSpec` advertisement metadata. Full plant runtime stays in
+//! `HeatPortSpec` advertisement metadata. Plant **dialogue** types
+//! (reservoirs, heat ports, transfer offer/accept/decline/counter) are
+//! schema-owned; the live `ThermalPlant` engine stays in
 //! `homecooked-thermal`.
 
 mod access;
@@ -15,6 +17,7 @@ mod error;
 mod export;
 mod identity;
 mod ids;
+mod plant;
 mod spec;
 mod thermal;
 mod types;
@@ -36,6 +39,10 @@ pub use export::{
 pub use identity::DeviceIdentity;
 pub use ids::{
     is_snake_case_id, ApplianceClassId, ParseIdError, PointNamespace, QualifiedPointId, TraitId,
+};
+pub use plant::{
+    HeatPort, PlantTypeError, PortRef, PowerBandW, Reservoir, ReservoirRole, TransferAccept,
+    TransferCounter, TransferDecline, TransferOffer, TransferReply, TransferResult, TransferTarget,
 };
 pub use spec::{
     CatalogPoint, CatalogRange, CommandSpec, PointKind, PointSpec, SettingSpec, VariableSpec,

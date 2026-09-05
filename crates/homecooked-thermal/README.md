@@ -5,11 +5,13 @@ ports, a best-effort offer / accept / decline dialogue, and a coarse
 simulator tick. Aligns with
 [`docs/standard/thermal-plant.md`](../../docs/standard/thermal-plant.md).
 
-This is **not** a full plant-type catalog promotion, a sim class-table change,
+This is **not** a full plant-engine catalog promotion, a sim class-table change,
 a bridge, or CFD / plumbing physics. Shared vocabulary (`Media`,
-`PortDirection`, `TempBandC`) lives in `homecooked-schema` and is re-exported
-here; plant runtime types stay crate-local. Coordination may fail open
-(decline / timeout → appliances keep local thermal policy).
+`PortDirection`, `TempBandC`) and plant **dialogue** types (`Reservoir`,
+`HeatPort`, transfer offer/accept/decline/counter) live in `homecooked-schema`
+and are re-exported here; the live `ThermalPlant` engine stays in this crate.
+Coordination may fail open (decline / timeout → appliances keep local thermal
+policy).
 
 ## Types
 
@@ -86,8 +88,8 @@ inlet availability.
 
 ## Still sketch / vendor / experimental
 
-- No wire encoding; no `homecooked-schema` catalog types or sim port
-  read/write on Tier-A classes (`water_heater`, `hvac`, `fridge`).
+- Dialogue types are schema-owned; the plant **engine** is still this crate
+  (no wire encoding of plant messages yet).
 - No isolation / potable-boundary enforcement beyond a media tag.
 - No CFD, pipe network, glycol mix, or refrigerant charge model.
 - Local interlocks still win; this layer never commands a compressor past

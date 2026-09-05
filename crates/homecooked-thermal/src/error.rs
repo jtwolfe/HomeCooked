@@ -2,7 +2,7 @@
 
 use std::fmt;
 
-use homecooked_schema::InvalidTempBand;
+use homecooked_schema::{InvalidTempBand, PlantTypeError};
 
 use crate::types::{Media, PortDirection, TempBandC};
 
@@ -108,6 +108,18 @@ impl From<InvalidTempBand> for Error {
         Self::InvalidBand {
             min: band.min,
             max: band.max,
+        }
+    }
+}
+
+impl From<PlantTypeError> for Error {
+    fn from(err: PlantTypeError) -> Self {
+        match err {
+            PlantTypeError::EmptyId(field) => Self::EmptyId(field),
+            PlantTypeError::InvalidCapacity => Self::InvalidCapacity,
+            PlantTypeError::InvalidHeadroom => Self::InvalidHeadroom,
+            PlantTypeError::InvalidPowerBand { min, max } => Self::InvalidPowerBand { min, max },
+            PlantTypeError::ZeroPower => Self::ZeroPower,
         }
     }
 }
