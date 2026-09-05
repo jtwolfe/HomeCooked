@@ -3,8 +3,9 @@
 //! First executable slice of the recipe / AI-protocol layer described in
 //! [`docs/standard/procedures.md`](../../docs/standard/procedures.md).
 //! Steps are ordinary HomeCooked reads, writes, and commands plus waits,
-//! comparison guards, timeouts, and thin thermal plant bridges (`thermal_wait`,
-//! `thermal_offer` with soft decline / fallback) when a thermal backend is attached. Parallel steps and a
+//! comparison guards, timeouts, and thin thermal plant bridges (`thermal_wait`
+//! with optional continuous `requeue_offer`, `thermal_offer` with soft decline /
+//! fallback) when a thermal backend is attached. Parallel steps and a
 //! general expression language are out of scope.
 
 mod backend;
@@ -20,7 +21,7 @@ pub use document::{
     AIR_FRYER_COOK_200_JSON, BUNDLED_EXAMPLE_PROCEDURES, COFFEE_BREW_ESPRESSO_JSON,
     DISHWASHER_DHW_PREHEAT_JSON, KETTLE_HEAT_80_JSON, OFFER_FRIDGE_DHW_JSON,
     OFFER_FRIDGE_DHW_SOFT_JSON, OVEN_BAKE_180_JSON, REHEAT_DOMINOS_MICROWAVE_JSON,
-    WAIT_DHW_RESERVOIR_JSON, WASH_THEN_DRY_JSON,
+    WAIT_DHW_RESERVOIR_JSON, WAIT_DHW_WITH_REQUEUE_JSON, WASH_THEN_DRY_JSON,
 };
 pub use error::Error;
 pub use guard::{CmpOp, Guard, GuardSet};

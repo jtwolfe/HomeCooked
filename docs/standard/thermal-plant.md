@@ -221,6 +221,7 @@ inventing parallel appliance classes:
   Plant accepts are one-shot per `step`, so demos typically negotiate+step
   (or otherwise seed the reservoir) **before** the wait; the wait loop still
   polls + `thermal_tick` until the comparison holds or `timeout_s` elapses.
+  For continuous heat while waiting, see §8.4 (`requeue_offer`).
 
 | Surface | Entry |
 |---------|--------|
@@ -232,11 +233,12 @@ cargo test -p homecooked-procedure thermal_wait
 cargo test -p homecooked-conformance procedure_thermal_wait_dhw
 ```
 
-**Still deferred:** continuous re-queue across wait polls; promoting full plant
-**runtime** into schema (vocabulary types + `ClassTable.HeatPortSpec` live in
-`homecooked-schema`; `ThermalPlant` / transfer dialogue remain crate-local);
-wasm/UI wiring beyond bundled list/`run_procedure` for thermal steps (dual-path
-orchestrator UI remains). Soft decline + thin fallback retry live under §8.3.
+**Continuous re-queue** across wait polls lives under §8.4. **Still deferred:**
+promoting full plant **runtime** into schema (vocabulary types +
+`ClassTable.HeatPortSpec` live in `homecooked-schema`; `ThermalPlant` / transfer
+dialogue remain crate-local); wasm/UI wiring beyond bundled list/`run_procedure`
+for thermal steps (dual-path orchestrator UI remains). Soft decline + thin
+fallback retry live under §8.3.
 
 ### 8.3 Thin procedure⇄thermal bridge (`thermal_offer`)
 
@@ -274,9 +276,42 @@ cargo test -p homecooked-conformance procedure_thermal_offer_dhw
 cargo test -p homecooked-conformance procedure_thermal_offer_soft_decline
 ```
 
-**Still deferred:** continuous re-queue across wait polls; dedicated wasm UI
-controls beyond listing/`run_procedure`; fuller multi-round dialogue as separate
-typed steps / plant Counter replies.
+**Still deferred:** dedicated wasm UI controls beyond listing/`run_procedure`;
+fuller multi-round dialogue as separate typed steps / plant Counter replies.
+Continuous re-queue across wait polls lives under §8.4.
+
+### 8.4 Continuous re-queue across wait polls (`requeue_offer`)
+
+Plant accepts remain **one-shot per `step`**: after a `thermal_tick` consumes
+pending accepts, a bare `thermal_wait` only polls + ticks and the plant sits
+idle. To keep energy flowing while waiting on a reservoir threshold, set
+`requeue_offer: true` on a `thermal_wait` and inline the same transfer fields
+used by `thermal_offer` (`from_port`, `to_port` | `to_reservoir_id`, `power_w`,
+`priority?`):
+
+- Before each wait-poll `thermal_tick`, the runner builds a `TransferOffer`
+  (forcing `duration_s = None` so the poll interval drives applied energy),
+  calls `thermal_offer` + `thermal_negotiate`, then ticks.
+- A mid-wait decline fails the step (`InvalidRequest`) with the decline reason.
+- Prefer this explicit step field over silent plant-level “keep last accept”
+  magic.
+
+Bundled fixture `wait_dhw_with_requeue` waits until `dhw-tank` ≥ 36 °C while
+re-queuing fridge condenser → water-heater preheat each poll (no prior
+`duration_s` apply required).
+
+| Surface | Entry |
+|---------|--------|
+| Procedure crate | `WAIT_DHW_WITH_REQUEUE_JSON` + `SimulatorBackend::with_plant` |
+| Conformance | `procedure_thermal_wait_requeue` |
+
+```bash
+cargo test -p homecooked-procedure thermal_wait_with_requeue
+cargo test -p homecooked-conformance procedure_thermal_wait_requeue
+```
+
+**Still deferred:** dedicated wasm UI controls; fuller typed multi-round /
+plant Counter replies; promoting full plant runtime into schema.
 
 ---
 
@@ -293,3 +328,4 @@ typed steps / plant Counter replies.
 | 0.1.0+ | Schema thermal vocabulary (`Media` / `PortDirection` / `TempBandC` / `HeatPortSpec`) in `homecooked-schema`; plant runtime remains crate-local in `homecooked-thermal`. |
 | 0.1.0+ | `ClassTable.thermal_ports` advertises static `HeatPortSpec` for the five thermal-port classes (match sim seeds); catalog `thermal_port_*` points remain the device RW surface; plant runtime still crate-local. |
 | 0.1.0+ | Soft decline (`on_decline: fail|continue`) + thin `fallback_power_w` retry; plant negotiate declines when max < offer min; fixture `offer_fridge_dhw_soft` + conformance `procedure_thermal_offer_soft_decline`. Continuous re-queue / dedicated wasm UI still deferred. |
+| 0.1.0+ | Continuous re-queue: `thermal_wait` + `requeue_offer` + inline transfer fields re-negotiate each poll; fixture `wait_dhw_with_requeue` + conformance `procedure_thermal_wait_requeue`. Dedicated wasm UI / plant Counter / schema plant runtime still deferred. |

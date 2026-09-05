@@ -5,9 +5,8 @@ serde documents, structural (+ optional capability) validation, and a
 sequential runner.
 
 Aligns with [`docs/standard/procedures.md`](../../docs/standard/procedures.md)
-(§2–5). Parallel steps, expression-language guards, WASM/UI for thermal_wait,
-offer/negotiate-as-steps, bridges, TCP transport, and HAL remain out of scope
-or deferred for this crate.
+(§2–5). Parallel steps, expression-language guards, dedicated thermal WASM/UI,
+bridges, TCP transport, and HAL remain out of scope or deferred for this crate.
 
 ## Document
 
@@ -36,8 +35,11 @@ thermal transfer still out-of-band):
 
 Thin procedure⇄thermal wait on DHW reservoir temp:
 [`examples/wait_dhw_reservoir.json`](examples/wait_dhw_reservoir.json)
-(`SimulatorBackend::with_plant`). See
-[`docs/standard/thermal-plant.md`](../../docs/standard/thermal-plant.md) §8.
+(`SimulatorBackend::with_plant`). Continuous re-queue while waiting:
+[`examples/wait_dhw_with_requeue.json`](examples/wait_dhw_with_requeue.json)
+(`requeue_offer`). Soft-decline offer:
+[`examples/offer_fridge_dhw_soft.json`](examples/offer_fridge_dhw_soft.json).
+See [`docs/standard/thermal-plant.md`](../../docs/standard/thermal-plant.md) §8.
 
 ## Runner
 

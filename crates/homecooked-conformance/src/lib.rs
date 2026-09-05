@@ -22,7 +22,7 @@ use homecooked_procedure::{
     run, DeviceBindings, Procedure, SimulatorBackend, AIR_FRYER_COOK_200_JSON,
     COFFEE_BREW_ESPRESSO_JSON, DISHWASHER_DHW_PREHEAT_JSON, KETTLE_HEAT_80_JSON,
     OFFER_FRIDGE_DHW_JSON, OFFER_FRIDGE_DHW_SOFT_JSON, OVEN_BAKE_180_JSON, WAIT_DHW_RESERVOIR_JSON,
-    WASH_THEN_DRY_JSON,
+    WAIT_DHW_WITH_REQUEUE_JSON, WASH_THEN_DRY_JSON,
 };
 use homecooked_protocol::{Envelope, Payload, PingBody, WriteOp};
 use homecooked_schema::{
@@ -782,6 +782,60 @@ pub fn procedure_thermal_offer_soft_decline() -> ScenarioResult {
         return Err(err(
             NAME,
             format!("dhw end temp={dhw_end}, expected >= 36.0 after fallback duration"),
+        ));
+    }
+    Ok(())
+}
+
+/// (4f) Continuous re-queue: `thermal_wait` + `requeue_offer` heats DHW from cold.
+///
+/// Runs `wait_dhw_with_requeue` against an idle demo plant — each wait poll
+/// re-negotiates fridge→DHW and ticks until `dhw-tank` ≥ 36 °C (no prior
+/// duration apply).
+pub fn procedure_thermal_wait_requeue() -> ScenarioResult {
+    const NAME: &str = "procedure_thermal_wait_requeue";
+
+    let plant = ThermalPlant::fridge_condenser_dhw_demo()
+        .map_err(|e| err(NAME, format!("demo plant: {e}")))?;
+    let start = plant
+        .get_reservoir("dhw-tank")
+        .and_then(|r| r.temp_c)
+        .ok_or_else(|| err(NAME, "dhw-tank missing temp"))?;
+    if (start - 35.0).abs() >= 1e-4 {
+        return Err(err(NAME, format!("dhw start temp={start}, expected 35")));
+    }
+
+    let doc = Procedure::load_json(WAIT_DHW_WITH_REQUEUE_JSON)
+        .map_err(|e| err(NAME, format!("load procedure: {e}")))?;
+    let mut backend = SimulatorBackend::with_plant(Simulator::new(), plant);
+    let config = homecooked_procedure::RunConfig {
+        poll_interval_ms: 3_600_000,
+    };
+    let result =
+        homecooked_procedure::run_with_config(&doc, &mut backend, &DeviceBindings::new(), &config);
+    if !result.is_completed() {
+        return Err(err(
+            NAME,
+            format!("requeue wait expected completed, got {:?}", result.status),
+        ));
+    }
+    let got = result.outcomes[0]
+        .read_value
+        .as_ref()
+        .and_then(|v| v.as_f64())
+        .ok_or_else(|| err(NAME, "missing temp read_value"))?;
+    if got < 36.0 {
+        return Err(err(NAME, format!("dhw end temp={got}, expected >= 36.0")));
+    }
+    let dhw_end = backend
+        .plant()
+        .and_then(|p| p.get_reservoir("dhw-tank"))
+        .and_then(|r| r.temp_c)
+        .ok_or_else(|| err(NAME, "dhw-tank missing temp after requeue wait"))?;
+    if dhw_end < 36.0 {
+        return Err(err(
+            NAME,
+            format!("plant dhw temp={dhw_end}, expected >= 36.0"),
         ));
     }
     Ok(())
@@ -3081,6 +3135,10 @@ pub fn all_scenarios() -> &'static [(&'static str, ScenarioFn)] {
         (
             "procedure_thermal_offer_soft_decline",
             procedure_thermal_offer_soft_decline,
+        ),
+        (
+            "procedure_thermal_wait_requeue",
+            procedure_thermal_wait_requeue,
         ),
         ("water_heater_thermal_ports", water_heater_thermal_ports),
         (

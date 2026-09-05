@@ -72,6 +72,7 @@ fn bundled_example_constants_parse() {
             "wait_dhw_reservoir",
             "offer_fridge_dhw",
             "offer_fridge_dhw_soft",
+            "wait_dhw_with_requeue",
         ]
     );
 }
@@ -748,9 +749,10 @@ fn thermal_wait_succeeds_when_preseeded() {
     assert!(got >= 36.0, "got={got}");
 }
 
-/// Plant accepts are applied once per `step` (not continuous). The wait loop
-/// itself is covered here with a tiny rising-temp backend; real plant
-/// integration uses the pre-seeded fixture test above.
+/// Plant accepts are applied once per `step` (not continuous unless
+/// `requeue_offer` re-negotiates each poll — see wait_dhw_with_requeue). The
+/// wait loop itself is covered here with a tiny rising-temp backend; real plant
+/// integration uses the pre-seeded fixture test and requeue tests.
 struct RisingTempBackend {
     temp_c: f64,
     tick_delta: f64,
@@ -1192,5 +1194,165 @@ fn thermal_offer_high_min_without_fallback_fails_by_default() {
             );
         }
         other => panic!("expected fail, got {other:?}"),
+    }
+}
+
+#[test]
+fn parse_wait_dhw_with_requeue_fixture() {
+    let doc = Procedure::load_json(crate::WAIT_DHW_WITH_REQUEUE_JSON).unwrap();
+    assert_eq!(doc.id, "wait_dhw_with_requeue");
+    assert!(doc.devices.is_empty());
+    assert_eq!(doc.steps.len(), 1);
+    let step = &doc.steps[0];
+    assert_eq!(step.action, StepAction::ThermalWait);
+    assert!(step.requeue_offer);
+    assert_eq!(step.reservoir_id(), Some("dhw-tank"));
+    assert_eq!(step.cmp, Some(ThermalCmp::Gte));
+    assert_eq!(step.temp_c, Some(36.0));
+    assert_eq!(step.timeout_s, Some(7200));
+    let from = step.from_port.as_ref().unwrap();
+    assert_eq!(from.device_id, "fridge-kitchen");
+    assert_eq!(from.port_id, "condenser");
+    let to = step.to_port.as_ref().unwrap();
+    assert_eq!(to.device_id, "water-heater-plant");
+    assert_eq!(to.port_id, "preheat");
+    let band = step.power_w.unwrap();
+    assert_eq!(band.min, 80);
+    assert_eq!(band.max, 120);
+    assert_eq!(step.priority, Some(1));
+    assert!(step.duration_s.is_none());
+}
+
+#[test]
+fn thermal_wait_requeue_validation_requires_offer_fields() {
+    let missing = r#"{
+      "id": "bad",
+      "name": "bad",
+      "steps": [{
+        "id": "w",
+        "action": "thermal_wait",
+        "reservoir_id": "dhw-tank",
+        "cmp": "gte",
+        "temp_c": 36.0,
+        "timeout_s": 60,
+        "requeue_offer": true
+      }]
+    }"#;
+    let err = Procedure::from_json_str(missing)
+        .unwrap()
+        .validate()
+        .unwrap_err()
+        .to_string();
+    assert!(err.contains("from_port"), "{err}");
+}
+
+#[test]
+fn thermal_wait_with_requeue_heats_from_cold_demo_plant() {
+    // Without requeue, idle plant times out (see thermal_wait_times_out_if_plant_idle).
+    // With requeue_offer, each poll re-negotiates and applies heat until >= 36 °C.
+    let doc = Procedure::load_json(crate::WAIT_DHW_WITH_REQUEUE_JSON).unwrap();
+    let plant = ThermalPlant::fridge_condenser_dhw_demo().unwrap();
+    let start = plant.get_reservoir("dhw-tank").unwrap().temp_c.unwrap();
+    assert!((start - 35.0).abs() < 1e-4, "start={start}");
+
+    let mut backend = SimulatorBackend::with_plant(Simulator::new(), plant);
+    // One hour per poll ⇒ one requeue+tick reaches ~36.2 °C.
+    let config = RunConfig {
+        poll_interval_ms: 3_600_000,
+    };
+    let result = run_with_config(&doc, &mut backend, &DeviceBindings::new(), &config);
+    assert!(
+        result.is_completed(),
+        "expected completed, got {:?}",
+        result.status
+    );
+    assert_eq!(result.outcomes.len(), 1);
+    assert!(result.outcomes[0].ok);
+    let got = result.outcomes[0]
+        .read_value
+        .as_ref()
+        .and_then(|v| v.as_f64())
+        .unwrap();
+    assert!(got >= 36.0, "got={got}");
+    let msg = result.outcomes[0].message.as_deref().unwrap_or("");
+    assert!(msg.contains("requeue_offer"), "{msg}");
+}
+
+#[test]
+fn thermal_wait_without_requeue_stays_cold_on_idle_plant() {
+    // Sanity: same threshold on idle plant without requeue_offer still times out.
+    let doc = Procedure::load_json(
+        r#"{
+      "id": "wait_no_requeue",
+      "name": "wait",
+      "steps": [{
+        "id": "w",
+        "action": "thermal_wait",
+        "reservoir_id": "dhw-tank",
+        "cmp": "gte",
+        "temp_c": 36.0,
+        "timeout_s": 5,
+        "from_port": { "device_id": "fridge-kitchen", "port_id": "condenser" },
+        "to_port": { "device_id": "water-heater-plant", "port_id": "preheat" },
+        "power_w": { "min": 80, "max": 120 }
+      }]
+    }"#,
+    )
+    .unwrap();
+    assert!(!doc.steps[0].requeue_offer);
+    let plant = ThermalPlant::fridge_condenser_dhw_demo().unwrap();
+    let mut backend = SimulatorBackend::with_plant(Simulator::new(), plant);
+    let config = RunConfig {
+        poll_interval_ms: 1_000,
+    };
+    let result = run_with_config(&doc, &mut backend, &DeviceBindings::new(), &config);
+    assert_eq!(
+        result.status,
+        RunStatus::Failed {
+            step_id: "w".into(),
+            reason: FailReason::Timeout,
+        }
+    );
+}
+
+#[test]
+fn thermal_wait_requeue_declines_bad_port() {
+    let doc = Procedure::load_json(
+        r#"{
+      "id": "wait_bad",
+      "name": "wait",
+      "steps": [{
+        "id": "w",
+        "action": "thermal_wait",
+        "reservoir_id": "dhw-tank",
+        "cmp": "gte",
+        "temp_c": 36.0,
+        "timeout_s": 60,
+        "requeue_offer": true,
+        "from_port": { "device_id": "no-such", "port_id": "condenser" },
+        "to_port": { "device_id": "water-heater-plant", "port_id": "preheat" },
+        "power_w": { "min": 80, "max": 120 }
+      }]
+    }"#,
+    )
+    .unwrap();
+    let plant = ThermalPlant::fridge_condenser_dhw_demo().unwrap();
+    let mut backend = SimulatorBackend::with_plant(Simulator::new(), plant);
+    let config = RunConfig {
+        poll_interval_ms: 1_000,
+    };
+    let result = run_with_config(&doc, &mut backend, &DeviceBindings::new(), &config);
+    assert!(!result.is_completed());
+    match result.fail_reason() {
+        Some(FailReason::Backend { code, message }) => {
+            assert_eq!(*code, ErrorCode::InvalidRequest);
+            assert!(
+                message.contains("requeue_offer declined")
+                    || message.contains("declined")
+                    || message.to_lowercase().contains("unknown"),
+                "{message}"
+            );
+        }
+        other => panic!("expected backend decline, got {other:?}"),
     }
 }

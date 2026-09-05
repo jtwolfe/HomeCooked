@@ -1,0 +1,23 @@
+{
+  "id": "wait_dhw_with_requeue",
+  "name": "Wait for DHW while re-queuing fridge→DHW transfer",
+  "description": "Continuous procedure⇄thermal re-queue: thermal_wait with requeue_offer=true re-submits the inline TransferOffer (fridge condenser → water-heater preheat) and negotiates before each wait poll tick so heat keeps flowing until dhw-tank temp_c meets the threshold. Plant accepts remain one-shot per step; duration_s is omitted so each poll's thermal_tick dt drives applied energy. Requires SimulatorBackend + ThermalPlant (fridge_condenser_dhw_demo). Contrast wait_dhw_reservoir (tick-only, no re-queue) and offer_fridge_dhw (single duration tick).",
+  "catalog_version": "0.1.0",
+  "protocol_version": "0.1.0",
+  "devices": [],
+  "steps": [
+    {
+      "id": "wait_dhw_requeue",
+      "action": "thermal_wait",
+      "reservoir_id": "dhw-tank",
+      "cmp": "gte",
+      "temp_c": 36.0,
+      "timeout_s": 7200,
+      "requeue_offer": true,
+      "from_port": { "device_id": "fridge-kitchen", "port_id": "condenser" },
+      "to_port": { "device_id": "water-heater-plant", "port_id": "preheat" },
+      "power_w": { "min": 80, "max": 120 },
+      "priority": 1
+    }
+  ]
+}
