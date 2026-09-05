@@ -1,6 +1,6 @@
 # HomeCooked roadmap — ~75% project completeness
 
-Version **0.1.23**. Planning doc for a long flesh-out of the catalog, control
+Version **0.1.24**. Planning doc for a long flesh-out of the catalog, control
 stack, and simulator. It does **not** freeze APIs; crate and YAML shapes may
 evolve with the code that implements each stream.
 
@@ -11,7 +11,7 @@ Related: [`../README.md`](../README.md), [`catalog/`](./catalog/),
 
 ---
 
-## 1. Current state (~55% toward the 75% target)
+## 1. Current state (~65% toward the 75% target)
 
 What exists on `main` today (Done highlights called out):
 
@@ -36,17 +36,28 @@ What exists on `main` today (Done highlights called out):
 | `homecooked-conformance` | Stream 7 smoke: Tier-A / Tier-B / `catalog_hygiene` / `write_denial_matrix` / cotton / kettle + oven bake + wash-then-dry procedures / thermal / `water_heater_thermal_ports` / Modbus / Matter / Zigbee / BACnet / TCP / TCP PSK / `controller_tcp_washer_interlock` / `controller_tcp_dryer_interlock` / hub lab set |
 | CI | rustfmt, clippy (`-D warnings`), `cargo test --workspace`, wasm-pack |
 
-**Done (thin / lab depth):** Tier-A+B **56** static tables + sim; dryer controller cycle; bridge family mocks;
-lab TCP + PSK; optional hub; simulator-web blob-load; Domino's microwave Run via
-`run_procedure`.
+**Done (thin / lab depth):** Tier-A+B **56** static tables + sim; dryer controller
+cycle; bridge family mocks; lab TCP + PSK; optional hub (in conformance suite);
+simulator-web blob-load; procedure library (kettle + Domino's + wash-then-dry +
+`oven_bake_180`); controller-sim-over-TCP interlock smoke (washer + dryer);
+catalog `thermal_port_*` on `water_heater` / `fridge` / `hvac` + sim UI chips;
+`write_denial_matrix` + `catalog_hygiene` conformance.
 
 **Still open toward 75%:** promote plant types into schema (beyond device port
-points); real bridge SDKs; richer conformance matrices beyond write-denial; richer UI;
-deeper Tier-B optional points; richer controller device-role over TCP (cycle start / typical caps; washer+dryer TCP interlock smoke done).
+points); **one real bridge SDK** (Modbus serial/TCP or Matter/CHIP — mocks only
+today); richer UI / conformance matrices beyond write-denial; deeper Tier-B
+optional points; procedure⇄thermal direct API (dual-path demos are orchestrated,
+not a procedure step); richer controller device-role over TCP (cycle start /
+typical caps — washer+dryer TCP interlock smoke done); TLS (still out of scope
+for lab transport).
 
-Rough completeness: foundation + Tier-A/B tables + procedure/HAL/TCP/hub + bridge
-mocks + UI/smoke ≈ **~55%** of the 75% target below (was ~30% at roadmap start).
-Remaining work is depth, not greenfield product definition.
+Rough completeness: foundation + Tier-A/B tables + procedure library + HAL /
+controller TCP (washer+dryer) + hub-in-suite + thermal-port surface (3 classes +
+UI) + bridge mocks + write-denial matrix ≈ **~65%** of the 75% target below
+(was ~30% at roadmap start; ~55% before Stream 4/5/7 thin slices through
+`oven_bake_180` / thermal ports / controller TCP / denial matrix). Remaining
+work is depth (real bridge SDK, plant schema promotion, richer UI) — not
+greenfield product definition.
 
 ---
 
@@ -73,6 +84,27 @@ Remaining work is depth, not greenfield product definition.
 - **Cloud OAuth**, global device CA, or cloud identity product work.
 - Deeper Tier-B table depth (more optional points / programs) where devices need it.
 - Shipping a commercial appliance or certified Matter/Modbus product.
+
+### Honest gaps vs this 75% definition (still open)
+
+Even with Stream 3–7 thin DoDs met on `main`, the §2 bar is not fully cleared:
+
+- **Real bridge SDK** — in-scope asks for *one* real Matter **or** Modbus
+  implementation; `homecooked-bridge` has Modbus + Matter + Zigbee + BACnet
+  **mocks** only (no serial/TCP Modbus, CHIP, z2m, or BACnet stack).
+- **Plant types** — device `thermal_port_*` points exist on
+  `water_heater` / `fridge` / `hvac`; plant object types remain crate-local in
+  `homecooked-thermal` (not full schema promotion).
+- **Richer UI** — picker + procedure runner + thermal panel + port chips are
+  in; conformance-oriented / deeper screens remain.
+- **Deeper Tier-B optional points** — thin tables cover all 31 ids; more
+  optional points/programs where devices need them can follow.
+- **Procedure⇄thermal direct API** — dual-path demos orchestrate thermal then
+  procedure; procedures still cannot call thermal APIs as steps.
+- **TLS** — lab TCP stays cleartext (+ optional PSK); TLS/OAuth remain out of
+  scope for the lab path.
+- **Richer controller-over-TCP** — interlock smoke for washer+dryer is done;
+  cycle start / typical_capability over TCP is optional follow-up.
 
 ---
 
@@ -185,10 +217,10 @@ multiple small PRs.
 **Milestones**
 
 1. Schema representation of thermal / hydraulic ports from
-   `docs/standard/thermal-plant.md` (sketch → types). **Progressed** —
-   first executable plant slice landed in `homecooked-thermal`
-   (reservoirs, heat ports, offer/accept, tick transfer). Plant types remain
-   crate-local; device-facing optional catalog points landed on
+   `docs/standard/thermal-plant.md` (sketch → types). **Progressed (device
+   ports Done; plant objects still crate-local)** — first executable plant
+   slice in `homecooked-thermal` (reservoirs, heat ports, offer/accept, tick
+   transfer). Device-facing optional catalog points landed on
    `water_heater` / `fridge` / `hvac` (not a full schema promotion of plant objects).
 2. Sim devices that advertise and update a minimal port set (e.g. water heater
    / HVAC heat interface). **Done (thin)** for `water_heater` + `fridge` +
@@ -277,7 +309,7 @@ multiple small PRs.
    controller, kettle procedure, oven bake, wash-then-dry, thermal fridge→DHW,
    thermal→dishwasher preheat dual-path, Modbus water_heater,
    Matter/Zigbee/BACnet kettle, TCP kettle, TCP PSK describe/ping, controller
-   TCP washer interlock, optional lab hub discover/describe).
+   TCP washer + dryer interlock, hub lab-set discover/describe).
    **Protocol/transport robustness (table-driven):** `homecooked-transport`
    malformed length-prefixed frames + `homecooked-protocol` invalid Envelope
    JSON (oversize length, truncated body/header, invalid UTF-8, unknown kind,
@@ -396,13 +428,13 @@ Count: **31** Tier-B ids, all with thin static tables + sim.
 | A | `docs/roadmap-75` | 1 — this document |
 | B | `feat/io-map-interlocks` | 1 — io_map + interlock crates |
 | later | Tier-A table batches | 2 |
-| later | procedure + sim | 3 |
-| later | HAL + controller-sim + TCP | 4 — TCP lab smoke + controller-sim-over-TCP lab smoke done |
+| later | procedure + sim | 3 — **Done** (kettle + Domino's + wash-then-dry + `oven_bake_180`) |
+| later | HAL + controller-sim + TCP | 4 — TCP lab smoke + washer+dryer controller-sim-over-TCP interlock smoke **Done** |
 | later | thermal ports | 5 — **Done (thin)** water_heater+fridge+hvac catalog/sim ports; plant types still crate-local |
 | later | `feat/bridges-modbus` | 6 — Modbus + stubs (first slice) |
 | later | `feat/matter-mock-bridge` | 6 — Matter mock fabric + kettle map |
 | later | `feat/simulator-tier-a-ui` | 7 — grouped Tier-A picker (first UI slice) |
-| later | WASM UI + conformance suite | 7 — picker + procedure UI (incl. Domino's `run_procedure` E2E) + thermal UI + blob-load done; smoke suite + write-denial matrix done; richer UI remaining |
+| later | WASM UI + conformance suite | 7 — picker + procedure UI (kettle/Domino's/wash-then-dry/oven bake) + thermal UI + device port chips + blob-load done; smoke suite + write-denial matrix + hub-in-suite done; richer UI remaining |
 | later | Tier-B thin tables | 2 — **Done** (31 Tier-B → 56 total static + sim) |
 | later | lab hub + PSK | 4 — **Done** (`homecooked-hub`, transport PSK) |
 | later | bridge mocks (Matter/Zigbee/BACnet) | 6 — **Done** (thin mocks; real SDKs still open) |
@@ -442,3 +474,4 @@ the code that implements them.
 | 0.1.21 | Stream 5/7: simulator-web surfaces catalog `thermal_port_*` on `water_heater`/`fridge` (chips + attach write) |
 | 0.1.22 | Stream 5: optional `thermal_port_*` on `hvac` (coil/sink/water/5000 W lab seeds); extend `water_heater_thermal_ports`; wire `hub_lab_set_discover_describe` into `all_scenarios` |
 | 0.1.23 | Stream 3: `oven_bake_180` procedure fixture + minimal oven heat tick; wasm/`run_procedure` E2E + conformance |
+| 0.1.24 | Current-state refresh: ~55% → **~65%** of 75% target; cite Stream 4/5/7 merges through oven bake, thermal ports, controller TCP, write-denial matrix, hub-in-suite, UI thermal panel; honest §2 gaps list |
