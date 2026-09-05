@@ -10,7 +10,8 @@
 //! CottonOptions knobs as adjacent catalog setpoints (`class.washer.wash_temp_c`,
 //! `class.washer.spin_rpm`) **before** void `trait.cycle.start` — same order as
 //! washer-dryer-io §6. Lab-only `class.washer.sim_tick` advances one host sim
-//! tick (DryOptions / cancel / pause / typical_capability remain follow-ups).
+//! tick (cancel / pause / typical_capability remain follow-ups; dryer DryOptions
+//! live on [`crate::DryerControllerEndpoint`]).
 //! Dryer TCP: see [`crate::DryerControllerEndpoint`]. No TLS / OAuth.
 
 use homecooked_hal::{bridge, ChannelId, HalValue};

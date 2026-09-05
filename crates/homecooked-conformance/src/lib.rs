@@ -1746,6 +1746,144 @@ pub fn controller_tcp_dryer_cycle() -> ScenarioResult {
     Ok(())
 }
 
+/// (9d2) Controller-sim over TCP: DryOptions via adjacent catalog writes before start.
+pub fn controller_tcp_dryer_dry_options() -> ScenarioResult {
+    const NAME: &str = "controller_tcp_dryer_dry_options";
+    let ep =
+        DryerControllerEndpoint::dryer_lab().map_err(|e| err(NAME, format!("dryer_lab: {e}")))?;
+    let (addr, _shared, _server) = spawn_handler_server("127.0.0.1:0", ep)
+        .map_err(|e| err(NAME, format!("spawn_handler_server: {e}")))?;
+    thread::sleep(Duration::from_millis(20));
+
+    let mut client = TcpClient::connect(addr).map_err(|e| err(NAME, format!("connect: {e}")))?;
+
+    let desc = client
+        .describe(DRYER_CTRL_DEVICE_ID, vec![])
+        .map_err(|e| err(NAME, format!("describe: {e}")))?;
+    for point in [
+        "class.dryer.dryness",
+        "class.dryer.heat_level",
+        "trait.cycle.start",
+    ] {
+        if desc.capability.point(point).is_none() {
+            return Err(err(NAME, format!("describe missing {point}")));
+        }
+    }
+
+    // Adjacent catalog writes = DryOptions over the wire (void start stays catalog-shaped).
+    client
+        .write(
+            DRYER_CTRL_DEVICE_ID,
+            vec![
+                WriteOp {
+                    id: QualifiedPointId::parse("class.dryer.dryness")
+                        .map_err(|e| err(NAME, e.to_string()))?,
+                    value: Value::Enum("extra".into()),
+                },
+                WriteOp {
+                    id: QualifiedPointId::parse("class.dryer.heat_level")
+                        .map_err(|e| err(NAME, e.to_string()))?,
+                    value: Value::Enum("high".into()),
+                },
+            ],
+        )
+        .map_err(|e| err(NAME, format!("dry options write: {e}")))?;
+
+    let opts = client
+        .read(
+            DRYER_CTRL_DEVICE_ID,
+            vec![
+                QualifiedPointId::parse("class.dryer.dryness")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                QualifiedPointId::parse("class.dryer.heat_level")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+            ],
+        )
+        .map_err(|e| err(NAME, format!("read options: {e}")))?;
+    if opts.values[0].value != Some(Value::Enum("extra".into())) {
+        return Err(err(
+            NAME,
+            format!("dryness={:?}, expected extra", opts.values[0].value),
+        ));
+    }
+    if opts.values[1].value != Some(Value::Enum("high".into())) {
+        return Err(err(
+            NAME,
+            format!("heat_level={:?}, expected high", opts.values[1].value),
+        ));
+    }
+
+    client
+        .write(
+            DRYER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: QualifiedPointId::parse("trait.cycle.start")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                value: Value::Void,
+            }],
+        )
+        .map_err(|e| err(NAME, format!("cycle start: {e}")))?;
+
+    let after = client
+        .read(
+            DRYER_CTRL_DEVICE_ID,
+            vec![
+                QualifiedPointId::parse("trait.cycle.cycle_state")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                QualifiedPointId::parse("class.dryer.dryness")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                QualifiedPointId::parse("class.dryer.heat_level")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+            ],
+        )
+        .map_err(|e| err(NAME, format!("read after start: {e}")))?;
+    if after.values[0].value != Some(Value::Enum("running".into())) {
+        return Err(err(
+            NAME,
+            format!("cycle_state={:?}, expected running", after.values[0].value),
+        ));
+    }
+    if after.values[1].value != Some(Value::Enum("extra".into()))
+        || after.values[2].value != Some(Value::Enum("high".into()))
+    {
+        return Err(err(
+            NAME,
+            format!(
+                "options after start dryness={:?} heat_level={:?}, expected extra / high",
+                after.values[1].value, after.values[2].value
+            ),
+        ));
+    }
+
+    // Catalog enum still enforced over TCP.
+    let denied = client.write(
+        DRYER_CTRL_DEVICE_ID,
+        vec![WriteOp {
+            id: QualifiedPointId::parse("class.dryer.dryness")
+                .map_err(|e| err(NAME, e.to_string()))?,
+            value: Value::Enum("bogus".into()),
+        }],
+    );
+    match denied {
+        Err(TransportError::Remote(body)) => {
+            if body.code != ErrorCode::InvalidEnum {
+                return Err(err(
+                    NAME,
+                    format!("dryness=bogus code={:?}, expected invalid_enum", body.code),
+                ));
+            }
+        }
+        other => {
+            return Err(err(
+                NAME,
+                format!("expected remote invalid_enum for dryness=bogus, got {other:?}"),
+            ));
+        }
+    }
+
+    Ok(())
+}
+
 /// (8) Optional lab hub: spawn lab set, TCP discover ≥3 devices, describe one.
 pub fn hub_lab_set_discover_describe() -> ScenarioResult {
     const NAME: &str = "hub_lab_set_discover_describe";
@@ -2292,6 +2430,10 @@ pub fn all_scenarios() -> &'static [(&'static str, ScenarioFn)] {
             controller_tcp_washer_cotton_options,
         ),
         ("controller_tcp_dryer_cycle", controller_tcp_dryer_cycle),
+        (
+            "controller_tcp_dryer_dry_options",
+            controller_tcp_dryer_dry_options,
+        ),
         (
             "hub_lab_set_discover_describe",
             hub_lab_set_discover_describe,

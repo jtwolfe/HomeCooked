@@ -19,7 +19,8 @@
 //! TCP also expose `trait.cycle.start` / `cycle_state` / `cycle_phase` plus
 //! lab `class.washer.sim_tick` / `class.dryer.sim_tick`. Washer CottonOptions
 //! travel as adjacent catalog writes (`wash_temp_c` / `spin_rpm`) before void
-//! start (DryOptions / cancel / pause / typical_capability remain follow-up).
+//! start; dryer DryOptions via adjacent `dryness` / `heat_level` writes
+//! (cancel / pause / typical_capability remain follow-up).
 //! Lab only — no TLS / OAuth.
 //!
 //! # Example

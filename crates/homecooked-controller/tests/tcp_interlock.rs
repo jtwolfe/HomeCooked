@@ -481,3 +481,83 @@ fn tcp_dryer_cotton_start_and_phase() {
         Some(Value::Enum("running".into()))
     );
 }
+
+#[test]
+fn tcp_dryer_dry_options_over_wire() {
+    use homecooked_controller::{DryerControllerEndpoint, DRYER_CTRL_DEVICE_ID};
+
+    let ep = DryerControllerEndpoint::dryer_lab().unwrap();
+    let (addr, _shared, _server) = spawn_handler_server("127.0.0.1:0", ep).unwrap();
+    thread::sleep(Duration::from_millis(20));
+
+    let mut client = TcpClient::connect(addr).unwrap();
+
+    let desc = client.describe(DRYER_CTRL_DEVICE_ID, vec![]).unwrap();
+    assert!(desc.capability.point("class.dryer.dryness").is_some());
+    assert!(desc.capability.point("class.dryer.heat_level").is_some());
+
+    // Non-default DryOptions via adjacent catalog writes (before start).
+    client
+        .write(
+            DRYER_CTRL_DEVICE_ID,
+            vec![
+                WriteOp {
+                    id: qid("class.dryer.dryness"),
+                    value: Value::Enum("extra".into()),
+                },
+                WriteOp {
+                    id: qid("class.dryer.heat_level"),
+                    value: Value::Enum("high".into()),
+                },
+            ],
+        )
+        .unwrap();
+
+    let read_back = client
+        .read(
+            DRYER_CTRL_DEVICE_ID,
+            vec![qid("class.dryer.dryness"), qid("class.dryer.heat_level")],
+        )
+        .unwrap();
+    assert_eq!(read_back.values[0].value, Some(Value::Enum("extra".into())));
+    assert_eq!(read_back.values[1].value, Some(Value::Enum("high".into())));
+
+    client
+        .write(
+            DRYER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: qid("trait.cycle.start"),
+                value: Value::Void,
+            }],
+        )
+        .unwrap();
+
+    let after = client
+        .read(
+            DRYER_CTRL_DEVICE_ID,
+            vec![
+                qid("trait.cycle.cycle_state"),
+                qid("class.dryer.dryness"),
+                qid("class.dryer.heat_level"),
+            ],
+        )
+        .unwrap();
+    assert_eq!(after.values[0].value, Some(Value::Enum("running".into())));
+    assert_eq!(after.values[1].value, Some(Value::Enum("extra".into())));
+    assert_eq!(after.values[2].value, Some(Value::Enum("high".into())));
+
+    // Invalid dryness enum must be rejected by capability validation.
+    let denied = client.write(
+        DRYER_CTRL_DEVICE_ID,
+        vec![WriteOp {
+            id: qid("class.dryer.dryness"),
+            value: Value::Enum("bogus".into()),
+        }],
+    );
+    match denied {
+        Err(TransportError::Remote(body)) => {
+            assert_eq!(body.code, ErrorCode::InvalidEnum);
+        }
+        other => panic!("expected remote invalid_enum for dryness=bogus, got {other:?}"),
+    }
+}
