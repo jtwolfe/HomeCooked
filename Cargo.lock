@@ -84,6 +84,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "homecooked-hal"
+version = "0.1.0"
+dependencies = [
+ "homecooked-interlock",
+]
+
+[[package]]
 name = "homecooked-interlock"
 version = "0.1.0"
 dependencies = [
