@@ -27,6 +27,9 @@ Oven bake happy-path (`program` + setpoint + heat wait):
 Coffee brew happy-path (power on + `espresso` + boiler heat wait):
 [`examples/coffee_brew_espresso.json`](examples/coffee_brew_espresso.json).
 
+Air fryer cook happy-path (`program` fries + setpoint 200 °C + heat wait):
+[`examples/air_fryer_cook_200.json`](examples/air_fryer_cook_200.json).
+
 Dishwasher companion to the fridge→DHW thermal demo (procedure leg only —
 thermal transfer still out-of-band):
 [`examples/dishwasher_dhw_preheat.json`](examples/dishwasher_dhw_preheat.json).

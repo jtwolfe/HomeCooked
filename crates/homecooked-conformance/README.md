@@ -29,8 +29,9 @@ Also covered by `cargo test --workspace` (CI).
    `WasherState::Done`
 3. **procedure_kettle_happy_path** — kettle heat procedure via
    `homecooked-procedure` against the sim
-3b. **procedure_oven_bake_180** / **procedure_coffee_brew_espresso** — oven bake
-   and coffee brew fixtures against the sim heat ticks
+3b. **procedure_oven_bake_180** / **procedure_coffee_brew_espresso** /
+   **procedure_air_fryer_cook_200** — oven bake, coffee brew, and air fryer cook
+   fixtures against the sim heat ticks
 4. **thermal_fridge_dhw_demo** — fridge condenser → DHW preheat via
    `homecooked-thermal`
 4b. **thermal_then_dishwasher_preheat** — dual-path: thermal fridge→DHW

@@ -1177,10 +1177,11 @@ mod tests {
     }
 
     #[test]
-    fn list_example_procedures_includes_kettle_dominos_laundry_dishwasher_oven_and_coffee() {
+    fn list_example_procedures_includes_kettle_dominos_laundry_dishwasher_oven_coffee_and_air_fryer(
+    ) {
         let items: Vec<ExampleProcedureInfo> =
             serde_json::from_str(&WasmApi::list_example_procedures()).unwrap();
-        assert_eq!(items.len(), 7);
+        assert_eq!(items.len(), 8);
         assert_eq!(items[0].id, "kettle_heat_80");
         assert_eq!(items[0].name, "Heat kettle to 80C");
         assert!(items[0].class_hints.iter().any(|c| c == "kettle"));
@@ -1197,9 +1198,12 @@ mod tests {
         assert_eq!(items[5].id, "coffee_brew_espresso");
         assert_eq!(items[5].name, "Brew espresso");
         assert!(items[5].class_hints.iter().any(|c| c == "coffee_machine"));
-        assert_eq!(items[6].id, "wait_dhw_reservoir");
-        assert_eq!(items[6].name, "Wait until DHW reservoir is warm");
-        assert!(items[6].class_hints.is_empty());
+        assert_eq!(items[6].id, "air_fryer_cook_200");
+        assert_eq!(items[6].name, "Air fryer cook at 200C");
+        assert!(items[6].class_hints.iter().any(|c| c == "air_fryer"));
+        assert_eq!(items[7].id, "wait_dhw_reservoir");
+        assert_eq!(items[7].name, "Wait until DHW reservoir is warm");
+        assert!(items[7].class_hints.is_empty());
     }
 
     #[test]
@@ -1246,6 +1250,13 @@ mod tests {
         assert_eq!(summary.id, "coffee_brew_espresso");
         assert_eq!(summary.step_count, 5);
         assert_eq!(summary.devices[0].role, "coffee_machine");
+
+        let air = WasmApi::get_example_procedure("air_fryer_cook_200").unwrap();
+        let summary: ProcedureSummary =
+            serde_json::from_str(&WasmApi::parse_procedure(&air).unwrap()).unwrap();
+        assert_eq!(summary.id, "air_fryer_cook_200");
+        assert_eq!(summary.step_count, 5);
+        assert_eq!(summary.devices[0].role, "air_fryer");
 
         let wait_dhw = WasmApi::get_example_procedure("wait_dhw_reservoir").unwrap();
         let summary: ProcedureSummary =
@@ -1398,6 +1409,41 @@ mod tests {
             serde_json::from_str(&api.get_state(&result.bindings[0].device_id).unwrap()).unwrap();
         assert!(f32_of(&state, "class.coffee_machine.boiler_c") >= 85.0);
         assert_eq!(state["trait.program.program"]["value"], "espresso");
+    }
+
+    #[test]
+    fn run_air_fryer_cook_200_procedure_auto_spawns_and_completes() {
+        let mut api = WasmApi::new();
+        let json = WasmApi::get_example_procedure("air_fryer_cook_200").unwrap();
+        let raw = api.run_procedure(&json).unwrap();
+        let result: ProcedureRunOut = serde_json::from_str(&raw).unwrap();
+
+        assert_eq!(
+            result.status, "completed",
+            "air_fryer_cook_200 run failed: {:?}",
+            result.fail_reason
+        );
+        assert!(result.failed_step_id.is_none());
+        assert!(result.fail_reason.is_none());
+        assert_eq!(result.outcomes.len(), 5);
+        assert!(result.outcomes.iter().all(|o| o.ok));
+        assert_eq!(result.outcomes[0].step_id, "program");
+        assert_eq!(result.outcomes[1].step_id, "setpoint");
+        assert_eq!(result.outcomes[2].step_id, "start");
+        assert_eq!(result.outcomes[3].step_id, "wait_heat");
+        assert_eq!(result.outcomes[4].step_id, "assert_temp");
+
+        assert_eq!(result.bindings.len(), 1);
+        assert_eq!(result.bindings[0].role, "air_fryer");
+        assert_eq!(result.bindings[0].class_id, ApplianceClassId::AirFryer);
+        assert!(result.bindings[0].spawned);
+        assert!(result.bindings[0].device_id.starts_with("sim-air_fryer-"));
+
+        let state: serde_json::Value =
+            serde_json::from_str(&api.get_state(&result.bindings[0].device_id).unwrap()).unwrap();
+        assert!(f32_of(&state, "trait.temperature.current_c") >= 190.0);
+        assert_eq!(state["trait.program.program"]["value"], "fries");
+        assert!((f32_of(&state, "trait.temperature.setpoint_c") - 200.0).abs() < 0.05);
     }
 
     #[test]

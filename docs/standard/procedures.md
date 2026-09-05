@@ -229,7 +229,7 @@ AI-generated protocols:
 
 ## 6. Relation to named programs
 
-Bundled oven example `oven_bake_180` writes `trait.program.program = bake` then a cavity setpoint before `start`. Bundled coffee example `coffee_brew_espresso` powers on, selects `espresso`, then waits on `class.coffee_machine.boiler_c`. Bundled `wait_dhw_reservoir` is a thin `thermal_wait` on plant reservoir `dhw-tank` (requires `SimulatorBackend` + `ThermalPlant`; see thermal-plant §8).
+Bundled oven example `oven_bake_180` writes `trait.program.program = bake` then a cavity setpoint before `start`. Bundled coffee example `coffee_brew_espresso` powers on, selects `espresso`, then waits on `class.coffee_machine.boiler_c`. Bundled air fryer example `air_fryer_cook_200` selects `fries`, sets cavity setpoint 200 °C, then waits on `trait.temperature.current_c`. Bundled `wait_dhw_reservoir` is a thin `thermal_wait` on plant reservoir `dhw-tank` (requires `SimulatorBackend` + `ThermalPlant`; see thermal-plant §8).
 
 A procedure step may **select** a named program (`trait.program.program = eco`)
 and then `start`, or it may drive fine-grained setpoints when the device
@@ -255,3 +255,4 @@ exposes them and the recipe needs them (pizza crisp finish).
 | 0.1.1 | Bundled `oven_bake_180` example (program + setpoint + sim heat wait) |
 | 0.1.2 | Bundled `coffee_brew_espresso` example (program espresso + sim boiler heat wait) |
 | 0.1.3 | Thin `thermal_wait` / `wait_reservoir` step + `wait_dhw_reservoir` fixture (procedure⇄thermal bridge) |
+| 0.1.4 | Bundled `air_fryer_cook_200` example (program fries + setpoint + sim heat wait) |

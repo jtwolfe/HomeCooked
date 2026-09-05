@@ -1,0 +1,44 @@
+{
+  "id": "air_fryer_cook_200",
+  "name": "Air fryer cook at 200C",
+  "description": "Set program fries, setpoint 200 °C, start cycle, wait until cavity ≥ 190 °C, then assert.",
+  "catalog_version": "0.1.0",
+  "devices": [
+    { "role": "air_fryer", "class_id": "air_fryer" }
+  ],
+  "steps": [
+    {
+      "id": "program",
+      "action": "write",
+      "target": { "role": "air_fryer", "point": "trait.program.program" },
+      "value": { "type": "enum", "value": "fries" }
+    },
+    {
+      "id": "setpoint",
+      "action": "write",
+      "target": { "role": "air_fryer", "point": "trait.temperature.setpoint_c" },
+      "value": { "type": "f32", "value": 200.0 }
+    },
+    {
+      "id": "start",
+      "action": "command",
+      "target": { "role": "air_fryer", "point": "trait.cycle.start" },
+      "value": { "type": "void" }
+    },
+    {
+      "id": "wait_heat",
+      "action": "wait",
+      "target": { "role": "air_fryer" },
+      "timeout_s": 60,
+      "guards": [
+        { "point": "trait.temperature.current_c", "gte": { "type": "f32", "value": 190.0 } }
+      ]
+    },
+    {
+      "id": "assert_temp",
+      "op": "guard",
+      "target": { "role": "air_fryer" },
+      "guard": { "point": "trait.temperature.current_c", "gte": { "type": "f32", "value": 190.0 } }
+    }
+  ]
+}

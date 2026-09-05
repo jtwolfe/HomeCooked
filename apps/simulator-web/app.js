@@ -616,6 +616,11 @@ function listExampleProcedures() {
         class_hints: ["coffee_machine"],
       },
       {
+        id: "air_fryer_cook_200",
+        name: "Air fryer cook at 200C",
+        class_hints: ["air_fryer"],
+      },
+      {
         id: "wait_dhw_reservoir",
         name: "Wait until DHW reservoir is warm",
         class_hints: [],

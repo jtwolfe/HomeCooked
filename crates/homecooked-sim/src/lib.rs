@@ -383,6 +383,32 @@ mod tests {
     }
 
     #[test]
+    fn air_fryer_heats_toward_setpoint_when_cycle_running() {
+        let mut sim = Simulator::new();
+        let id = sim.spawn(ApplianceClassId::AirFryer).unwrap();
+        sim.write(&id, "trait.program.program", Value::Enum("fries".into()))
+            .unwrap();
+        sim.write(&id, "trait.temperature.setpoint_c", Value::F32(200.0))
+            .unwrap();
+        sim.write(&id, "trait.cycle.start", Value::Void).unwrap();
+        assert_eq!(
+            sim.read_value(&id, "trait.cycle.cycle_state").unwrap(),
+            Value::Enum("running".into())
+        );
+        // 10 °C/s from 20 → 190 needs 17 s; use 18 s of sim time.
+        sim.tick(&id, 18_000).unwrap();
+        let current = f32_val(&sim.read_value(&id, "trait.temperature.current_c").unwrap());
+        assert!(
+            current >= 190.0,
+            "current={current}, expected >= 190 after 18s at 10 C/s"
+        );
+        assert_eq!(
+            sim.read_value(&id, "trait.program.program").unwrap(),
+            Value::Enum("fries".into())
+        );
+    }
+
+    #[test]
     fn coffee_boiler_heats_toward_target_when_cycle_running() {
         let mut sim = Simulator::new();
         let id = sim.spawn(ApplianceClassId::CoffeeMachine).unwrap();

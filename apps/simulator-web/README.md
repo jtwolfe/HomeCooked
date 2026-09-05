@@ -57,7 +57,7 @@ Open <http://127.0.0.1:8080>.
    field for `thermal_port_attached_reservoir_id` (e.g. `dhw-tank`). Auto-shown
    when the point is present; hidden otherwise (no class-id hardcoding).
 5. Write settings / fire commands (`start`, `power_on`, …).
-6. Use **Tick** or **Auto tick** so simulated behavior (kettle / oven heat, washer / dryer /
+6. Use **Tick** or **Auto tick** so simulated behavior (kettle / oven / air fryer heat, washer / dryer /
    microwave progress) advances.
 
 Writes that fail capability checks (`out_of_range`, `not_writable`, …) show
@@ -69,7 +69,7 @@ The lower **Procedure** panel loads a bundled recipe or accepts pasted
 procedure JSON, then runs it through `homecooked-procedure` against the
 current simulator world.
 
-1. Pick a sample (**Heat kettle to 80C**, Domino’s microwave, **Wash then dry**, **Oven bake at 180C**, or **Brew espresso**)
+1. Pick a sample (**Heat kettle to 80C**, Domino’s microwave, **Wash then dry**, **Oven bake at 180C**, **Brew espresso**, or **Air fryer cook at 200C**)
    or paste JSON.
 2. **Load sample** fills the editor (WASM `get_example_procedure`, with a
    fetch fallback to `procedures/*.json`).
@@ -90,6 +90,7 @@ fixture writes cook settings and starts a cycle; sim ticks advance
 `trait.cycle.elapsed_s` toward `class.microwave.cook_s` so the wait step can complete.
 The oven bake sample sets `bake` + 180 °C; sim heats ~10 °C/s while the cycle runs.
 The coffee brew sample powers on, selects `espresso`, and waits on boiler heat (~10 °C/s).
+The air fryer cook sample sets `fries` + 200 °C; sim heats ~10 °C/s while the cycle runs.
 
 ## Thermal plant panel
 
