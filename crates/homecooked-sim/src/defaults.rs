@@ -308,6 +308,10 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             ApplianceClassId::MultiCooker => Value::Bool(true),
             _ => Value::Bool(false),
         },
+        "pot_present" => match ctx.identity.class_id {
+            ApplianceClassId::SlowCooker => Value::Bool(true),
+            _ => Value::Bool(false),
+        },
         "rack_position" => match ctx.identity.class_id {
             ApplianceClassId::ToasterOven => Value::Enum("middle".into()),
             _ => first_enum(point).unwrap_or_else(|| Value::Enum("unknown".into())),

@@ -730,6 +730,20 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "water_ratio"
         );
     }
+    // Stream 7 catalog depth: slow_cooker optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::SlowCooker {
+        return matches!(
+            point.id,
+            "pot_present"
+                | "keep_warm"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "heater_on"
+                | "high_temp_alarm"
+                | "lid_open"
+                | "timer_s"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -2886,6 +2900,56 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.rice_cooker.lid_open", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn slow_cooker_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::SlowCooker).unwrap();
+        for id in [
+            "class.slow_cooker.heat_level",
+            "class.slow_cooker.cook_s",
+            "class.slow_cooker.pot_present",
+            "class.slow_cooker.keep_warm",
+            "class.slow_cooker.sabbath_mode",
+            "class.slow_cooker.eco_mode",
+            "class.slow_cooker.heater_on",
+            "class.slow_cooker.high_temp_alarm",
+            "class.slow_cooker.lid_open",
+            "class.slow_cooker.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical slow_cooker"
+            );
+        }
+        cap.validate_write("class.slow_cooker.heat_level", &Value::Enum("high".into()))
+            .unwrap();
+        cap.validate_write("class.slow_cooker.cook_s", &Value::DurationS(14400))
+            .unwrap();
+        cap.validate_write("class.slow_cooker.keep_warm", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.slow_cooker.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.slow_cooker.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.slow_cooker.timer_s", &Value::DurationS(3600))
+            .unwrap();
+        let err = cap
+            .validate_write("class.slow_cooker.pot_present", &Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.slow_cooker.heater_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.slow_cooker.high_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.slow_cooker.lid_open", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }
