@@ -1917,9 +1917,73 @@ const STEAM_OVEN_EXTRA: &[CatalogPoint] = &[
         AccessMode::RE,
         true,
     ),
+    v(
+        "water_tank_level",
+        ValueType::Percent,
+        Some(Unit::Percent),
+        num(0.0, 100.0),
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "descaling_needed",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "steam_generator_on",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "cavity_humidity",
+        ValueType::Percent,
+        Some(Unit::Percent),
+        num(0.0, 100.0),
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "door_locked",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "drain_full",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "generator_fault",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "delayed_start_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 86400),
+        AccessMode::RW,
+        false,
+    ),
 ];
 
-const STEAM_OVEN_MERGED: [CatalogPoint; 10] = concat2(OVEN_POINTS, STEAM_OVEN_EXTRA);
+const STEAM_OVEN_MERGED: [CatalogPoint; 18] = concat2(OVEN_POINTS, STEAM_OVEN_EXTRA);
 const STEAM_OVEN_POINTS: &[CatalogPoint] = &STEAM_OVEN_MERGED;
 
 const STEAM_OVEN_PROGRAMS: &[&str] = &[
