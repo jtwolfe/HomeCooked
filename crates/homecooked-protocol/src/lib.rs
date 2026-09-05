@@ -204,4 +204,76 @@ mod tests {
         assert_eq!(resp.device_id.as_deref(), Some("kettle-1"));
         assert_eq!(resp.kind(), MessageKind::ReadOk);
     }
+
+    /// Table-driven invalid Envelope JSON (tooling / conformance robustness).
+    ///
+    /// Prefer these over `cargo fuzz` for CI — fuzz remains optional/deferred
+    /// (see `docs/ROADMAP.md`).
+    #[test]
+    fn invalid_envelope_json_table() {
+        let cases: &[(&str, &str)] = &[
+            ("empty", ""),
+            (
+                "truncated_object",
+                r#"{"protocol_version":"0.1.0","message_id":"m-1""#,
+            ),
+            (
+                "truncated_string",
+                r#"{"protocol_version":"0.1.0","message_id":"m-"#,
+            ),
+            ("not_object", "[1,2,3]"),
+            ("null", "null"),
+            (
+                "unknown_kind",
+                r#"{"protocol_version":"0.1.0","message_id":"m-1","ts_ms":0,"kind":"warp_drive","body":{}}"#,
+            ),
+            (
+                "missing_kind",
+                r#"{"protocol_version":"0.1.0","message_id":"m-1","ts_ms":0,"body":{}}"#,
+            ),
+            (
+                "missing_message_id",
+                r#"{"protocol_version":"0.1.0","ts_ms":0,"kind":"ping","body":{}}"#,
+            ),
+            (
+                "bad_protocol_version_shape",
+                r#"{"protocol_version":{"major":0},"message_id":"m-1","kind":"ping","body":{}}"#,
+            ),
+            (
+                "body_wrong_type_for_ping",
+                r#"{"protocol_version":"0.1.0","message_id":"m-1","kind":"ping","body":42}"#,
+            ),
+            (
+                "kind_not_string",
+                r#"{"protocol_version":"0.1.0","message_id":"m-1","kind":42,"body":{}}"#,
+            ),
+        ];
+
+        for (name, json) in cases {
+            assert!(
+                Envelope::from_json(json).is_err(),
+                "case `{name}`: from_json unexpectedly Ok"
+            );
+            let decode_err = Envelope::decode(json).expect_err(&format!("case `{name}`"));
+            assert!(
+                matches!(decode_err, ProtocolError::Json(_)),
+                "case `{name}`: expected ProtocolError::Json, got {decode_err:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn decode_rejects_major_mismatch_via_json() {
+        let json = r#"{
+            "protocol_version": "1.0.0",
+            "message_id": "m-x",
+            "ts_ms": 0,
+            "kind": "ping",
+            "body": {}
+        }"#;
+        // from_json succeeds (shape ok); decode enforces major.
+        Envelope::from_json(json).unwrap();
+        let err = Envelope::decode(json).unwrap_err();
+        assert!(matches!(err, ProtocolError::VersionMismatch { .. }));
+    }
 }
