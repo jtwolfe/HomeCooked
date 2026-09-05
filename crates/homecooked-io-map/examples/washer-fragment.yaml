@@ -1,0 +1,53 @@
+# INFORMATIVE EXAMPLE — not a frozen schema
+# chassis.io_map.yaml  — washer on the laundry backplane
+version: "0.1.0"
+class_id: washer
+bindings:
+  - channel: din.door_closed
+    source: { board: lv_sensor, pin: di_0, active: high }
+    point: trait.door_lid.door_state
+    encode: { true: closed, false: open }
+
+  - channel: din.door_lock_fb
+    source: { board: lv_sensor, pin: di_1, active: high }
+    point: trait.door_lid.door_lock_state
+    encode: { true: locked, false: unlocked }
+
+  - channel: ain.water_level_pa
+    source: { board: lv_sensor, pin: pressure_0, unit: pascal }
+    point: trait.water.level_percent
+    # runtime derives water_present for interlocks from this span
+    scale: { zero: 0, full: 4000, to: percent }
+
+  - channel: ain.tub_temp_c
+    source: { board: lv_sensor, pin: ntc_0 }
+    point: trait.temperature.current_c
+
+  - channel: ain.drum_rpm
+    source: { board: lv_sensor, pin: tach_0 }
+    point: class.washer.drum_rpm
+
+  - channel: din.leak
+    source: { board: lv_sensor, pin: di_2, active: high }
+    point: trait.water.leak
+
+  - channel: aout.door_lock
+    sink: { board: hv_actuator, circuit: lock_solenoid }
+    point: trait.door_lid.door_lock_state
+
+  - channel: aout.cold_inlet
+    sink: { board: hv_actuator, circuit: cold_inlet }
+    gated_by: [il.fill]
+    point: trait.water.inlet_valve
+
+  - channel: aout.heater_enable
+    sink: { board: hv_actuator, circuit: heater }
+    gated_by: [il.heater]
+    # il.heater: water_present AND din.door_lock_fb matches aout.door_lock
+
+  - channel: motor.speed_rpm_cmd
+    sink: { board: motor_if, proto: inverter_uart }
+    gated_by: [il.motor]
+    point: trait.motor.rpm_setpoint
+    # il.motor spin band: lock fb match AND rpm within advertised
+    # class.washer.spin_rpm AND water at or below spin-safe level
