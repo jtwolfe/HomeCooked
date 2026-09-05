@@ -1,12 +1,12 @@
-//! Thin HomeCooked **device-role** adapter over [`Controller`] for lab TCP.
+//! Thin HomeCooked **device-role** adapter over [`DryerController`] for lab TCP.
 //!
-//! Advertises a small washer capability whose writes map onto MockHal channels
-//! (I/O map + washer interlocks). Denied actuator commands surface as
-//! [`ErrorCode::SafetyInterlock`] — the Stream 4 controller-sim-over-TCP smoke.
+//! Same pattern as [`crate::endpoint::ControllerEndpoint`]: advertise a small
+//! dryer capability whose writes map onto MockHal channels (`dryer_rules`
+//! interlocks). Denied heater commands surface as
+//! [`ErrorCode::SafetyInterlock`].
 //!
 //! Not a full catalog device-role: cycle start / typical_capability depth
-//! remain follow-ups (dryer TCP: see [`crate::DryerControllerEndpoint`]).
-//! No TLS / OAuth.
+//! remain follow-ups. No TLS / OAuth.
 
 use homecooked_hal::{bridge, ChannelId, HalValue};
 use homecooked_protocol::{
@@ -20,44 +20,44 @@ use homecooked_schema::{
 };
 use homecooked_transport::RequestHandler;
 
-use crate::controller::Controller;
+use crate::dryer_controller::DryerController;
 use crate::error::Error;
 use crate::plant;
 
-/// Stable lab device id for [`ControllerEndpoint::washer_lab`].
-pub const WASHER_CTRL_DEVICE_ID: &str = "washer-ctrl-lab";
+/// Stable lab device id for [`DryerControllerEndpoint::dryer_lab`].
+pub const DRYER_CTRL_DEVICE_ID: &str = "dryer-ctrl-lab";
 
-/// Lab point → HAL channel mapping for the washer controller endpoint.
-const HEATER_POINT: &str = "class.washer.heater_enable";
-const DOOR_LOCK_POINT: &str = "class.washer.door_lock";
-const WATER_LEVEL_POINT: &str = "class.washer.water_level_pa";
-const DOOR_LOCK_FB_POINT: &str = "class.washer.door_lock_fb";
+/// Lab point → HAL channel mapping for the dryer controller endpoint.
+const HEATER_POINT: &str = "class.dryer.heater_enable";
+const DOOR_LOCK_POINT: &str = "class.dryer.door_lock";
+const BLOWER_POINT: &str = "class.dryer.blower";
+const DOOR_LOCK_FB_POINT: &str = "class.dryer.door_lock_fb";
 
 const HEATER_CHANNEL: &str = "aout.heater_enable";
 const DOOR_LOCK_CHANNEL: &str = "aout.door_lock";
-const WATER_LEVEL_CHANNEL: &str = "ain.water_level_pa";
+const BLOWER_CHANNEL: &str = "aout.blower";
 const DOOR_LOCK_FB_CHANNEL: &str = "din.door_lock_fb";
 
-/// Washer controller exposed as a single HomeCooked device (lab / smoke).
+/// Dryer controller exposed as a single HomeCooked device (lab / smoke).
 #[derive(Debug)]
-pub struct ControllerEndpoint {
+pub struct DryerControllerEndpoint {
     device_id: String,
     capability: CapabilityModel,
-    controller: Controller,
+    controller: DryerController,
 }
 
-impl ControllerEndpoint {
-    /// Washer cotton demo HAL + interlocks, advertised as [`WASHER_CTRL_DEVICE_ID`].
-    pub fn washer_lab() -> Result<Self, Error> {
-        Self::washer_named(WASHER_CTRL_DEVICE_ID)
+impl DryerControllerEndpoint {
+    /// Dryer cotton demo HAL + interlocks, advertised as [`DRYER_CTRL_DEVICE_ID`].
+    pub fn dryer_lab() -> Result<Self, Error> {
+        Self::dryer_named(DRYER_CTRL_DEVICE_ID)
     }
 
-    /// Same as [`Self::washer_lab`] with a custom device id.
-    pub fn washer_named(device_id: impl Into<String>) -> Result<Self, Error> {
+    /// Same as [`Self::dryer_lab`] with a custom device id.
+    pub fn dryer_named(device_id: impl Into<String>) -> Result<Self, Error> {
         Ok(Self {
             device_id: device_id.into(),
-            capability: lab_washer_capability(),
-            controller: Controller::washer_cotton_demo()?,
+            capability: lab_dryer_capability(),
+            controller: DryerController::dryer_cotton_demo()?,
         })
     }
 
@@ -65,11 +65,11 @@ impl ControllerEndpoint {
         &self.device_id
     }
 
-    pub fn controller(&self) -> &Controller {
+    pub fn controller(&self) -> &DryerController {
         &self.controller
     }
 
-    pub fn controller_mut(&mut self) -> &mut Controller {
+    pub fn controller_mut(&mut self) -> &mut DryerController {
         &mut self.controller
     }
 
@@ -77,7 +77,7 @@ impl ControllerEndpoint {
         &self.capability
     }
 
-    /// Dispatch one protocol request (same contract as [`homecooked_sim::Simulator::handle`]).
+    /// Dispatch one protocol request (same contract as washer [`crate::ControllerEndpoint`]).
     pub fn handle_request(&mut self, request: Envelope) -> Envelope {
         if let Err(err) = check_protocol_version(request.protocol_version) {
             return Envelope::error_to(&request, err.to_error_body());
@@ -118,10 +118,10 @@ impl ControllerEndpoint {
     }
 
     fn hello(&self) -> HelloRecord {
-        let mut hello = HelloRecord::new(&self.device_id, ApplianceClassId::Washer);
+        let mut hello = HelloRecord::new(&self.device_id, ApplianceClassId::Dryer);
         hello.catalog_version = CATALOG_VERSION;
         hello.trait_ids = self.capability.traits.iter().map(|t| t.trait_id).collect();
-        hello.display_name = Some("Washer controller lab".into());
+        hello.display_name = Some("Dryer controller lab".into());
         hello
     }
 
@@ -142,7 +142,7 @@ impl ControllerEndpoint {
         let mut devices = Vec::new();
         let class_ok = match body.class_id {
             None => true,
-            Some(c) => c == ApplianceClassId::Washer,
+            Some(c) => c == ApplianceClassId::Dryer,
         };
         if class_ok
             && body
@@ -249,7 +249,6 @@ impl ControllerEndpoint {
             );
         }
 
-        // Validate against advertised capability first (type / access).
         let mut accepted = Vec::new();
         for op in &body.writes {
             let point_id = op.id.to_string();
@@ -279,7 +278,6 @@ impl ControllerEndpoint {
             )
             .at_point(point_id)
         })?;
-        // Prefer MockHal::get so actuator outputs (aout.*) are readable in lab.
         let id = ChannelId::new(channel)
             .map_err(|e| ErrorBody::new(ErrorCode::Internal, e.to_string()).at_point(point_id))?;
         let raw = self
@@ -291,42 +289,28 @@ impl ControllerEndpoint {
                     .at_point(point_id)
             })?
             .clone();
-        hal_to_value(&raw, point_id)
+        hal_to_value(&raw)
     }
 
     fn apply_write(&mut self, op: &WriteOp) -> Result<(), ErrorBody> {
         let point_id = op.id.to_string();
         match point_id.as_str() {
-            WATER_LEVEL_POINT => {
-                let n = op.value.as_f64().ok_or_else(|| {
-                    ErrorBody::new(ErrorCode::InvalidType, "expected number").at_point(&point_id)
-                })?;
-                let id = ChannelId::new(WATER_LEVEL_CHANNEL).map_err(|e| {
-                    ErrorBody::new(ErrorCode::Internal, e.to_string()).at_point(&point_id)
-                })?;
-                self.controller.hal_mut().inject(&id, n).map_err(|e| {
-                    ErrorBody::new(ErrorCode::Internal, e.to_string()).at_point(&point_id)
-                })?;
-                plant::refresh_derived(self.controller.hal_mut()).map_err(|e| {
-                    ErrorBody::new(ErrorCode::Internal, e.to_string()).at_point(&point_id)
-                })?;
-                Ok(())
-            }
-            HEATER_POINT | DOOR_LOCK_POINT => {
+            HEATER_POINT | DOOR_LOCK_POINT | BLOWER_POINT => {
                 let channel = point_to_channel(&point_id).expect("mapped above");
                 let hv = value_to_hal(&op.value).ok_or_else(|| {
                     ErrorBody::new(ErrorCode::InvalidType, "expected bool").at_point(&point_id)
                 })?;
-                plant::refresh_derived(self.controller.hal_mut()).map_err(|e| {
+                plant::refresh_dryer_derived(self.controller.hal_mut()).map_err(|e| {
                     ErrorBody::new(ErrorCode::Internal, e.to_string()).at_point(&point_id)
                 })?;
                 match bridge::write_channel(self.controller.hal_mut(), channel, hv) {
                     Ok(()) => {
-                        // Mirror lock command into feedback so the next heater
-                        // write sees a consistent door_locked snapshot.
-                        if channel == DOOR_LOCK_CHANNEL {
-                            let _ = plant::step_plant(self.controller.hal_mut());
-                            let _ = plant::refresh_derived(self.controller.hal_mut());
+                        // Mirror lock / blower into plant feedback + derived
+                        // keys so the next heater write sees a consistent
+                        // door_locked / blower_on snapshot.
+                        if channel == DOOR_LOCK_CHANNEL || channel == BLOWER_CHANNEL {
+                            let _ = plant::step_dryer_plant(self.controller.hal_mut());
+                            let _ = plant::refresh_dryer_derived(self.controller.hal_mut());
                         }
                         Ok(())
                     }
@@ -344,22 +328,22 @@ impl ControllerEndpoint {
             }
             other => Err(ErrorBody::new(
                 ErrorCode::NotWritable,
-                format!("{other} is not writable on controller lab endpoint"),
+                format!("{other} is not writable on dryer controller lab endpoint"),
             )
             .at_point(other)),
         }
     }
 }
 
-impl RequestHandler for ControllerEndpoint {
+impl RequestHandler for DryerControllerEndpoint {
     fn handle(&mut self, request: Envelope) -> Envelope {
         self.handle_request(request)
     }
 }
 
-/// Thin lab capability: HAL-backed washer heater / door / water points.
-pub fn lab_washer_capability() -> CapabilityModel {
-    let mut cap = CapabilityModel::new(ApplianceClassId::Washer);
+/// Thin lab capability: HAL-backed dryer heater / door / blower points.
+pub fn lab_dryer_capability() -> CapabilityModel {
+    let mut cap = CapabilityModel::new(ApplianceClassId::Dryer);
     cap.class_version = DEFAULT_CLASS_VERSION;
     cap.class_points = vec![
         PointCapability {
@@ -383,8 +367,8 @@ pub fn lab_washer_capability() -> CapabilityModel {
             zones: None,
         },
         PointCapability {
-            id: WATER_LEVEL_POINT.into(),
-            value_type: ValueType::F32,
+            id: BLOWER_POINT.into(),
+            value_type: ValueType::Bool,
             unit: None,
             access: AccessMode::RW,
             required: true,
@@ -403,7 +387,6 @@ pub fn lab_washer_capability() -> CapabilityModel {
             zones: None,
         },
     ];
-    // Advertise door_lid so Discover trait filters can match laundry clients.
     cap.traits.push(TraitCapability {
         trait_id: TraitId::DoorLid,
         trait_version: DEFAULT_CLASS_VERSION,
@@ -416,7 +399,7 @@ fn point_to_channel(point_id: &str) -> Option<&'static str> {
     match point_id {
         HEATER_POINT => Some(HEATER_CHANNEL),
         DOOR_LOCK_POINT => Some(DOOR_LOCK_CHANNEL),
-        WATER_LEVEL_POINT => Some(WATER_LEVEL_CHANNEL),
+        BLOWER_POINT => Some(BLOWER_CHANNEL),
         DOOR_LOCK_FB_POINT => Some(DOOR_LOCK_FB_CHANNEL),
         _ => None,
     }
@@ -429,21 +412,15 @@ fn value_to_hal(value: &Value) -> Option<HalValue> {
     }
 }
 
-fn hal_to_value(raw: &HalValue, point_id: &str) -> Result<Value, ErrorBody> {
-    match (point_id, raw) {
-        (WATER_LEVEL_POINT, HalValue::Number(n)) => Ok(Value::F32(*n as f32)),
-        (WATER_LEVEL_POINT, _) => Err(ErrorBody::new(
-            ErrorCode::Internal,
-            "water_level_pa expected number",
-        )
-        .at_point(point_id)),
-        (_, HalValue::Bool(b)) => Ok(Value::Bool(*b)),
-        (_, HalValue::Number(n)) => Ok(Value::Bool(*n != 0.0)),
+fn hal_to_value(raw: &HalValue) -> Result<Value, ErrorBody> {
+    match raw {
+        HalValue::Bool(b) => Ok(Value::Bool(*b)),
+        HalValue::Number(n) => Ok(Value::Bool(*n != 0.0)),
     }
 }
 
 #[cfg(test)]
-mod endpoint_tests {
+mod dryer_endpoint_tests {
     use super::*;
     use homecooked_protocol::{WriteOp, WriteRequest};
     use homecooked_schema::QualifiedPointId;
@@ -453,14 +430,14 @@ mod endpoint_tests {
     }
 
     #[test]
-    fn heater_denied_without_water_via_handle() {
-        let mut ep = ControllerEndpoint::washer_lab().unwrap();
-        // Door locked, water empty.
-        let lock = Envelope::request(
+    fn heater_denied_when_door_unlocked_via_handle() {
+        let mut ep = DryerControllerEndpoint::dryer_lab().unwrap();
+        // Blower on so the only failing require is the door lock.
+        let blower = Envelope::request(
             Some(ep.device_id().into()),
             Payload::Write(WriteRequest {
                 writes: vec![WriteOp {
-                    id: qid(DOOR_LOCK_POINT),
+                    id: qid(BLOWER_POINT),
                     value: Value::Bool(true),
                 }],
                 dry_run: false,
@@ -468,7 +445,7 @@ mod endpoint_tests {
             }),
         );
         assert!(matches!(
-            ep.handle_request(lock).payload,
+            ep.handle_request(blower).payload,
             Payload::WriteOk(_)
         ));
 
@@ -487,7 +464,7 @@ mod endpoint_tests {
             Payload::Error(body) => {
                 assert_eq!(body.code, ErrorCode::SafetyInterlock);
                 assert!(
-                    body.message.contains("interlock") || body.message.contains("water"),
+                    body.message.contains("interlock") || body.message.contains("door"),
                     "{}",
                     body.message
                 );
@@ -497,11 +474,11 @@ mod endpoint_tests {
     }
 
     #[test]
-    fn heater_allowed_with_water_and_lock() {
-        let mut ep = ControllerEndpoint::washer_lab().unwrap();
+    fn heater_allowed_with_lock_and_blower() {
+        let mut ep = DryerControllerEndpoint::dryer_lab().unwrap();
         for (point, value) in [
             (DOOR_LOCK_POINT, Value::Bool(true)),
-            (WATER_LEVEL_POINT, Value::F32(2_000.0)),
+            (BLOWER_POINT, Value::Bool(true)),
         ] {
             let env = Envelope::request(
                 Some(ep.device_id().into()),

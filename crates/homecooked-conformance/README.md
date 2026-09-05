@@ -48,5 +48,8 @@ Also covered by `cargo test --workspace` (CI).
 11. **controller_tcp_washer_interlock** — TCP client against washer
    `ControllerEndpoint`: heater allow when water+lock, `safety_interlock` deny
    when dry (`homecooked-controller` + `homecooked-transport`)
-12. **hub_lab_set_discover_describe** — optional `LabHub` lab set over TCP:
+12. **controller_tcp_dryer_interlock** — TCP client against
+   `DryerControllerEndpoint`: heater allow when lock+blower,
+   `safety_interlock` deny when door unlocked
+13. **hub_lab_set_discover_describe** — optional `LabHub` lab set over TCP:
    Discover ≥3 devices, describe kettle (`homecooked-hub`)

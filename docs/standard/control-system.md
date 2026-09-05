@@ -257,7 +257,7 @@ auditable reason. Both must agree to energize.
 
 ### 4.6 Cycle / procedure runtime
 
-Host sketch: crate [`homecooked-controller`](../../crates/homecooked-controller) runs washer `cotton` and dryer Idle→Heat/Dry→Cool→Done against `MockHal` + class interlocks (no GPIO). Lab TCP device-role smoke: `ControllerEndpoint` over `homecooked-transport` (`RequestHandler`); fuller cycle-over-TCP still follow-up.
+Host sketch: crate [`homecooked-controller`](../../crates/homecooked-controller) runs washer `cotton` and dryer Idle→Heat/Dry→Cool→Done against `MockHal` + class interlocks (no GPIO). Lab TCP device-role smoke: `ControllerEndpoint` / `DryerControllerEndpoint` over `homecooked-transport` (`RequestHandler`); fuller cycle-over-TCP still follow-up.
 
 A state machine that executes:
 
