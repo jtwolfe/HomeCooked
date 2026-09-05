@@ -1288,8 +1288,16 @@ Fan speed via `trait.fan.fan_speed`; light dimming via
 | `grounds_bin` | enum | — | `ok` `full` `missing` | r/e | opt | |
 | `milk_present` | bool | — | | r/e | opt | |
 | `capsule_present` | bool | — | | r/e | opt | Capsule variant |
-| `boiler_c` | f32 | celsius | | r/e | opt | |
-| `brew_pressure_bar` | f32 | bar | 0–20 | r/e | opt | |
+| `boiler_c` | f32 | celsius | | r/e | opt | Boiler temp (procedure wait; typical) |
+| `brew_pressure_bar` | f32 | bar | 0–20 | r/e | opt | Brew pressure telemetry (typical) |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving boiler duty |
+| `boiler_ready` | bool | — | | r/e | opt | Boiler at brew temperature |
+| `high_temp_alarm` | bool | — | | r/e | opt | Overtemp / too-hot |
+| `water_tank_empty` | bool | — | | r/e | opt | Compact empty inhibit (beside `water_tank` enum) |
+| `descaling_needed` | bool | — | | r/e | opt | Descale due indicator |
+| `carafe_present` | bool | — | | r/e | opt | Carafe / pot detect (batch-capable units) |
+| `timer_s` | duration_s | second | 0–3600 | r/w/e | opt | Delayed brew / countdown |
 
 ---
 

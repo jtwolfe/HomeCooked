@@ -957,6 +957,13 @@ box). Distinct from `espresso_machine` (semi-auto group head) and
 - Capsule machines (Nespresso-style) use this class with `grind` omitted and a
   `capsule` present bit if instrumented.
 - Do not merge with `espresso_machine`: workflows and settings differ.
+- Catalog depth: optional sabbath/eco/boiler_ready/high_temp_alarm/
+  water_tank_empty/descaling_needed/carafe_present/timer_s; typical also
+  advertises thin-table strength/volume_ml/milk_ml/grind_level/cups/drip_tray/
+  grounds_bin/milk_present/capsule_present/boiler_c/brew_pressure_bar. Required
+  `water_tank` unchanged. Brew procedure + stub boiler heat tick unchanged.
+  espresso_machine / drip_coffee_maker template (`boiler_ready` pairs with
+  `boiler_c`; `water_tank_empty` is compact RE inhibit beside the tank enum).
 
 ### `espresso_machine`
 

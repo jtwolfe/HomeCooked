@@ -564,11 +564,35 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "max_dry_s"
         );
     }
-    // Stream 3: coffee brew procedure waits on boiler telemetry.
-    if table.class_id == ApplianceClassId::CoffeeMachine
-        && matches!(point.id, "boiler_c" | "brew_pressure_bar")
-    {
-        return true;
+    // Stream 7 undepened Tier-A deepen: coffee_machine optional telemetry/settings.
+    // Advertise thin-table brew settings + boiler_c/brew_pressure_bar (procedure
+    // waits); add depth sabbath/eco/boiler_ready/high_temp_alarm/water_tank_empty/
+    // descaling_needed/carafe_present/timer_s. Do not duplicate required water_tank
+    // (already required). Brew procedure + stub boiler heat tick unchanged.
+    // espresso_machine / drip_coffee_maker template.
+    if table.class_id == ApplianceClassId::CoffeeMachine {
+        return matches!(
+            point.id,
+            "strength"
+                | "volume_ml"
+                | "milk_ml"
+                | "grind_level"
+                | "cups"
+                | "drip_tray"
+                | "grounds_bin"
+                | "milk_present"
+                | "capsule_present"
+                | "boiler_c"
+                | "brew_pressure_bar"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "boiler_ready"
+                | "high_temp_alarm"
+                | "water_tank_empty"
+                | "descaling_needed"
+                | "carafe_present"
+                | "timer_s"
+        );
     }
     // Stream 7 catalog depth: wine cooler optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::WineCooler {
@@ -5226,6 +5250,140 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("trait.temperature.preheat_complete", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn coffee_machine_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::CoffeeMachine).unwrap();
+        for id in [
+            // Required brew surface still present.
+            "class.coffee_machine.water_tank",
+            // Thin-table optional advertised in typical (procedure + demos).
+            "class.coffee_machine.strength",
+            "class.coffee_machine.volume_ml",
+            "class.coffee_machine.milk_ml",
+            "class.coffee_machine.grind_level",
+            "class.coffee_machine.cups",
+            "class.coffee_machine.drip_tray",
+            "class.coffee_machine.grounds_bin",
+            "class.coffee_machine.milk_present",
+            "class.coffee_machine.capsule_present",
+            "class.coffee_machine.boiler_c",
+            "class.coffee_machine.brew_pressure_bar",
+            // Depth points.
+            "class.coffee_machine.sabbath_mode",
+            "class.coffee_machine.eco_mode",
+            "class.coffee_machine.boiler_ready",
+            "class.coffee_machine.high_temp_alarm",
+            "class.coffee_machine.water_tank_empty",
+            "class.coffee_machine.descaling_needed",
+            "class.coffee_machine.carafe_present",
+            "class.coffee_machine.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical coffee_machine"
+            );
+        }
+        // Single kitchen timer_s; water_tank enum distinct from water_tank_empty.
+        assert_eq!(
+            cap.class_points
+                .iter()
+                .filter(|p| p.id == "class.coffee_machine.timer_s")
+                .count(),
+            1
+        );
+        assert_eq!(
+            cap.class_points
+                .iter()
+                .filter(|p| p.id == "class.coffee_machine.water_tank")
+                .count(),
+            1
+        );
+        assert_eq!(
+            cap.class_points
+                .iter()
+                .filter(|p| p.id == "class.coffee_machine.water_tank_empty")
+                .count(),
+            1
+        );
+
+        cap.validate_write(
+            "class.coffee_machine.strength",
+            &Value::Enum("strong".into()),
+        )
+        .unwrap();
+        cap.validate_write("class.coffee_machine.volume_ml", &Value::U16(120))
+            .unwrap();
+        cap.validate_write("class.coffee_machine.milk_ml", &Value::U16(80))
+            .unwrap();
+        cap.validate_write("class.coffee_machine.grind_level", &Value::U8(8))
+            .unwrap();
+        cap.validate_write("class.coffee_machine.cups", &Value::U8(2))
+            .unwrap();
+        cap.validate_write("class.coffee_machine.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.coffee_machine.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.coffee_machine.timer_s", &Value::DurationS(600))
+            .unwrap();
+        let err = cap
+            .validate_write(
+                "class.coffee_machine.water_tank",
+                &Value::Enum("empty".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.coffee_machine.boiler_c", &Value::F32(90.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.coffee_machine.brew_pressure_bar", &Value::F32(9.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.coffee_machine.boiler_ready", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.coffee_machine.high_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.coffee_machine.water_tank_empty", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.coffee_machine.descaling_needed", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.coffee_machine.carafe_present", &Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write(
+                "class.coffee_machine.drip_tray",
+                &Value::Enum("full".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write(
+                "class.coffee_machine.grounds_bin",
+                &Value::Enum("full".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.coffee_machine.milk_present", &Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.coffee_machine.capsule_present", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }
