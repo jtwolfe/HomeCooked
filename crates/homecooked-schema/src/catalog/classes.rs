@@ -1407,7 +1407,7 @@ const HVAC_MODE: &[&str] = &[
 ];
 const REVERSING_VALVE: &[&str] = &["heat", "cool", "unknown"];
 
-static HVAC_POINTS: &[CatalogPoint] = &[
+static HVAC_BASE: &[CatalogPoint] = &[
     s(
         "hvac_mode",
         ValueType::Enum,
@@ -1492,6 +1492,9 @@ static HVAC_POINTS: &[CatalogPoint] = &[
         false,
     ),
 ];
+
+const HVAC_MERGED: [CatalogPoint; 18] = concat2(HVAC_BASE, THERMAL_PORT_POINTS);
+const HVAC_POINTS: &[CatalogPoint] = &HVAC_MERGED;
 
 const DEHUMIDIFIER_TRAITS: &[TraitId] = &[
     TraitId::Identity,

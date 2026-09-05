@@ -187,10 +187,10 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
     if table.class_id == ApplianceClassId::Dishwasher && point.id == "wash_temp_c" {
         return true;
     }
-    // Stream 5: device-facing thermal-port surface on Tier-A water_heater / fridge.
+    // Stream 5: device-facing thermal-port surface on Tier-A water_heater / fridge / hvac.
     matches!(
         table.class_id,
-        ApplianceClassId::WaterHeater | ApplianceClassId::Fridge
+        ApplianceClassId::WaterHeater | ApplianceClassId::Fridge | ApplianceClassId::Hvac
     ) && point.id.starts_with("thermal_port_")
 }
 
@@ -421,7 +421,7 @@ mod tests {
     }
 
     #[test]
-    fn water_heater_and_fridge_thermal_port_points() {
+    fn water_heater_fridge_and_hvac_thermal_port_points() {
         let wh = typical_capability(ApplianceClassId::WaterHeater).unwrap();
         assert!(wh
             .class_points
@@ -451,6 +451,25 @@ mod tests {
                 &Value::String("dhw-tank".into()),
             )
             .unwrap();
+
+        let hvac = typical_capability(ApplianceClassId::Hvac).unwrap();
+        assert!(hvac
+            .class_points
+            .iter()
+            .any(|p| p.id == "class.hvac.thermal_port_attached_reservoir_id"));
+        hvac.validate_write(
+            "class.hvac.thermal_port_attached_reservoir_id",
+            &Value::String("chw-buffer".into()),
+        )
+        .unwrap();
+        let err = hvac
+            .validate_write(
+                "class.hvac.thermal_port_direction",
+                &Value::Enum("source".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+
         // Freezer keeps cold-cabinet points only (no thermal port surface yet).
         let freezer = typical_capability(ApplianceClassId::Freezer).unwrap();
         assert!(!freezer

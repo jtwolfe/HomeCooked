@@ -215,18 +215,23 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
         "thermal_port_id" => match ctx.identity.class_id {
             ApplianceClassId::WaterHeater => Value::String("preheat".into()),
             ApplianceClassId::Fridge => Value::String("condenser".into()),
+            // Hydronic space-heating coil (not the air-condenser reject port used in plant media-mismatch demos).
+            ApplianceClassId::Hvac => Value::String("coil".into()),
             _ => Value::String(String::new()),
         },
         "thermal_port_direction" => match ctx.identity.class_id {
             ApplianceClassId::WaterHeater => Value::Enum("sink".into()),
             ApplianceClassId::Fridge => Value::Enum("source".into()),
+            // Sink: space heating drawing from a hot plant reservoir (thermal-plant.md comfort priority).
+            ApplianceClassId::Hvac => Value::Enum("sink".into()),
             _ => first_enum(point).unwrap_or_else(|| Value::Enum("unknown".into())),
         },
-        // Align with `ThermalPlant::fridge_condenser_dhw_demo` (Media::Water).
+        // Water_heater/fridge: plant demo Media::Water. HVAC: hydronic coil loop (water).
         "thermal_port_media" => Value::Enum("water".into()),
         "thermal_port_max_power_w" => match ctx.identity.class_id {
             ApplianceClassId::WaterHeater => Value::F32(2_000.0),
             ApplianceClassId::Fridge => Value::F32(120.0),
+            ApplianceClassId::Hvac => Value::F32(5_000.0),
             _ => Value::F32(0.0),
         },
         "thermal_port_attached_reservoir_id" => Value::String(String::new()),

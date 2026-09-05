@@ -1315,6 +1315,8 @@ appliance.
   or rejected `unsupported_operation`; devices advertise which.
 - Gas furnaces and boilers used only as HVAC plants may be `hvac` (thermostat
   face) with `boiler` as a separate plant device if both are connected.
+- Optional `thermal_port_*` class points advertise a hydronic coil heat port
+  for plant coupling (device telemetry; plant objects stay in `homecooked-thermal`).
 
 ### `dehumidifier`
 
