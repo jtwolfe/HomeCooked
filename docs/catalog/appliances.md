@@ -1323,12 +1323,17 @@ Dedicated countertop steam cooker / food steamer (not a steam oven cavity).
 **Typical traits:** `identity`, `power`, `connectivity`, `temperature`, `cycle`,
 `heater`, `water`, `time_schedule`, `fault`, `energy`, `safety`.
 
-**Typical controllable settings:** duration, programs per tray, keep-warm.
+**Typical controllable settings:** cook duration; sabbath / eco; delay timer.
 
-**Typical readable state:** steaming, water empty, remaining, done.
+**Typical readable state:** steaming, water empty, heater on, high-temp alarm,
+lid open, steam ready, remaining / done.
 
 **Notes:** Steam ovens are `steam_oven`. Rice-cooker steam trays stay
 `rice_cooker`.
+
+- Catalog depth: optional class points include sabbath, eco, `heater_on`,
+  `high_temp_alarm`, `lid_open`, `steam_ready`, and `timer_s`, plus required
+  `cook_s` / `water_empty` (see variables-and-settings).
 
 ---
 

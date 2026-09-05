@@ -10,7 +10,7 @@ of truth**; code must track `docs/catalog/` and `docs/standard/`.
 
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — ~75% of §2 in-scope bar **met in spirit**
   (lab/software depth; catalog optional depth improved via deepen series incl.
-  `beverage_cooler` / `kegerator` / `warming_drawer` / `pizza_oven` / `electric_grill` / `electric_smoker` / `espresso_machine` / `drip_coffee_maker` / `coffee_grinder` / `water_dispenser` / `toaster` / `blender` / `food_processor` / `stand_mixer` / `juicer` / `rice_cooker` / `slow_cooker` / `bread_maker` / `dehydrator` / `vacuum_sealer` / `ice_cream_maker` / `yogurt_maker` / `waffle_maker` / `pasta_maker`; not catalog-complete — 6/31 Tier-B still thin); Tier-A/B classes, workstreams,
+  `beverage_cooler` / `kegerator` / `warming_drawer` / `pizza_oven` / `electric_grill` / `electric_smoker` / `espresso_machine` / `drip_coffee_maker` / `coffee_grinder` / `water_dispenser` / `toaster` / `blender` / `food_processor` / `stand_mixer` / `juicer` / `rice_cooker` / `slow_cooker` / `bread_maker` / `dehydrator` / `vacuum_sealer` / `ice_cream_maker` / `yogurt_maker` / `waffle_maker` / `pasta_maker` / `steam_cooker`; not catalog-complete — 5/31 Tier-B still thin); Tier-A/B classes, workstreams,
   `thermal_offer` + dryer cycle TCP called out; definitions of done
 - [`docs/catalog/appliances.md`](docs/catalog/appliances.md) — appliance classes
   (ids, settings, state, composition, safety notes)

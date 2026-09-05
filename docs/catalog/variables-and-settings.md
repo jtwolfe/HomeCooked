@@ -1592,8 +1592,15 @@ Cycle remaining via `trait.cycle.remaining_s`. Setpoint resolution typically 0.1
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `cook_s` | duration_s | second | 1–7200 | r/w | req | |
-| `water_empty` | bool | — | | r/e | req | |
+| `cook_s` | duration_s | second | 1–7200 | r/w | req | Steam cook duration |
+| `water_empty` | bool | — | | r/e | req | Reservoir / tank empty |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving steam profile |
+| `heater_on` | bool | — | | r/e | opt | Steam heater / boiler active |
+| `high_temp_alarm` | bool | — | | r/e | opt | Over-temperature alarm |
+| `lid_open` | bool | — | | r/e | opt | Lid / door ajar |
+| `steam_ready` | bool | — | | r/e | opt | Steam generator at cook temperature |
+| `timer_s` | duration_s | second | 0–7200 | r/w/e | opt | Delay start / remaining timer |
 
 ---
 

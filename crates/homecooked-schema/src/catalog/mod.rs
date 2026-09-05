@@ -851,6 +851,19 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "timer_s"
         );
     }
+    // Stream 7 catalog depth: steam_cooker optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::SteamCooker {
+        return matches!(
+            point.id,
+            "sabbath_mode"
+                | "eco_mode"
+                | "heater_on"
+                | "high_temp_alarm"
+                | "lid_open"
+                | "steam_ready"
+                | "timer_s"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -3424,6 +3437,55 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.pasta_maker.overload_trip", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn steam_cooker_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::SteamCooker).unwrap();
+        for id in [
+            "class.steam_cooker.cook_s",
+            "class.steam_cooker.water_empty",
+            "class.steam_cooker.sabbath_mode",
+            "class.steam_cooker.eco_mode",
+            "class.steam_cooker.heater_on",
+            "class.steam_cooker.high_temp_alarm",
+            "class.steam_cooker.lid_open",
+            "class.steam_cooker.steam_ready",
+            "class.steam_cooker.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical steam_cooker"
+            );
+        }
+        cap.validate_write("class.steam_cooker.cook_s", &Value::DurationS(1200))
+            .unwrap();
+        cap.validate_write("class.steam_cooker.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.steam_cooker.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.steam_cooker.timer_s", &Value::DurationS(600))
+            .unwrap();
+        let err = cap
+            .validate_write("class.steam_cooker.water_empty", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.steam_cooker.heater_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.steam_cooker.high_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.steam_cooker.lid_open", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.steam_cooker.steam_ready", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }
