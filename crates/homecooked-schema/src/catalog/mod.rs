@@ -316,6 +316,36 @@ fn extra_typical_trait_point(table: &ClassTable, trait_id: TraitId, point: &Cata
 
 /// Optional class points that the typical model still advertises for demos.
 fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
+    // Stream 7 undepened Tier-A deepen: water_heater optional telemetry/settings.
+    // Advertise thin-table mode/inlet_c/outlet_c/hot_remaining_percent/leak/
+    // dry_fire/recirc_on/form_factor; add depth sabbath/eco/heater_on/
+    // high_temp_alarm/low_temp_alarm/leak_alarm/timer_s. Do not duplicate
+    // Temperature setpoint or thermal_port_* (fall through to Stream 5 check).
+    // Mode enum already includes vacation — no vacation_mode bool. Heater trait
+    // already typical — class heater_on is compact RE (kettle / boiler template).
+    // Fall-through pattern (Fridge/Dishwasher): return true only on match.
+    if table.class_id == ApplianceClassId::WaterHeater
+        && matches!(
+            point.id,
+            "mode"
+                | "inlet_c"
+                | "outlet_c"
+                | "hot_remaining_percent"
+                | "leak"
+                | "dry_fire"
+                | "recirc_on"
+                | "form_factor"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "heater_on"
+                | "high_temp_alarm"
+                | "low_temp_alarm"
+                | "leak_alarm"
+                | "timer_s"
+        )
+    {
+        return true;
+    }
     // Stream 7 undepened Tier-A deepen: kettle optional telemetry/settings.
     // Advertise thin-table keep_warm/keep_warm_s/boil_dry; add depth
     // sabbath/eco/heater_on/high_temp_alarm/lid_open/timer_s.
@@ -5384,6 +5414,131 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.coffee_machine.capsule_present", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn water_heater_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::WaterHeater).unwrap();
+        for id in [
+            // Thin-table DHW surface advertised in typical.
+            "class.water_heater.mode",
+            "class.water_heater.inlet_c",
+            "class.water_heater.outlet_c",
+            "class.water_heater.hot_remaining_percent",
+            "class.water_heater.leak",
+            "class.water_heater.dry_fire",
+            "class.water_heater.recirc_on",
+            "class.water_heater.form_factor",
+            // Depth points.
+            "class.water_heater.sabbath_mode",
+            "class.water_heater.eco_mode",
+            "class.water_heater.heater_on",
+            "class.water_heater.high_temp_alarm",
+            "class.water_heater.low_temp_alarm",
+            "class.water_heater.leak_alarm",
+            "class.water_heater.timer_s",
+            // Thermal-port surface still present (unchanged).
+            "class.water_heater.thermal_port_id",
+            "class.water_heater.thermal_port_attached_reservoir_id",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical water_heater"
+            );
+        }
+        // Heater trait already typical.
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Heater)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.heater.heater_state"));
+        // Single kitchen timer_s; leak distinct from leak_alarm; no vacation_mode
+        // bool beside mode enum vacation token.
+        assert_eq!(
+            cap.class_points
+                .iter()
+                .filter(|p| p.id == "class.water_heater.timer_s")
+                .count(),
+            1
+        );
+        assert_eq!(
+            cap.class_points
+                .iter()
+                .filter(|p| p.id == "class.water_heater.leak")
+                .count(),
+            1
+        );
+        assert_eq!(
+            cap.class_points
+                .iter()
+                .filter(|p| p.id == "class.water_heater.leak_alarm")
+                .count(),
+            1
+        );
+        assert!(!cap
+            .class_points
+            .iter()
+            .any(|p| p.id == "class.water_heater.vacation_mode"));
+
+        cap.validate_write("class.water_heater.mode", &Value::Enum("vacation".into()))
+            .unwrap();
+        cap.validate_write("class.water_heater.recirc_on", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.water_heater.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.water_heater.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.water_heater.timer_s", &Value::DurationS(900))
+            .unwrap();
+        let err = cap
+            .validate_write("class.water_heater.inlet_c", &Value::F32(15.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.water_heater.outlet_c", &Value::F32(55.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write(
+                "class.water_heater.hot_remaining_percent",
+                &Value::Percent(50.0),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.water_heater.leak", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.water_heater.dry_fire", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write(
+                "class.water_heater.form_factor",
+                &Value::Enum("tankless".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.water_heater.heater_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.water_heater.high_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.water_heater.low_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.water_heater.leak_alarm", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }

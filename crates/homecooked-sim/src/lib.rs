@@ -7534,6 +7534,170 @@ mod tests {
     }
 
     #[test]
+    fn water_heater_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let wh = sim.spawn(ApplianceClassId::WaterHeater).unwrap();
+
+        assert_eq!(
+            sim.read_value(&wh, "class.water_heater.mode").unwrap(),
+            Value::Enum("heat_pump".into())
+        );
+        assert_eq!(
+            sim.read_value(&wh, "class.water_heater.inlet_c").unwrap(),
+            Value::F32(0.0)
+        );
+        assert_eq!(
+            sim.read_value(&wh, "class.water_heater.outlet_c").unwrap(),
+            Value::F32(0.0)
+        );
+        assert_eq!(
+            sim.read_value(&wh, "class.water_heater.hot_remaining_percent")
+                .unwrap(),
+            Value::Percent(0.0)
+        );
+        assert_eq!(
+            sim.read_value(&wh, "class.water_heater.leak").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wh, "class.water_heater.dry_fire").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wh, "class.water_heater.recirc_on").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wh, "class.water_heater.form_factor")
+                .unwrap(),
+            Value::Enum("tank".into())
+        );
+        assert_eq!(
+            sim.read_value(&wh, "class.water_heater.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wh, "class.water_heater.eco_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wh, "class.water_heater.heater_on").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wh, "class.water_heater.high_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wh, "class.water_heater.low_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wh, "class.water_heater.leak_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&wh, "class.water_heater.timer_s").unwrap(),
+            Value::DurationS(0)
+        );
+        // Thermal-port surface unchanged.
+        assert_eq!(
+            sim.read_value(&wh, "class.water_heater.thermal_port_id")
+                .unwrap(),
+            Value::String("preheat".into())
+        );
+
+        sim.write(
+            &wh,
+            "class.water_heater.mode",
+            Value::Enum("vacation".into()),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&wh, "class.water_heater.mode").unwrap(),
+            Value::Enum("vacation".into())
+        );
+        sim.write(&wh, "class.water_heater.recirc_on", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&wh, "class.water_heater.recirc_on").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&wh, "class.water_heater.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&wh, "class.water_heater.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&wh, "class.water_heater.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&wh, "class.water_heater.eco_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&wh, "class.water_heater.timer_s", Value::DurationS(1200))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&wh, "class.water_heater.timer_s").unwrap(),
+            Value::DurationS(1200)
+        );
+
+        let err = sim
+            .write(&wh, "class.water_heater.inlet_c", Value::F32(15.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&wh, "class.water_heater.outlet_c", Value::F32(55.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &wh,
+                "class.water_heater.hot_remaining_percent",
+                Value::Percent(50.0),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&wh, "class.water_heater.leak", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&wh, "class.water_heater.dry_fire", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &wh,
+                "class.water_heater.form_factor",
+                Value::Enum("tankless".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&wh, "class.water_heater.heater_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&wh, "class.water_heater.high_temp_alarm", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&wh, "class.water_heater.low_temp_alarm", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&wh, "class.water_heater.leak_alarm", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn kettle_optional_depth_points_read_and_write() {
         let mut sim = Simulator::new();
         let k = sim.spawn(ApplianceClassId::Kettle).unwrap();

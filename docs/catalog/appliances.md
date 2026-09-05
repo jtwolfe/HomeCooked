@@ -1502,6 +1502,12 @@ instrumented tankless) for potable water. Not a space-heating boiler.
 - Distinct from `boiler` (hydronic / space heat) and `kettle` (countertop).
 - Optional `thermal_port_*` class points advertise a DHW-preheat heat port
   (device telemetry surface; plant objects stay in `homecooked-thermal`).
+- Catalog depth: optional sabbath/eco/heater_on/high_temp_alarm/low_temp_alarm/
+  leak_alarm/timer_s; typical also advertises thin-table mode/inlet_c/outlet_c/
+  hot_remaining_percent/leak/dry_fire/recirc_on/form_factor. Temperature setpoint
+  + `thermal_port_*` unchanged. Mode enum already includes `vacation` (no
+  parallel `vacation_mode` bool). `leak_alarm` is compact RE beside thin `leak`.
+  Boiler / kettle template (`heater_on` pairs with Heater trait).
 
 ### `boiler`
 

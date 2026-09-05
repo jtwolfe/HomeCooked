@@ -1776,6 +1776,13 @@ Cycle remaining via `trait.cycle.remaining_s`. Setpoint resolution typically 0.1
 | `dry_fire` | bool | — | | r/e | opt | |
 | `recirc_on` | bool | — | | r/w/e | opt | |
 | `form_factor` | enum | — | `tank` `tankless` `heat_pump` | r | opt | |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving heat-pump / hybrid profile |
+| `heater_on` | bool | — | | r/e | opt | Element / compressor active (compact RE) |
+| `high_temp_alarm` | bool | — | | r/e | opt | Overtemp / T&P high |
+| `low_temp_alarm` | bool | — | | r/e | opt | Undertemp / recovery low |
+| `leak_alarm` | bool | — | | r/e | opt | Compact leak inhibit (beside `leak`) |
+| `timer_s` | duration_s | second | 0–3600 | r/w/e | opt | Delay start / remaining timer |
 | `thermal_port_id` | string | — | local port id | r | opt | Device heat port (e.g. `preheat`); see thermal-plant |
 | `thermal_port_direction` | enum | — | `source` `sink` `bidirectional` | r | opt | Seed `sink` (DHW preheat) |
 | `thermal_port_media` | enum | — | `water` `air` `glycol` `refrigerant_proxy` `unknown` | r | opt | Seed `water` |
