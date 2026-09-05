@@ -1193,6 +1193,202 @@ mod tests {
     }
 
     #[test]
+    fn steam_oven_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let steam = sim.spawn(ApplianceClassId::SteamOven).unwrap();
+
+        assert_eq!(
+            sim.read_value(&steam, "class.steam_oven.steam_mode")
+                .unwrap(),
+            Value::Enum("steam".into())
+        );
+        assert_eq!(
+            sim.read_value(&steam, "class.steam_oven.water_tank")
+                .unwrap(),
+            Value::Enum("ok".into())
+        );
+        assert_eq!(
+            sim.read_value(&steam, "class.steam_oven.humidity_set_percent")
+                .unwrap(),
+            Value::Percent(60.0)
+        );
+        assert_eq!(
+            sim.read_value(&steam, "class.steam_oven.water_tank_level")
+                .unwrap(),
+            Value::Percent(85.0)
+        );
+        assert_eq!(
+            sim.read_value(&steam, "class.steam_oven.descaling_needed")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&steam, "class.steam_oven.steam_generator_on")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&steam, "class.steam_oven.cavity_humidity")
+                .unwrap(),
+            Value::Percent(45.0)
+        );
+        assert_eq!(
+            sim.read_value(&steam, "class.steam_oven.door_locked")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&steam, "class.steam_oven.drain_full")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&steam, "class.steam_oven.generator_fault")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&steam, "class.steam_oven.delayed_start_s")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&steam, "class.steam_oven.steam_percent")
+                .unwrap(),
+            Value::Percent(40.0)
+        );
+        assert_eq!(
+            sim.read_value(&steam, "trait.cycle.remaining_s").unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&steam, "trait.water.hardness_ppm").unwrap(),
+            Value::U16(120)
+        );
+
+        sim.write(
+            &steam,
+            "class.steam_oven.steam_mode",
+            Value::Enum("combi".into()),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&steam, "class.steam_oven.steam_mode")
+                .unwrap(),
+            Value::Enum("combi".into())
+        );
+        sim.write(
+            &steam,
+            "class.steam_oven.humidity_set_percent",
+            Value::Percent(80.0),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&steam, "class.steam_oven.humidity_set_percent")
+                .unwrap(),
+            Value::Percent(80.0)
+        );
+        sim.write(
+            &steam,
+            "class.steam_oven.delayed_start_s",
+            Value::DurationS(900),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&steam, "class.steam_oven.delayed_start_s")
+                .unwrap(),
+            Value::DurationS(900)
+        );
+        sim.write(&steam, "class.steam_oven.convection_fan", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&steam, "class.steam_oven.convection_fan")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(
+            &steam,
+            "class.steam_oven.steam_percent",
+            Value::Percent(55.0),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&steam, "class.steam_oven.steam_percent")
+                .unwrap(),
+            Value::Percent(55.0)
+        );
+        sim.write(&steam, "class.steam_oven.cook_s", Value::DurationS(2400))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&steam, "class.steam_oven.cook_s").unwrap(),
+            Value::DurationS(2400)
+        );
+        sim.write(&steam, "trait.water.hardness_ppm", Value::U16(180))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&steam, "trait.water.hardness_ppm").unwrap(),
+            Value::U16(180)
+        );
+
+        let err = sim
+            .write(
+                &steam,
+                "class.steam_oven.water_tank_level",
+                Value::Percent(50.0),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &steam,
+                "class.steam_oven.descaling_needed",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &steam,
+                "class.steam_oven.steam_generator_on",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &steam,
+                "class.steam_oven.cavity_humidity",
+                Value::Percent(30.0),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&steam, "class.steam_oven.door_locked", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&steam, "class.steam_oven.drain_full", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &steam,
+                "class.steam_oven.generator_fault",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &steam,
+                "class.steam_oven.water_tank",
+                Value::Enum("low".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {

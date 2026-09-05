@@ -256,6 +256,26 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             ApplianceClassId::RangeHood => Value::Percent(70.0),
             _ => Value::Percent(0.0),
         },
+        "water_tank_level" => match ctx.identity.class_id {
+            ApplianceClassId::SteamOven => Value::Percent(85.0),
+            _ => Value::Percent(0.0),
+        },
+        "cavity_humidity" => match ctx.identity.class_id {
+            ApplianceClassId::SteamOven => Value::Percent(45.0),
+            _ => Value::Percent(0.0),
+        },
+        "humidity_set_percent" => match ctx.identity.class_id {
+            ApplianceClassId::SteamOven => Value::Percent(60.0),
+            _ => Value::Percent(0.0),
+        },
+        "steam_percent" => match ctx.identity.class_id {
+            ApplianceClassId::SteamOven => Value::Percent(40.0),
+            _ => Value::Percent(0.0),
+        },
+        "hardness_ppm" => match ctx.identity.class_id {
+            ApplianceClassId::SteamOven => Value::U16(120),
+            _ => Value::U16(int_min(point, 0) as u16),
+        },
         "water_temp_c" => match ctx.identity.class_id {
             ApplianceClassId::IceMaker => Value::F32(12.0),
             _ => Value::F32(numeric_default(point)),

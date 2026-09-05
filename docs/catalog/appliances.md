@@ -540,22 +540,26 @@ Cavity whose primary heat/moisture source is steam (combi-steam included).
 
 **Typical traits:** `oven` traits plus `water`, `humidity`, `filter` (descale).
 
-**Typical controllable settings:**
+**Typical controllable settings:** steam / combi / convection / sous-vide modes
+(`steam_mode`), temperature, humidity or steam intensity
+(`humidity_set_percent` / `steam_percent`), cook duration (`cook_s`), delayed
+start, convection fan, water hardness (`trait.water.hardness_ppm`).
 
-- Steam / combi / convection / sous-vide modes
-- Temperature, humidity or steam intensity, duration
-- Descale / rinse, water hardness
-
-**Typical readable state:**
-
-- Cavity temp and humidity, water tank level, drain, descale due
-- Door, cycle phase, generator faults, overheat
+**Typical readable state:** cavity temp and humidity (`cavity_humidity`), water
+tank status / level, drain full, descaling needed, steam generator on / fault,
+door locked (cook) / pyro lock, cycle remaining, bake/broil elements.
 
 **Notes:**
 
 - Hybrid ovens that steam-assist a conventional bake still use `oven` with a
   steam option. Use `steam_oven` when steam is a first-class mode family.
 - Empty tank is `busy` / fault, not a successful start.
+- Catalog depth: optional class points include water_tank_level /
+  descaling_needed / steam_generator_on / cavity_humidity / door_locked /
+  drain_full / generator_fault / delayed_start_s plus existing
+  humidity_set_percent and oven-shared convection / steam / cook / elements /
+  pyro lock; typical also advertises `trait.cycle.remaining_s` and
+  `trait.water.hardness_ppm`.
 
 ### `toaster_oven`
 

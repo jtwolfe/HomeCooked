@@ -878,13 +878,26 @@ setpoint writes → `busy`.
 
 ### Class `steam_oven`
 
-Oven points plus:
+Oven points plus steam-specific. Oven-shared optional points (`broil_level`,
+`convection_fan`, `steam_percent`, `cook_s`, `door_locked_clean`,
+`element_bake`, `element_broil`, …) plus:
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `steam_mode` | enum | — | `steam` `combi` `convection` `sous_vide` `reheat` `descale` | r/w | req | |
-| `humidity_set_percent` | percent | percent | 0–100 | r/w | opt | Combi |
-| `water_tank` | enum | — | `ok` `low` `empty` `missing` | r/e | req | |
+| `steam_mode` | enum | — | `steam` `combi` `convection` `sous_vide` `reheat` `descale` | r/w | req | Primary steam / combi mode family |
+| `humidity_set_percent` | percent | percent | 0–100 | r/w | opt | Combi humidity / steam intensity setpoint |
+| `water_tank` | enum | — | `ok` `low` `empty` `missing` | r/e | req | Tank status |
+| `water_tank_level` | percent | percent | 0–100 | r/e | opt | Fine tank fill level |
+| `descaling_needed` | bool | — | | r/e | opt | Descale due indicator |
+| `steam_generator_on` | bool | — | | r/e | opt | Steam generator / boiler active |
+| `cavity_humidity` | percent | percent | 0–100 | r/e | opt | Sensed cavity humidity |
+| `door_locked` | bool | — | | r/e | opt | Cooking door lock (distinct from pyro `door_locked_clean`) |
+| `drain_full` | bool | — | | r/e | opt | Condensate drain container full |
+| `generator_fault` | bool | — | | r/e | opt | Steam generator fault |
+| `delayed_start_s` | duration_s | second | 0–86400 | r/w | opt | Delayed cook start |
+
+Cycle remaining via `trait.cycle.remaining_s`; water hardness via
+`trait.water.hardness_ppm`.
 
 ---
 

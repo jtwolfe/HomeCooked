@@ -245,6 +245,15 @@ fn extra_typical_trait_point(table: &ClassTable, trait_id: TraitId, point: &Cata
             return true;
         }
     }
+    // Steam oven: cycle remaining + water hardness are typical.
+    if table.class_id == ApplianceClassId::SteamOven {
+        if trait_id == TraitId::Cycle && point.id == "remaining_s" {
+            return true;
+        }
+        if trait_id == TraitId::Water && point.id == "hardness_ppm" {
+            return true;
+        }
+    }
     false
 }
 
@@ -376,6 +385,28 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "hob_linked"
                 | "overtemp"
                 | "charcoal_filter_life_percent"
+        );
+    }
+    // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::SteamOven {
+        return matches!(
+            point.id,
+            "humidity_set_percent"
+                | "water_tank_level"
+                | "descaling_needed"
+                | "steam_generator_on"
+                | "cavity_humidity"
+                | "door_locked"
+                | "drain_full"
+                | "generator_fault"
+                | "delayed_start_s"
+                | "steam_percent"
+                | "convection_fan"
+                | "broil_level"
+                | "cook_s"
+                | "element_bake"
+                | "element_broil"
+                | "door_locked_clean"
         );
     }
     // Stream 5: device-facing thermal-port surface on Tier-A water_heater / fridge / hvac / dishwasher / dryer.
@@ -1148,6 +1179,109 @@ mod tests {
                 "class.range_hood.charcoal_filter_life_percent",
                 &Value::Percent(50.0),
             )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn steam_oven_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::SteamOven).unwrap();
+        for id in [
+            "class.steam_oven.steam_mode",
+            "class.steam_oven.water_tank",
+            "class.steam_oven.humidity_set_percent",
+            "class.steam_oven.water_tank_level",
+            "class.steam_oven.descaling_needed",
+            "class.steam_oven.steam_generator_on",
+            "class.steam_oven.cavity_humidity",
+            "class.steam_oven.door_locked",
+            "class.steam_oven.drain_full",
+            "class.steam_oven.generator_fault",
+            "class.steam_oven.delayed_start_s",
+            "class.steam_oven.steam_percent",
+            "class.steam_oven.convection_fan",
+            "class.steam_oven.broil_level",
+            "class.steam_oven.cook_s",
+            "class.steam_oven.element_bake",
+            "class.steam_oven.element_broil",
+            "class.steam_oven.door_locked_clean",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical steam_oven"
+            );
+        }
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Cycle)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.cycle.remaining_s"));
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Water)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.water.hardness_ppm"));
+        cap.validate_write("class.steam_oven.steam_mode", &Value::Enum("combi".into()))
+            .unwrap();
+        cap.validate_write(
+            "class.steam_oven.humidity_set_percent",
+            &Value::Percent(70.0),
+        )
+        .unwrap();
+        cap.validate_write("class.steam_oven.delayed_start_s", &Value::DurationS(600))
+            .unwrap();
+        cap.validate_write("class.steam_oven.steam_percent", &Value::Percent(50.0))
+            .unwrap();
+        cap.validate_write("class.steam_oven.convection_fan", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.steam_oven.cook_s", &Value::DurationS(1800))
+            .unwrap();
+        cap.validate_write("trait.water.hardness_ppm", &Value::U16(120))
+            .unwrap();
+        let err = cap
+            .validate_write("class.steam_oven.water_tank", &Value::Enum("ok".into()))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.steam_oven.water_tank_level", &Value::Percent(50.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.steam_oven.descaling_needed", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.steam_oven.steam_generator_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.steam_oven.cavity_humidity", &Value::Percent(40.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.steam_oven.door_locked", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.steam_oven.drain_full", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.steam_oven.generator_fault", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.steam_oven.element_bake", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.steam_oven.door_locked_clean", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }
