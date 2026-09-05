@@ -880,6 +880,21 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "timer_s"
         );
     }
+    // Stream 7 catalog depth: trash_compactor optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::TrashCompactor {
+        return matches!(
+            point.id,
+            "ram_state"
+                | "bin_full"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "motor_on"
+                | "drawer_open"
+                | "overload_trip"
+                | "key_lock"
+                | "timer_s"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -3550,6 +3565,55 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.garbage_disposal.overload_trip", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn trash_compactor_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::TrashCompactor).unwrap();
+        for id in [
+            "class.trash_compactor.ram_state",
+            "class.trash_compactor.bin_full",
+            "class.trash_compactor.sabbath_mode",
+            "class.trash_compactor.eco_mode",
+            "class.trash_compactor.motor_on",
+            "class.trash_compactor.drawer_open",
+            "class.trash_compactor.overload_trip",
+            "class.trash_compactor.key_lock",
+            "class.trash_compactor.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical trash_compactor"
+            );
+        }
+        cap.validate_write("class.trash_compactor.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.trash_compactor.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.trash_compactor.key_lock", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.trash_compactor.timer_s", &Value::DurationS(30))
+            .unwrap();
+        let err = cap
+            .validate_write("class.trash_compactor.ram_state", &Value::Enum("up".into()))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.trash_compactor.bin_full", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.trash_compactor.motor_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.trash_compactor.drawer_open", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.trash_compactor.overload_trip", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }

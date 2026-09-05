@@ -1370,11 +1370,17 @@ Kitchen trash compactor.
 **Typical traits:** `identity`, `power`, `connectivity`, `motor`, `cycle`,
 `door_lid`, `child_lock`, `fault`, `energy`, `safety`.
 
-**Typical controllable settings:** compact cycle, lock.
+**Typical controllable settings:** compact cycle; sabbath / eco; key lock;
+delay timer. Child lock via trait.
 
-**Typical readable state:** running, drawer closed, ram position, jam, full.
+**Typical readable state:** ram state, bin full, motor on, drawer open,
+overload trip.
 
 **Notes:** Child lock is expected. Remote compact only with drawer closed.
+
+- Catalog depth: optional class points include sabbath, eco, `motor_on`,
+  `drawer_open`, `overload_trip`, `key_lock`, and `timer_s`, plus thin-table
+  `ram_state` / `bin_full` (see variables-and-settings).
 
 ### `water_heater`
 

@@ -1626,8 +1626,15 @@ Cycle remaining via `trait.cycle.remaining_s`. Setpoint resolution typically 0.1
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `ram_state` | enum | — | `up` `down` `moving` `jam` | r/e | opt | |
-| `bin_full` | bool | — | | r/e | opt | |
+| `ram_state` | enum | — | `up` `down` `moving` `jam` | r/e | opt | Compactor ram position / motion |
+| `bin_full` | bool | — | | r/e | opt | Compaction bin / bag full |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving compact profile |
+| `motor_on` | bool | — | | r/e | opt | Compactor drive motor running |
+| `drawer_open` | bool | — | | r/e | opt | Drawer / door open (interlocks compact) |
+| `overload_trip` | bool | — | | r/e | opt | Overcurrent / thermal overload trip |
+| `key_lock` | bool | — | | r/w/e | opt | Physical key lock engaged |
+| `timer_s` | duration_s | second | 0–3600 | r/w/e | opt | Delay start / remaining timer |
 
 ---
 

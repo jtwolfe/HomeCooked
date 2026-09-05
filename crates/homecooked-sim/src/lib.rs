@@ -5243,6 +5243,116 @@ mod tests {
     }
 
     #[test]
+    fn trash_compactor_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let tc = sim.spawn(ApplianceClassId::TrashCompactor).unwrap();
+
+        assert_eq!(
+            sim.read_value(&tc, "class.trash_compactor.ram_state")
+                .unwrap(),
+            Value::Enum("up".into())
+        );
+        assert_eq!(
+            sim.read_value(&tc, "class.trash_compactor.bin_full")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&tc, "class.trash_compactor.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&tc, "class.trash_compactor.eco_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&tc, "class.trash_compactor.motor_on")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&tc, "class.trash_compactor.drawer_open")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&tc, "class.trash_compactor.overload_trip")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&tc, "class.trash_compactor.key_lock")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&tc, "class.trash_compactor.timer_s")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+
+        sim.write(&tc, "class.trash_compactor.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&tc, "class.trash_compactor.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&tc, "class.trash_compactor.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&tc, "class.trash_compactor.eco_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&tc, "class.trash_compactor.key_lock", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&tc, "class.trash_compactor.key_lock")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&tc, "class.trash_compactor.timer_s", Value::DurationS(45))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&tc, "class.trash_compactor.timer_s")
+                .unwrap(),
+            Value::DurationS(45)
+        );
+
+        let err = sim
+            .write(
+                &tc,
+                "class.trash_compactor.ram_state",
+                Value::Enum("down".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&tc, "class.trash_compactor.bin_full", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&tc, "class.trash_compactor.motor_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&tc, "class.trash_compactor.drawer_open", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &tc,
+                "class.trash_compactor.overload_trip",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {
