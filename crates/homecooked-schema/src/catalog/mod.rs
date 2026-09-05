@@ -431,6 +431,27 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "night_mode"
         );
     }
+    // Stream 7 catalog depth: freezer optional telemetry/settings in typical sim.
+    // Includes shared cold-cabinet points + freezer-only extras (fridge_freezer stays thin).
+    if table.class_id == ApplianceClassId::Freezer {
+        return matches!(
+            point.id,
+            "vacation_mode"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "defrost_active"
+                | "compressor_on"
+                | "high_temp_alarm"
+                | "power_fail_ms"
+                | "fast_freeze"
+                | "door_ajar"
+                | "ice_buildup"
+                | "low_temp_alarm"
+                | "anti_sweat"
+                | "fast_freeze_remaining_s"
+                | "frost_clean_needed"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -1497,6 +1518,95 @@ mod tests {
     }
 
     #[test]
+    fn freezer_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::Freezer).unwrap();
+        for id in [
+            "class.freezer.vacation_mode",
+            "class.freezer.sabbath_mode",
+            "class.freezer.eco_mode",
+            "class.freezer.defrost_active",
+            "class.freezer.compressor_on",
+            "class.freezer.high_temp_alarm",
+            "class.freezer.power_fail_ms",
+            "class.freezer.fast_freeze",
+            "class.freezer.door_ajar",
+            "class.freezer.ice_buildup",
+            "class.freezer.low_temp_alarm",
+            "class.freezer.anti_sweat",
+            "class.freezer.fast_freeze_remaining_s",
+            "class.freezer.frost_clean_needed",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical freezer"
+            );
+        }
+        // No thermal-port surface on freezer (fridge owns condenser ports).
+        assert!(!cap
+            .class_points
+            .iter()
+            .any(|p| p.id.contains("thermal_port_")));
+
+        cap.validate_write("class.freezer.fast_freeze", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.freezer.anti_sweat", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.freezer.vacation_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.freezer.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.freezer.eco_mode", &Value::Bool(true))
+            .unwrap();
+
+        let err = cap
+            .validate_write("class.freezer.door_ajar", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.freezer.ice_buildup", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.freezer.low_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.freezer.frost_clean_needed", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write(
+                "class.freezer.fast_freeze_remaining_s",
+                &Value::DurationS(60),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.freezer.defrost_active", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.freezer.compressor_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.freezer.high_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+
+        // fridge_freezer keeps shared cold-cabinet only — no freezer-only extras.
+        let ff = typical_capability(ApplianceClassId::FridgeFreezer).unwrap();
+        assert!(!ff
+            .class_points
+            .iter()
+            .any(|p| p.id == "class.fridge_freezer.fast_freeze"));
+        assert!(!ff
+            .class_points
+            .iter()
+            .any(|p| p.id.contains("thermal_port_")));
+    }
+
+    #[test]
     fn sous_vide_optional_depth_points_in_typical() {
         let cap = typical_capability(ApplianceClassId::SousVide).unwrap();
         for id in [
@@ -1639,12 +1749,16 @@ mod tests {
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
 
-        // Freezer keeps cold-cabinet points only (no thermal port surface yet).
+        // Freezer has cold-cabinet + freezer-only depth (no thermal port surface).
         let freezer = typical_capability(ApplianceClassId::Freezer).unwrap();
         assert!(!freezer
             .class_points
             .iter()
             .any(|p| p.id.contains("thermal_port_")));
+        assert!(freezer
+            .class_points
+            .iter()
+            .any(|p| p.id == "class.freezer.fast_freeze"));
     }
 
     #[test]

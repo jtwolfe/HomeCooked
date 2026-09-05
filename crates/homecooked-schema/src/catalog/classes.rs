@@ -564,6 +564,71 @@ const DRYER_POINTS: &[CatalogPoint] = &DRYER_MERGED;
 const FRIDGE_MERGED: [CatalogPoint; 12] = concat2(COLD_CABINET_POINTS, THERMAL_PORT_POINTS);
 const FRIDGE_POINTS: &[CatalogPoint] = &FRIDGE_MERGED;
 
+/// Freezer-only optional depth (Stream 7). Shared cold-cabinet points stay on
+/// `COLD_CABINET_POINTS` for fridge_freezer; freezer merges extras like fridge
+/// merges thermal ports — without attaching a thermal-port surface.
+static FREEZER_EXTRA: &[CatalogPoint] = &[
+    s(
+        "fast_freeze",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    ),
+    v(
+        "door_ajar",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "ice_buildup",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "low_temp_alarm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "anti_sweat",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "fast_freeze_remaining_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 86400),
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "frost_clean_needed",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+];
+
+const FREEZER_MERGED: [CatalogPoint; 14] = concat2(COLD_CABINET_POINTS, FREEZER_EXTRA);
+const FREEZER_POINTS: &[CatalogPoint] = &FREEZER_MERGED;
+
 const DISHWASHER_TRAITS: &[TraitId] = &[
     TraitId::Identity,
     TraitId::Power,
@@ -4212,7 +4277,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         class_id: ApplianceClassId::Freezer,
         typical_traits: FREEZER_TRAITS,
         optional_traits: &[],
-        class_points: COLD_CABINET_POINTS,
+        class_points: FREEZER_POINTS,
         program_tokens: &[],
         cycle_phase_tokens: &[],
         typical_setpoint_c: Some((-24.0, -12.0)),
