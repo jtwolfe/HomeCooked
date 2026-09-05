@@ -1,6 +1,6 @@
 # HomeCooked roadmap — ~75% project completeness
 
-Version **0.1.18**. Planning doc for a long flesh-out of the catalog, control
+Version **0.1.19**. Planning doc for a long flesh-out of the catalog, control
 stack, and simulator. It does **not** freeze APIs; crate and YAML shapes may
 evolve with the code that implements each stream.
 
@@ -33,7 +33,7 @@ What exists on `main` today (Done highlights called out):
 | `homecooked-bridge` | **Modbus + Matter + Zigbee + BACnet mocks** (no real serial/TCP/CHIP/z2m/BACnet stacks) — **Done** |
 | `homecooked-transport` | Lab TCP JSON envelopes; **optional PSK pairing**; sim-backed server + **pluggable `RequestHandler`**; malformed frame table tests — **Done** |
 | `homecooked-hub` | Optional multi-device lab TCP aggregator (**not required for devices**) — **Done** |
-| `homecooked-conformance` | Stream 7 smoke: Tier-A / Tier-B / cotton / kettle + wash-then-dry procedures / thermal / `water_heater_thermal_ports` / Modbus / Matter / Zigbee / BACnet / TCP / TCP PSK / `controller_tcp_washer_interlock` / hub lab set |
+| `homecooked-conformance` | Stream 7 smoke: Tier-A / Tier-B / `catalog_hygiene` / `write_denial_matrix` / cotton / kettle + wash-then-dry procedures / thermal / `water_heater_thermal_ports` / Modbus / Matter / Zigbee / BACnet / TCP / TCP PSK / `controller_tcp_washer_interlock` / hub lab set |
 | CI | rustfmt, clippy (`-D warnings`), `cargo test --workspace`, wasm-pack |
 
 **Done (thin / lab depth):** Tier-A+B **56** static tables + sim; dryer controller cycle; bridge family mocks;
@@ -41,7 +41,7 @@ lab TCP + PSK; optional hub; simulator-web blob-load; Domino's microwave Run via
 `run_procedure`.
 
 **Still open toward 75%:** promote plant types into schema (beyond device port
-points); real bridge SDKs; deeper conformance matrices; richer UI;
+points); real bridge SDKs; richer conformance matrices beyond write-denial; richer UI;
 deeper Tier-B optional points; richer controller device-role over TCP (cycle start / typical caps).
 
 Rough completeness: foundation + Tier-A/B tables + procedure/HAL/TCP/hub + bridge
@@ -268,17 +268,20 @@ multiple small PRs.
    **Still open:** richer conformance-oriented screens.
 2. Conformance suite: catalog id hygiene, capability advertisement rules,
    protocol major-version rejection, representative write denials.
-   **Partial (smoke)** — `homecooked-conformance` runs named end-to-end
-   scenarios (Tier-A catalog/sim/describe, washer cotton controller, kettle
-   procedure, wash-then-dry, thermal fridge→DHW, thermal→dishwasher preheat
-   dual-path, Modbus water_heater, Matter/Zigbee/BACnet
-   kettle, TCP kettle, TCP PSK describe/ping, controller TCP washer interlock, optional lab hub discover/describe).
+   **Partial (smoke + denial matrix)** — `homecooked-conformance` runs named
+   end-to-end scenarios (Tier-A/B catalog/sim/describe, `catalog_hygiene`,
+   table-driven `write_denial_matrix` across Tier-A denial kinds, washer cotton
+   controller, kettle procedure, wash-then-dry, thermal fridge→DHW,
+   thermal→dishwasher preheat dual-path, Modbus water_heater,
+   Matter/Zigbee/BACnet kettle, TCP kettle, TCP PSK describe/ping, controller
+   TCP washer interlock, optional lab hub discover/describe).
    **Protocol/transport robustness (table-driven):** `homecooked-transport`
    malformed length-prefixed frames + `homecooked-protocol` invalid Envelope
    JSON (oversize length, truncated body/header, invalid UTF-8, unknown kind,
    truncated JSON). **`cargo fuzz` deferred** — thorough unit tests keep CI
    free of nightly/libFuzzer deps; optional fuzz targets can land later if
-   needed. Deeper catalog hygiene / write-denial matrices remain follow-up.
+   needed. Deeper write-denial matrix progressed (`write_denial_matrix` +
+   `catalog_hygiene`); further matrices / richer UI remain follow-up.
 3. CI runs the conformance suite (or a `cargo test` subset tagged as such).
    **Done (via workspace)** — `cargo test --workspace` includes
    `homecooked-conformance`; also `cargo test -p homecooked-conformance`.
@@ -287,10 +290,11 @@ multiple small PRs.
 
 - wasm-pack build remains in CI; UI documented in `apps/simulator-web`.
   *(Picker + procedure runner + thermal plant panel + list/spawn coverage is
-  in; smoke suite is in; deeper matrices still open.)*
+  in; smoke suite + write-denial matrix are in; richer UI still open.)*
 - Conformance failures are actionable (named assertions, not a single opaque
   binary).
-  *(Smoke suite reports named scenario failures; deeper matrices still open.)*
+  *(Smoke suite + per-case `write_denial_matrix` failures; further matrices
+  still open.)*
 - **Contributor tooling:** how to add a class is documented in
   [`docs/catalog/ADDING_A_CLASS.md`](catalog/ADDING_A_CLASS.md) (linked from
   [`CONTRIBUTING.md`](../CONTRIBUTING.md) and the root README). Keep that guide
@@ -394,7 +398,7 @@ Count: **31** Tier-B ids, all with thin static tables + sim.
 | later | `feat/bridges-modbus` | 6 — Modbus + stubs (first slice) |
 | later | `feat/matter-mock-bridge` | 6 — Matter mock fabric + kettle map |
 | later | `feat/simulator-tier-a-ui` | 7 — grouped Tier-A picker (first UI slice) |
-| later | WASM UI + conformance suite | 7 — picker + procedure UI (incl. Domino's `run_procedure` E2E) + thermal UI + blob-load done; smoke suite done; deeper matrices remaining |
+| later | WASM UI + conformance suite | 7 — picker + procedure UI (incl. Domino's `run_procedure` E2E) + thermal UI + blob-load done; smoke suite + write-denial matrix done; richer UI remaining |
 | later | Tier-B thin tables | 2 — **Done** (31 Tier-B → 56 total static + sim) |
 | later | lab hub + PSK | 4 — **Done** (`homecooked-hub`, transport PSK) |
 | later | bridge mocks (Matter/Zigbee/BACnet) | 6 — **Done** (thin mocks; real SDKs still open) |
@@ -429,3 +433,4 @@ the code that implements them.
 | 0.1.16 | Stream 7 tooling: contributor guide for adding a class (`docs/catalog/ADDING_A_CLASS.md` + `CONTRIBUTING.md`) |
 | 0.1.17 | Stream 5: optional `thermal_port_*` catalog points on `water_heater` + `fridge`; sim RW + conformance `water_heater_thermal_ports`; plant types still crate-local |
 | 0.1.18 | Stream 4: controller-sim-over-TCP lab smoke (`ControllerEndpoint` + `RequestHandler` TCP; washer heater allow/deny; conformance `controller_tcp_washer_interlock`) |
+| 0.1.19 | Stream 7: deeper write-denial / catalog hygiene conformance matrix (`write_denial_matrix` + `catalog_hygiene`) |
