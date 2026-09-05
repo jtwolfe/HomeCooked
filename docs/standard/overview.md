@@ -1,6 +1,6 @@
 # HomeCooked Standard Overview
 
-Version **0.1.0** — docs-only revision.
+Version **0.1.0** — standard overview (docs + design extensions).
 
 HomeCooked is a **capability-based, versioned, extensible** communication
 interface for whitegoods and kitchen appliances: discover a device, describe
@@ -17,6 +17,12 @@ Related documents:
 - [`../catalog/appliances.md`](../catalog/appliances.md) — appliance classes
 - [`../catalog/variables-and-settings.md`](../catalog/variables-and-settings.md)
   — traits, variables, settings, commands, types, units, ranges, access
+- [`thermal-plant.md`](./thermal-plant.md) — house thermal / hydraulic coupling
+  (design sketch)
+- [`procedures.md`](./procedures.md) — fine-grained procedures and recipes
+  (design sketch)
+- [`bridges.md`](./bridges.md) — Zigbee / Matter / Modbus / BACnet bridges
+  (design sketch)
 
 ---
 
@@ -36,18 +42,46 @@ Related documents:
 
 ### Non-goals (this revision and generally)
 
-This PR (**PR1**) is documentation only. It does **not** add Rust crates,
-`Cargo.toml` files, schema codegen, a simulator, or WASM.
+The historical **PR1** overview was documentation only. The repository now
+includes schema, protocol, core, sim, and wasm crates that track the catalog;
+those crates are not redefined here.
 
 The standard itself also does **not** specify:
 
-- A single physical transport (IP, BLE, Thread, serial are all allowed)
+- A single physical transport (IP, BLE, Thread, serial are all allowed;
+  see `trait.connectivity` and [`bridges.md`](./bridges.md))
 - User identity, OAuth, or cloud account linking
-- Whole-home scenes, automations, or energy tariffs
+- Whole-home scenes, energy tariffs, or a full energy market (thermal offer /
+  accept is sketched in [`thermal-plant.md`](./thermal-plant.md), not a market)
 - Functional safety certification (IEC 60335, etc.). Devices still enforce
   local interlocks; the protocol never bypasses them
-- Pixel UI, recipe documents, or camera streams
+- Pixel cooking UI or camera streams (doneness cameras stay out of core)
 - A global device registry or certificate authority (may appear later)
+
+**Recipes are in scope as procedures.** Named programs remain device-local;
+multi-step recipes and AI-generated protocols are modeled as procedures
+([`procedures.md`](./procedures.md)) — ordered HomeCooked reads / writes /
+commands with guards and timeouts. That revises the earlier blanket non-goal
+that banned "recipe documents."
+
+### Upcoming layers (design docs; not yet executable schema)
+
+- **Thermal plant** — reservoirs, heat ports, best-effort transfer negotiation
+  ([`thermal-plant.md`](./thermal-plant.md))
+- **Procedures** — multi-device orchestration and recipes-as-procedures
+  ([`procedures.md`](./procedures.md))
+- **Bridges** — map Zigbee / Matter / Thread / Modbus / BACnet / vendor Wi-Fi
+  into HomeCooked points without replacing those fabrics
+  ([`bridges.md`](./bridges.md))
+
+### Catalog vs executable schema coverage
+
+The catalog defines **56** appliance classes
+([`../catalog/appliances.md`](../catalog/appliances.md)). Schema static
+capability tables (and therefore simulated devices) currently cover **9**:
+`washer`, `dryer`, `fridge`, `dishwasher`, `microwave`, `oven`,
+`induction_hob`, `kettle`, and `air_fryer`. Roadmap: expand executable
+templates until static tables track the full catalog index.
 
 ---
 
@@ -643,24 +677,19 @@ is policy, not `error`.
 
 ---
 
-## 13. Out of scope for this PR
+## 13. Historical note (PR1) and follow-ups
 
-This document and the catalog files are **PR1**. Explicitly **not** in this
-change:
+The original **PR1** landed catalog + this overview as docs only. Crates and
+the web simulator have since been added and must continue to track
+`docs/catalog/` and `docs/standard/`.
 
-- `crates/homecooked-schema`
-- `crates/homecooked-protocol`
-- `crates/homecooked-core`
-- `crates/homecooked-sim`
-- `crates/homecooked-wasm`
-- `apps/simulator-web`
-- Any `Cargo.toml`, `*.rs`, or generated JSON Schema
-- CI workflow beyond what already exists
+Still follow-up relative to *this* design-extension pass:
+
+- Promote thermal-plant / procedures / bridges sketches into catalog traits
+  and schema types when ready
+- Expand static capability tables beyond the nine classes listed in §1
 - Formal conformance test suite
-
-Follow-up work should track these docs: schema types from the variables
-catalog, protocol messages from §6–§9, validation tables from the variables
-catalog “Capability advertisement” section.
+- Frozen guard-expression grammar for procedures
 
 ---
 
@@ -669,3 +698,4 @@ catalog “Capability advertisement” section.
 | Version | Notes |
 |---------|--------|
 | 0.1.0 | Initial overview; catalog-backed; no wire encoding frozen |
+| 0.1.0 | Docs extension: link thermal-plant, procedures, bridges; recipes as procedures; catalog 56 / schema 9 note |

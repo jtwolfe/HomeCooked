@@ -15,6 +15,12 @@ of truth**; code must track `docs/catalog/` and `docs/standard/`.
   ranges, access modes)
 - [`docs/standard/overview.md`](docs/standard/overview.md) — catalog → schema →
   wire protocol, discovery, versioning, errors, extensions
+- [`docs/standard/thermal-plant.md`](docs/standard/thermal-plant.md) — house
+  thermal / hydraulic coupling (design sketch)
+- [`docs/standard/procedures.md`](docs/standard/procedures.md) — procedures and
+  recipes as ordered HomeCooked steps (design sketch)
+- [`docs/standard/bridges.md`](docs/standard/bridges.md) — Zigbee / Matter /
+  Modbus / BACnet bridges; HomeCooked as whitegoods semantics layer
 
 ## Workspace
 
