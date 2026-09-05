@@ -2,6 +2,7 @@
 
 use std::fmt;
 
+use crate::bridge::ForeignLocator;
 use crate::modbus::RegisterKind;
 
 /// Failure while loading a map, translating a value, or talking to a backend.
@@ -18,6 +19,11 @@ pub enum Error {
         kind: RegisterKind,
         address: u16,
     },
+    DuplicateMatterAttribute {
+        endpoint: u16,
+        cluster_id: u32,
+        attribute_id: u32,
+    },
     UnmappedPoint {
         device_id: String,
         point_id: String,
@@ -25,6 +31,11 @@ pub enum Error {
     UnmappedAddress {
         kind: RegisterKind,
         address: u16,
+    },
+    UnmappedMatterAttribute {
+        endpoint: u16,
+        cluster_id: u32,
+        attribute_id: u32,
     },
     DeviceMismatch {
         expected: String,
@@ -48,6 +59,11 @@ pub enum Error {
     InvalidRaw {
         detail: String,
     },
+    /// Foreign locator fabric does not match this bridge.
+    LocatorMismatch {
+        expected: &'static str,
+        locator: ForeignLocator,
+    },
     UnsupportedFabric {
         fabric: &'static str,
     },
@@ -69,6 +85,14 @@ impl fmt::Display for Error {
             Self::DuplicateAddress { kind, address } => {
                 write!(f, "duplicate {kind} address {address}")
             }
+            Self::DuplicateMatterAttribute {
+                endpoint,
+                cluster_id,
+                attribute_id,
+            } => write!(
+                f,
+                "duplicate Matter attribute ep{endpoint}/cluster={cluster_id:#x}/attr={attribute_id:#x}"
+            ),
             Self::UnmappedPoint {
                 device_id,
                 point_id,
@@ -76,6 +100,14 @@ impl fmt::Display for Error {
             Self::UnmappedAddress { kind, address } => {
                 write!(f, "unmapped {kind} address {address}")
             }
+            Self::UnmappedMatterAttribute {
+                endpoint,
+                cluster_id,
+                attribute_id,
+            } => write!(
+                f,
+                "unmapped Matter attribute ep{endpoint}/cluster={cluster_id:#x}/attr={attribute_id:#x}"
+            ),
             Self::DeviceMismatch { expected, actual } => {
                 write!(f, "device mismatch: expected {expected}, got {actual}")
             }
@@ -95,6 +127,9 @@ impl fmt::Display for Error {
                 write!(f, "scale must be finite and non-zero for {point_id}")
             }
             Self::InvalidRaw { detail } => write!(f, "invalid foreign raw: {detail}"),
+            Self::LocatorMismatch { expected, locator } => {
+                write!(f, "locator {locator} is not valid for {expected} bridge")
+            }
             Self::UnsupportedFabric { fabric } => write!(
                 f,
                 "{fabric} bridge is not implemented; see docs/standard/bridges.md"

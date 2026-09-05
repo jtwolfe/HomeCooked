@@ -5,7 +5,7 @@ edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 repository.workspace = true
-description = "HomeCooked fabric bridges: Modbus adapter plus Zigbee/Matter/BACnet stubs"
+description = "HomeCooked fabric bridges: Modbus + Matter mock adapters, Zigbee/BACnet stubs"
 readme = "README.md"
 
 [dependencies]

@@ -1,5 +1,4 @@
-//! First **bridge** slice for HomeCooked: one real adapter (Modbus) plus
-//! Zigbee / Matter / BACnet stubs.
+//! Bridge slice for HomeCooked: Modbus + Matter mock adapters, Zigbee/BACnet stubs.
 //!
 //! Aligns with [`docs/standard/bridges.md`](../../docs/standard/bridges.md)
 //! and [`docs/ROADMAP.md`](../../docs/ROADMAP.md) Stream 6.
@@ -8,28 +7,39 @@
 //! [`PointRef`] values (`device_id` + qualified catalog point +
 //! [`homecooked_schema::Value`]).
 //!
-//! [`modbus::ModbusBridge`] is the implemented path: a YAML/JSON register
-//! map, an in-memory slave, and a [`PointBackend`] (tests use
-//! [`MemoryBackend`]). There is **no** serial or TCP Modbus dependency.
+//! [`modbus::ModbusBridge`] is the plant-bus path: a YAML/JSON register map,
+//! an in-memory slave, and a [`PointBackend`] (tests use [`MemoryBackend`]).
+//! There is **no** serial or TCP Modbus dependency.
 //!
-//! [`ZigbeeBridge`], [`MatterBridge`], and [`BacnetBridge`] compile and
-//! return [`Error::UnsupportedFabric`].
+//! [`matter::MatterBridge`] is the fabric path: a YAML/JSON
+//! endpoint/cluster/attribute map, an in-memory mock fabric, and the same
+//! backend pattern. There is **no** CHIP / Matter SDK dependency; cluster IDs
+//! in fixtures are illustrative lab constants, not certified product data.
+//!
+//! [`ZigbeeBridge`] and [`BacnetBridge`] compile and return
+//! [`Error::UnsupportedFabric`].
 
 #![allow(clippy::module_name_repetitions)]
 
+mod access;
 mod backend;
 mod bacnet;
 mod bridge;
 mod error;
-mod matter;
+pub mod matter;
 pub mod modbus;
+mod yaml_json;
 mod zigbee;
 
+pub use access::MapAccess;
 pub use backend::{MemoryBackend, PointBackend};
 pub use bacnet::BacnetBridge;
-pub use bridge::{Bridge, ForeignRaw, ForeignRef, PointRef};
+pub use bridge::{Bridge, ForeignLocator, ForeignRaw, ForeignRef, MatterRaw, PointRef};
 pub use error::Error;
-pub use matter::MatterBridge;
+pub use matter::{
+    AttrValueType, MatterAttrKey, MatterAttrValue, MatterBridge, MatterEntry, MatterFabric,
+    MatterMap, KETTLE_MATTER_MAP_YAML,
+};
 pub use zigbee::ZigbeeBridge;
 
 pub use modbus::{
@@ -67,8 +77,16 @@ mod stub_tests {
     #[test]
     fn stubs_are_unsupported() {
         assert_unsupported(ZigbeeBridge::new(), "zigbee");
-        assert_unsupported(MatterBridge::new(), "matter");
         assert_unsupported(BacnetBridge::new(), "bacnet");
+    }
+
+    #[test]
+    fn matter_is_no_longer_a_stub() {
+        let bridge = MatterBridge::kettle_example().unwrap();
+        assert_eq!(bridge.fabric(), "matter");
+        assert!(bridge
+            .read_point(&PointRef::new("kettle-lab-1", "trait.temperature.setpoint_c").unwrap())
+            .is_ok());
     }
 
     #[test]

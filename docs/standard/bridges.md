@@ -1,6 +1,6 @@
 # Bridges — integration with existing home automation
 
-Version **0.1.1** — design extension plus first crate slice.
+Version **0.1.2** — design extension plus first crate slice.
 
 HomeCooked is an **appliance semantics layer** for heavy whitegoods and
 kitchen / utility plant. It is **not** a replacement for Zigbee, Matter,
@@ -157,11 +157,18 @@ so those assets can appear beside kitchen devices in one client. Mapping tips:
   [`water_heater_map.yaml`](../../crates/homecooked-bridge/examples/water_heater_map.yaml)
   (`trait.temperature.setpoint_c`, `trait.temperature.current_c`,
   `trait.power.power_state`).
-- **Zigbee / Matter / BACnet** compile as stubs that return a clear
-  unsupported error. Matter was deferred so CI needs no external SDK.
+- **Matter** is implemented as a **thin mock fabric** (no CHIP / Matter SDK):
+  YAML/JSON endpoint + cluster + attribute → point map and an in-memory
+  attribute store. Example:
+  [`kettle_matter_map.yaml`](../../crates/homecooked-bridge/examples/kettle_matter_map.yaml)
+  (OnOff + TemperatureMeasurement-style attributes mapped to kettle
+  `trait.power.power_state` / `trait.temperature.*`). Cluster IDs in that
+  fixture are **illustrative lab constants**, not a certified Matter product.
+- **Zigbee / BACnet** compile as stubs that return a clear unsupported error.
 
 See the crate [`README`](../../crates/homecooked-bridge/README.md). Real
-plant buses, pairing, and mesh administration stay out of scope (§5).
+plant buses, pairing, mesh administration, and production Matter stacks stay
+out of scope (§5).
 
 ---
 
@@ -171,3 +178,4 @@ plant buses, pairing, and mesh administration stay out of scope (§5).
 |---------|--------|
 | 0.1.0 | Initial bridges / home-automation integration sketch |
 | 0.1.1 | First crate slice: Modbus mock adapter + Zigbee/Matter/BACnet stubs |
+| 0.1.2 | Matter mock bridge (in-memory attributes + kettle map); Zigbee/BACnet remain stubs |

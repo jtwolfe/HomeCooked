@@ -6,7 +6,10 @@ use std::fmt;
 use std::thread;
 use std::time::Duration;
 
-use homecooked_bridge::{Bridge, ForeignRaw, ForeignRef, ModbusBridge, PointRef};
+use homecooked_bridge::{
+    Bridge, ForeignRaw, ForeignRef, MatterAttrValue, MatterBridge, MatterRaw, ModbusBridge,
+    PointRef,
+};
 use homecooked_controller::{Controller, CottonOptions, CyclePhase, CycleState, WasherState};
 use homecooked_core::DeviceId;
 use homecooked_hal::ChannelId;
@@ -352,6 +355,72 @@ pub fn modbus_water_heater_roundtrip() -> ScenarioResult {
     Ok(())
 }
 
+/// (5b) Matter kettle roundtrip via mock fabric bridge.
+pub fn matter_kettle_roundtrip() -> ScenarioResult {
+    const NAME: &str = "matter_kettle_roundtrip";
+    let mut bridge =
+        MatterBridge::kettle_example().map_err(|e| err(NAME, format!("kettle_example: {e}")))?;
+
+    let setpoint = PointRef::new("kettle-lab-1", "trait.temperature.setpoint_c")
+        .map_err(|e| err(NAME, e.to_string()))?;
+    let attr = ForeignRef::matter("kettle-lab-1", 1, 0x0201, 0x0012)
+        .map_err(|e| err(NAME, e.to_string()))?;
+    let onoff = ForeignRef::matter("kettle-lab-1", 1, 0x0006, 0x0000)
+        .map_err(|e| err(NAME, e.to_string()))?;
+    let power = PointRef::new("kettle-lab-1", "trait.power.power_state")
+        .map_err(|e| err(NAME, e.to_string()))?;
+
+    // Foreign attribute → HomeCooked point (60.0 °C as 6000 hundredths)
+    let translated = bridge
+        .write_foreign(&attr, ForeignRaw::Matter(MatterRaw::Int16(6000)))
+        .map_err(|e| err(NAME, format!("write_foreign setpoint: {e}")))?;
+    if translated != Value::F32(60.0) {
+        return Err(err(
+            NAME,
+            format!("translated attr write={translated:?}, expected F32(60)"),
+        ));
+    }
+    let read_sp = bridge
+        .read_point(&setpoint)
+        .map_err(|e| err(NAME, format!("read setpoint: {e}")))?;
+    if read_sp != Value::F32(60.0) {
+        return Err(err(
+            NAME,
+            format!("setpoint after foreign write={read_sp:?}"),
+        ));
+    }
+
+    // HomeCooked → Matter attribute
+    bridge
+        .write_point(&setpoint, &Value::F32(42.0))
+        .map_err(|e| err(NAME, format!("write setpoint: {e}")))?;
+    let stored = bridge.attr_store().read(1, 0x0201, 0x0012);
+    if stored != Some(MatterAttrValue::Int16(4200)) {
+        return Err(err(
+            NAME,
+            format!("attr after HC write={stored:?}, expected Int16(4200)"),
+        ));
+    }
+
+    // OnOff roundtrip
+    bridge
+        .write_foreign(&onoff, ForeignRaw::Matter(MatterRaw::Bool(false)))
+        .map_err(|e| err(NAME, format!("write onoff off: {e}")))?;
+    let off = bridge
+        .read_point(&power)
+        .map_err(|e| err(NAME, format!("read power: {e}")))?;
+    if off != Value::Enum("off".into()) {
+        return Err(err(NAME, format!("power after onoff false={off:?}")));
+    }
+    bridge
+        .write_point(&power, &Value::Enum("on".into()))
+        .map_err(|e| err(NAME, format!("write power on: {e}")))?;
+    if bridge.attr_store().read(1, 0x0006, 0x0000) != Some(MatterAttrValue::Bool(true)) {
+        return Err(err(NAME, "onoff expected true after power on"));
+    }
+    Ok(())
+}
+
 fn qid(s: &str) -> Result<QualifiedPointId, ScenarioError> {
     QualifiedPointId::parse(s)
         .map_err(|e| err("tcp_kettle_discover_describe_read_write", e.to_string()))
@@ -476,6 +545,7 @@ pub fn all_scenarios() -> &'static [(&'static str, ScenarioFn)] {
             "modbus_water_heater_roundtrip",
             modbus_water_heater_roundtrip,
         ),
+        ("matter_kettle_roundtrip", matter_kettle_roundtrip),
         (
             "tcp_kettle_discover_describe_read_write",
             tcp_kettle_discover_describe_read_write,
