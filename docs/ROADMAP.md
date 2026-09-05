@@ -1,6 +1,6 @@
 # HomeCooked roadmap — ~75% project completeness
 
-Version **0.1.104**. Planning doc for a long flesh-out of the catalog, control
+Version **0.1.105**. Planning doc for a long flesh-out of the catalog, control
 stack, and simulator. It does **not** freeze APIs; crate and YAML shapes may
 evolve with the code that implements each stream.
 
@@ -30,10 +30,10 @@ What exists on `main` today (Done highlights called out):
 | `homecooked-procedure` | Procedure documents + sequential runner; Domino's microwave + wash-then-dry + oven bake + coffee brew + air fryer cook + thin `thermal_wait` / `wait_dhw_reservoir` / continuous-requeue `wait_dhw_with_requeue` + `thermal_offer` / `offer_fridge_dhw` / soft-decline `offer_fridge_dhw_soft` / Counter `offer_fridge_dhw_counter` fixtures |
 | `homecooked-controller` | Host controller sim: IoMap + MockHal + interlocks + washer cotton / **dryer cycle**; **lab TCP endpoints** (`ControllerEndpoint` + `DryerControllerEndpoint` interlock deny; washer/dryer **cycle start** + **pause/resume/cancel** + readable phase/state + lab tick; washer **CottonOptions** via adjacent `wash_temp_c`/`spin_rpm` writes; dryer **DryOptions** via adjacent `dryness`/`heat_level` writes) — **Done** |
 | `homecooked-thermal` | First executable thermal plant **engine** (registry, offer/accept/counter, tick); re-exports schema vocabulary + dialogue types; live `ThermalPlant` stays here |
-| `homecooked-bridge` | **Modbus + Matter + Zigbee + BACnet mocks** (no real serial/TCP/CHIP/z2m/BACnet stacks) — **Done** |
+| `homecooked-bridge` | **Modbus** (in-memory + **TCP lab** localhost MBAP) + Matter + Zigbee + BACnet mocks (no serial RTU / CHIP / z2m / BACnet stacks) — **Done** |
 | `homecooked-transport` | Lab TCP JSON envelopes; **optional PSK pairing**; sim-backed server + **pluggable `RequestHandler`**; malformed frame table tests — **Done** |
 | `homecooked-hub` | Optional multi-device lab TCP aggregator (**not required for devices**) — **Done** |
-| `homecooked-conformance` | Stream 7 smoke: Tier-A / Tier-B / `catalog_hygiene` / `write_denial_matrix` / cotton / kettle + oven bake + coffee brew + air fryer cook + wash-then-dry procedures / thermal / `procedure_thermal_wait_dhw` / `procedure_thermal_offer_dhw` / `procedure_thermal_offer_soft_decline` / `procedure_thermal_offer_counter` / `procedure_thermal_wait_requeue` / `water_heater_thermal_ports` / Modbus / Matter / Zigbee / BACnet / TCP / TCP PSK / `controller_tcp_washer_interlock` / `controller_tcp_dryer_interlock` / `controller_tcp_washer_cotton` / `controller_tcp_washer_cotton_options` / `controller_tcp_dryer_cycle` / `controller_tcp_dryer_dry_options` / `controller_tcp_washer_cycle_pause_cancel` / `controller_tcp_dryer_cycle_pause_cancel` / hub lab set |
+| `homecooked-conformance` | Stream 7 smoke: Tier-A / Tier-B / `catalog_hygiene` / `write_denial_matrix` / cotton / kettle + oven bake + coffee brew + air fryer cook + wash-then-dry procedures / thermal / `procedure_thermal_wait_dhw` / `procedure_thermal_offer_dhw` / `procedure_thermal_offer_soft_decline` / `procedure_thermal_offer_counter` / `procedure_thermal_wait_requeue` / `water_heater_thermal_ports` / Modbus / Modbus TCP lab / Matter / Zigbee / BACnet / TCP / TCP PSK / `controller_tcp_washer_interlock` / `controller_tcp_dryer_interlock` / `controller_tcp_washer_cotton` / `controller_tcp_washer_cotton_options` / `controller_tcp_dryer_cycle` / `controller_tcp_dryer_dry_options` / `controller_tcp_washer_cycle_pause_cancel` / `controller_tcp_dryer_cycle_pause_cancel` / hub lab set |
 | CI | rustfmt, clippy (`-D warnings`), `cargo test --workspace`, wasm-pack |
 
 **Done (thin / lab depth):** Tier-A+B **56** static tables + sim; dryer controller
@@ -54,8 +54,8 @@ catalog `thermal_port_*` on `water_heater` / `fridge` / `hvac` / `dishwasher` /
 **types** now schema-owned (`Media` / `PortDirection` / `TempBandC` /
 `HeatPortSpec` + `ClassTable.thermal_ports` + `Reservoir` / `HeatPort` /
 transfer offer/accept/decline/counter); live `ThermalPlant` **engine** remains
-in `homecooked-thermal`; **real bridge SDKs** (Modbus serial/TCP or Matter/CHIP — mocks only
-today); TLS (still out of scope for lab transport); **catalog optional-depth passes complete** for all listed classes — deepen series (#56–#73 + follow-on) landed optional-point passes on **56** classes
+in `homecooked-thermal`; **real bridge SDKs** (Modbus **serial RTU** or Matter/CHIP — Modbus **TCP lab** landed;
+serial RTU / CHIP still deferred); TLS (still out of scope for lab transport); **catalog optional-depth passes complete** for all listed classes — deepen series (#56–#73 + follow-on) landed optional-point passes on **56** classes
 (mostly Tier-A + Tier-B `humidifier` / `beverage_cooler` / `kegerator` / `warming_drawer` / `pizza_oven` / `electric_grill` / `electric_smoker` / `espresso_machine` / `drip_coffee_maker` / `coffee_grinder` / `water_dispenser` / `toaster` / `blender` / `food_processor` / `stand_mixer` / `juicer` / `rice_cooker` / `slow_cooker` / `bread_maker` / `dehydrator` / `vacuum_sealer` / `ice_cream_maker` / `yogurt_maker` / `waffle_maker` / `pasta_maker` / `steam_cooker` / `garbage_disposal` / `trash_compactor` / `boiler` / `water_softener` / `water_filter` + undepened Tier-A `washer` + `dryer` + `washer_dryer` + `fridge` + `dishwasher` + `microwave` + `oven` + `range` + `induction_hob` + `air_fryer` + `kettle` + `coffee_machine` + `water_heater` + `hvac`); **0 of 31 Tier-B** ids remain thin tables
 (all 31 have optional-depth passes; all listed undepened Tier-A classes now have optional-depth passes (0 remaining); see §4); procedure⇄thermal **dedicated wasm UI** landed thin
 (Thermal procedures subsection + `run_thermal_procedure` + outcome badges for accept/soft/counter/requeue/temp;
@@ -87,7 +87,8 @@ beyond the lab bar (real bridge SDK, live plant engine still in thermal, TLS,
 fuller typed multi-round as separate steps; washer/dryer lab
 typical_capability-over-wire landed — full HAL binding for every typical point
 still not required; dedicated thermal procedure wasm UI landed thin in 0.1.102;
-plant Counter replies landed in 0.1.103; schema plant-dialogue types in 0.1.104).
+plant Counter replies landed in 0.1.103; schema plant-dialogue types in 0.1.104;
+Modbus TCP lab path in 0.1.105).
 
 ---
 
@@ -124,7 +125,9 @@ production firmware:
 
 - **Real bridge SDK** — in-scope asks for *one* real Matter **or** Modbus
   implementation; `homecooked-bridge` has Modbus + Matter + Zigbee + BACnet
-  **mocks** only (no serial/TCP Modbus, CHIP, z2m, or BACnet stack).
+  **mocks**, plus a **Modbus TCP lab** path (localhost MBAP FC01/03/05/06 over
+  the in-memory water_heater map). Serial RTU, CHIP, z2m, and BACnet stacks
+  remain deferred.
 - **Plant engine** — device `thermal_port_*` points exist on
   `water_heater` / `fridge` / `hvac` / `dishwasher` / `dryer`; shared vocabulary
   + plant dialogue types (`Media` / `PortDirection` / `TempBandC` /
@@ -372,7 +375,8 @@ multiple small PRs.
 **Milestones**
 
 1. ~~Choose **Matter or Modbus** for the first non-stub bridge.~~ **Done** —
-   Modbus (in-memory slave; no serial/TCP SDK, so CI stays hardware-free).
+   Modbus (in-memory slave + localhost Modbus TCP lab; no serial RTU SDK, so
+   CI stays hardware-free).
 2. ~~Implement mapping for a small subset of Tier-A points.~~ **Done (first
    slice)** — `homecooked-bridge` maps a fake `water_heater` (setpoint,
    current temp, power state) through a YAML/JSON register map. Tests cover
@@ -396,13 +400,19 @@ multiple small PRs.
    in-memory property store, and kettle BinaryValue / Analog* roundtrip
    tests. No BACnet/IP or MS/TP dependency.
 
+7. ~~Modbus TCP lab (localhost, hardware-free).~~ **Done** —
+   `spawn_modbus_tcp_lab` + `ModbusTcpClient` speak MBAP FC01/FC03/FC05/FC06
+   over the in-memory water_heater map on `127.0.0.1:0` (std only; no
+   `tokio-modbus`). Serial RTU / TLS remain deferred.
+
 **Definition of done**
 
 - One bridge crate or module with tests against a fake peer or recorded
   fixtures; stubs documented in README / bridges doc.
   **Met** for Modbus + Matter + Zigbee + BACnet mock — see
-  `crates/homecooked-bridge`. Real serial/TCP Modbus, CHIP / Matter SDK,
-  zigbee2mqtt, and BACnet stacks remain follow-up.
+  `crates/homecooked-bridge`. Modbus **TCP lab** (localhost MBAP) landed;
+  serial RTU, CHIP / Matter SDK, zigbee2mqtt, and BACnet stacks remain
+  follow-up.
 
 ### Stream 7 — WASM UI + conformance suite
 
@@ -696,3 +706,4 @@ the code that implements them.
 | 0.1.102 | Stream 3/5/7: dedicated procedure⇄thermal **wasm/simulator-web UI** (Thermal procedures subsection + picker `[thermal]` badges + `run_thermal_procedure` attach-plant one-click + richer step outcome badges for accept/soft/requeue/temp); Still-open refresh (plant Counter / schema plant runtime / real bridges / TLS remain deferred; not a full conformance console) |
 | 0.1.103 | Stream 3/5: plant **Counter** replies (`TransferReply::Counter` when `0 < available max < offer.min`; procedure `accept_counter` auto-accepts suggested band; fallback still covers unanswered Counter); fixture `offer_fridge_dhw_counter` + conformance `procedure_thermal_offer_counter`; Still-open refresh (schema plant runtime / real bridges / TLS / full conformance console remain deferred) |
 | 0.1.104 | Stream 5: promote plant **dialogue** types (`ReservoirRole` / `Reservoir` / `HeatPort` / `PortRef` / `PowerBandW` / `TransferTarget` / `TransferOffer` / `TransferAccept` / `TransferDecline` / `TransferCounter` / `TransferReply` / `TransferResult`) into `homecooked-schema`; thermal re-exports; live `ThermalPlant` engine stays in `homecooked-thermal`; Still-open refresh (real bridges / TLS / full conformance console remain deferred) |
+| 0.1.105 | Stream 6: Modbus **TCP lab** path (`spawn_modbus_tcp_lab` + `ModbusTcpClient`; minimal MBAP FC01/FC03/FC05/FC06 over in-memory water_heater map on `127.0.0.1:0`; no `tokio-modbus`); integration + conformance smoke; Still-open refresh (serial RTU / CHIP / TLS / full conformance console remain deferred) |

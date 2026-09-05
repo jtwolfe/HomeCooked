@@ -8,7 +8,7 @@ use crate::backend::{MemoryBackend, PointBackend};
 use crate::bridge::{Bridge, ForeignRaw, ForeignRef, PointRef};
 use crate::error::Error;
 
-/// Modbus adapter with a mocked slave (no serial/TCP dependency).
+/// Modbus adapter with an in-memory slave (TCP lab is a separate module).
 #[derive(Debug, Clone)]
 pub struct ModbusBridge<B> {
     map: ModbusMap,

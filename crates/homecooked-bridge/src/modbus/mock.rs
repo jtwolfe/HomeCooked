@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use super::map::{ForeignBits, ModbusMap, RegisterKind};
 use crate::error::Error;
 
-/// Mock Modbus slave used as the v1 transport (no serial/TCP).
+/// In-memory Modbus slave (register/coil store; TCP lab frames over this).
 #[derive(Debug, Clone, PartialEq)]
 pub struct ModbusSlave {
     pub slave_id: u8,

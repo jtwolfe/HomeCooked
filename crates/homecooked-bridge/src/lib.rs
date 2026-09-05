@@ -9,7 +9,9 @@
 //!
 //! [`modbus::ModbusBridge`] is the plant-bus path: a YAML/JSON register map,
 //! an in-memory slave, and a [`PointBackend`] (tests use [`MemoryBackend`]).
-//! There is **no** serial or TCP Modbus dependency.
+//! A **Modbus TCP lab** path (`spawn_modbus_tcp_lab`) exposes that slave over
+//! localhost MBAP framing (FC01/FC03/FC05/FC06) with **no** `tokio-modbus`,
+//! serial RTU, or TLS — CI stays hardware-free.
 //!
 //! [`matter::MatterBridge`] is the fabric path: a YAML/JSON
 //! endpoint/cluster/attribute map, an in-memory mock fabric, and the same
@@ -57,7 +59,8 @@ pub use zigbee::{
 };
 
 pub use modbus::{
-    ModbusBridge, ModbusEntry, ModbusMap, ModbusSlave, RegisterKind, WATER_HEATER_MAP_YAML,
+    shared_bridge, spawn_modbus_tcp_lab, ModbusBridge, ModbusEntry, ModbusMap, ModbusSlave,
+    ModbusTcpClient, RegisterKind, SharedModbusBridge, SpawnedModbusTcp, WATER_HEATER_MAP_YAML,
 };
 
 #[cfg(test)]
