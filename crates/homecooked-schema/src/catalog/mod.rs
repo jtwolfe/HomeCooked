@@ -895,6 +895,22 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "timer_s"
         );
     }
+    // Stream 7 catalog depth: boiler optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::Boiler {
+        return matches!(
+            point.id,
+            "pressure_bar"
+                | "burner_on"
+                | "flame_out"
+                | "low_pressure"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "high_temp_alarm"
+                | "lockout"
+                | "ignition_fail"
+                | "timer_s"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -3614,6 +3630,62 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.trash_compactor.overload_trip", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn boiler_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::Boiler).unwrap();
+        for id in [
+            "class.boiler.pressure_bar",
+            "class.boiler.burner_on",
+            "class.boiler.flame_out",
+            "class.boiler.low_pressure",
+            "class.boiler.sabbath_mode",
+            "class.boiler.eco_mode",
+            "class.boiler.high_temp_alarm",
+            "class.boiler.lockout",
+            "class.boiler.ignition_fail",
+            "class.boiler.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical boiler"
+            );
+        }
+        cap.validate_write("class.boiler.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.boiler.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.boiler.timer_s", &Value::DurationS(30))
+            .unwrap();
+        let err = cap
+            .validate_write("class.boiler.pressure_bar", &Value::F32(2.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.boiler.burner_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.boiler.flame_out", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.boiler.low_pressure", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.boiler.high_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.boiler.lockout", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.boiler.ignition_fail", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }

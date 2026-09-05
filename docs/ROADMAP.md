@@ -1,6 +1,6 @@
 # HomeCooked roadmap — ~75% project completeness
 
-Version **0.1.78**. Planning doc for a long flesh-out of the catalog, control
+Version **0.1.79**. Planning doc for a long flesh-out of the catalog, control
 stack, and simulator. It does **not** freeze APIs; crate and YAML shapes may
 evolve with the code that implements each stream.
 
@@ -47,7 +47,7 @@ catalog `thermal_port_*` on `water_heater` / `fridge` / `hvac` / `dishwasher` /
 (`HeatPortSpec`) + wasm/UI heat-port specs; **optional-depth deepen series**
 (#56–#73 + follow-on) on `wine_cooler` + `ice_maker` + `sous_vide` + `multi_cooker` +
 `toaster_oven` + `dehumidifier` + `range_hood` + `steam_oven` + `cooktop` +
-`humidifier` + `freezer` + `fridge_freezer` + `beverage_cooler` + `kegerator` + `warming_drawer` + `pizza_oven` + `electric_grill` + `electric_smoker` + `espresso_machine` + `drip_coffee_maker` + `coffee_grinder` + `water_dispenser` + `toaster` + `blender` + `food_processor` + `stand_mixer` + `juicer` + `rice_cooker` + `slow_cooker` + `bread_maker` + `dehydrator` + `vacuum_sealer` + `ice_cream_maker` + `yogurt_maker` + `waffle_maker` + `pasta_maker` + `steam_cooker` + `garbage_disposal` + `trash_compactor` (39 classes; not catalog-complete);
+`humidifier` + `freezer` + `fridge_freezer` + `beverage_cooler` + `kegerator` + `warming_drawer` + `pizza_oven` + `electric_grill` + `electric_smoker` + `espresso_machine` + `drip_coffee_maker` + `coffee_grinder` + `water_dispenser` + `toaster` + `blender` + `food_processor` + `stand_mixer` + `juicer` + `rice_cooker` + `slow_cooker` + `bread_maker` + `dehydrator` + `vacuum_sealer` + `ice_cream_maker` + `yogurt_maker` + `waffle_maker` + `pasta_maker` + `steam_cooker` + `garbage_disposal` + `trash_compactor` + `boiler` (40 classes; not catalog-complete);
 `write_denial_matrix` + `catalog_hygiene` conformance.
 
 **Still open (beyond / still thin vs a strict §2 reading):** promote full plant
@@ -56,7 +56,7 @@ catalog `thermal_port_*` on `water_heater` / `fridge` / `hvac` / `dishwasher` /
 crate-local); **real bridge SDKs** (Modbus serial/TCP or Matter/CHIP — mocks only
 today); TLS (still out of scope for lab transport); **catalog optional depth not
 complete** — deepen series (#56–#73 + follow-on) landed optional-point passes on **39** classes
-(mostly Tier-A + Tier-B `humidifier` / `beverage_cooler` / `kegerator` / `warming_drawer` / `pizza_oven` / `electric_grill` / `electric_smoker` / `espresso_machine` / `drip_coffee_maker` / `coffee_grinder` / `water_dispenser` / `toaster` / `blender` / `food_processor` / `stand_mixer` / `juicer` / `rice_cooker` / `slow_cooker` / `bread_maker` / `dehydrator` / `vacuum_sealer` / `ice_cream_maker` / `yogurt_maker` / `waffle_maker` / `pasta_maker` / `steam_cooker` / `garbage_disposal` / `trash_compactor`); **3 of 31 Tier-B** ids remain thin tables
+(mostly Tier-A + Tier-B `humidifier` / `beverage_cooler` / `kegerator` / `warming_drawer` / `pizza_oven` / `electric_grill` / `electric_smoker` / `espresso_machine` / `drip_coffee_maker` / `coffee_grinder` / `water_dispenser` / `toaster` / `blender` / `food_processor` / `stand_mixer` / `juicer` / `rice_cooker` / `slow_cooker` / `bread_maker` / `dehydrator` / `vacuum_sealer` / `ice_cream_maker` / `yogurt_maker` / `waffle_maker` / `pasta_maker` / `steam_cooker` / `garbage_disposal` / `trash_compactor` / `boiler`); **2 of 31 Tier-B** ids remain thin tables
 only (see §4); procedure⇄thermal **multi-round negotiate dialogue** / soft decline /
 richer wasm UI (thin `thermal_wait` + `thermal_offer` immediate-accept are present);
 **CottonOptions** / **DryOptions** (and cancel/pause / typical_capability) over the
@@ -71,13 +71,13 @@ schema vocabulary / `ClassTable.HeatPortSpec` + wasm heat-port chips) + bridge
 mocks + write-denial matrix + **optional-depth deepen series** on
 `wine_cooler` / `ice_maker` / `sous_vide` / `multi_cooker` / `toaster_oven` /
 `dehumidifier` / `range_hood` / `steam_oven` / `cooktop` / `humidifier` /
-`freezer` / `fridge_freezer` / `beverage_cooler` / `kegerator` / `warming_drawer` / `pizza_oven` / `electric_grill` / `electric_smoker` / `espresso_machine` / `drip_coffee_maker` / `coffee_grinder` / `water_dispenser` / `toaster` / `blender` / `food_processor` / `stand_mixer` / `juicer` / `rice_cooker` / `slow_cooker` / `bread_maker` / `dehydrator` / `vacuum_sealer` / `ice_cream_maker` / `yogurt_maker` / `waffle_maker` / `pasta_maker` / `steam_cooker` / `garbage_disposal` / `trash_compactor` ≈ **~75% of the §2 in-scope bar, met in spirit** for
+`freezer` / `fridge_freezer` / `beverage_cooler` / `kegerator` / `warming_drawer` / `pizza_oven` / `electric_grill` / `electric_smoker` / `espresso_machine` / `drip_coffee_maker` / `coffee_grinder` / `water_dispenser` / `toaster` / `blender` / `food_processor` / `stand_mixer` / `juicer` / `rice_cooker` / `slow_cooker` / `bread_maker` / `dehydrator` / `vacuum_sealer` / `ice_cream_maker` / `yogurt_maker` / `waffle_maker` / `pasta_maker` / `steam_cooker` / `garbage_disposal` / `trash_compactor` / `boiler` ≈ **~75% of the §2 in-scope bar, met in spirit** for
 lab/software depth (was ~30% at roadmap start; ~72% at the v0.1.35 refresh; still
 ~75% after the deepen wave — Tier-B depth **improved but not catalog-complete**).
 Recent grind: schema thermal vocab + `ClassTable.thermal_ports` + heat-port UI
 (#54–#55, #59); washer cotton-over-TCP (#60) + **dryer cycle TCP** (#62);
 thin **`thermal_offer`** (#65); catalog optional-depth PRs **#56–#57, #63–#64,
-#66–#73** + `beverage_cooler` / `kegerator` / `warming_drawer` / `pizza_oven` / `electric_grill` / `electric_smoker` / `espresso_machine` / `drip_coffee_maker` / `coffee_grinder` / `water_dispenser` / `toaster` / `blender` / `food_processor` / `stand_mixer` / `juicer` / `rice_cooker` / `slow_cooker` / `bread_maker` / `dehydrator` / `vacuum_sealer` / `ice_cream_maker` / `yogurt_maker` / `waffle_maker` / `pasta_maker` / `steam_cooker` / `garbage_disposal` / `trash_compactor` (the thirty-nine classes above). Calling the target **substantially
+#66–#73** + `beverage_cooler` / `kegerator` / `warming_drawer` / `pizza_oven` / `electric_grill` / `electric_smoker` / `espresso_machine` / `drip_coffee_maker` / `coffee_grinder` / `water_dispenser` / `toaster` / `blender` / `food_processor` / `stand_mixer` / `juicer` / `rice_cooker` / `slow_cooker` / `bread_maker` / `dehydrator` / `vacuum_sealer` / `ice_cream_maker` / `yogurt_maker` / `waffle_maker` / `pasta_maker` / `steam_cooker` / `garbage_disposal` / `trash_compactor` / `boiler` (the forty classes above). Calling the target **substantially
 achieved** remains honest — not that every §2 bullet is production-complete or
 that every Tier-B table has optional depth. This is **not** IEC certification,
 production firmware, or a shipping commercial appliance. Remaining work is depth
@@ -133,7 +133,7 @@ production firmware:
   optional-point depth landed (PRs **#56–#57, #63–#64, #66–#73** + follow-on) on **39** classes —
   Tier-A `wine_cooler` + `ice_maker` + `sous_vide` + `multi_cooker` + `toaster_oven`
   + `dehumidifier` + `range_hood` + `steam_oven` + `cooktop` + `freezer` +
-  `fridge_freezer`, plus Tier-B `humidifier` + `beverage_cooler` + `kegerator` + `warming_drawer` + `pizza_oven` + `electric_grill` + `electric_smoker` + `espresso_machine` + `drip_coffee_maker` + `coffee_grinder` + `water_dispenser` + `toaster` + `blender` + `food_processor` + `stand_mixer` + `juicer` + `rice_cooker` + `slow_cooker` + `bread_maker` + `dehydrator` + `vacuum_sealer` + `ice_cream_maker` + `yogurt_maker` + `waffle_maker` + `pasta_maker` + `steam_cooker` + `garbage_disposal` + `trash_compactor` (alarms / sabbath / bottle_count /
+  `fridge_freezer`, plus Tier-B `humidifier` + `beverage_cooler` + `kegerator` + `warming_drawer` + `pizza_oven` + `electric_grill` + `electric_smoker` + `espresso_machine` + `drip_coffee_maker` + `coffee_grinder` + `water_dispenser` + `toaster` + `blender` + `food_processor` + `stand_mixer` + `juicer` + `rice_cooker` + `slow_cooker` + `bread_maker` + `dehydrator` + `vacuum_sealer` + `ice_cream_maker` + `yogurt_maker` + `waffle_maker` + `pasta_maker` + `steam_cooker` + `garbage_disposal` + `trash_compactor` + `boiler` (alarms / sabbath / bottle_count /
   humidity; ice bin/filter life + harvest/scale alerts; sous-vide
   water/lid/timer/overtemp + cycle remaining; multi-cooker pot/pressure/saute/keep-warm
   + cycle remaining; toaster-oven door/timer/rack/bagel/slices + convection/broil/elements
@@ -175,9 +175,10 @@ production firmware:
   pasta_maker die/jam/sabbath/eco/motor_on/dough_ready/hopper_empty/die_present/overload_trip/timer_s;
   steam_cooker cook_s/water_empty/sabbath/eco/heater_on/high_temp_alarm/lid_open/steam_ready/timer_s;
   garbage_disposal run_s/jam/reset_needed/reverse/sabbath/eco/motor_on/overload_trip/air_switch/timer_s;
-  trash_compactor ram_state/bin_full/sabbath/eco/motor_on/drawer_open/overload_trip/key_lock/timer_s).
-  **Remaining thin Tier-B (3):**
-  `boiler`, `water_softener`, `water_filter`. Undepened Tier-A
+  trash_compactor ram_state/bin_full/sabbath/eco/motor_on/drawer_open/overload_trip/key_lock/timer_s;
+  boiler pressure_bar/burner_on/flame_out/low_pressure/sabbath/eco/high_temp_alarm/lockout/ignition_fail/timer_s).
+  **Remaining thin Tier-B (2):**
+  `water_softener`, `water_filter`. Undepened Tier-A
   without a deepen-series optional-point pass (still tabled / thermal / procedure
   only as before): e.g. `washer`, `dryer`, `washer_dryer`, `fridge`, `dishwasher`,
   `microwave`, `oven`, `range`, `induction_hob`, `air_fryer`, `kettle`,
@@ -483,7 +484,7 @@ sim spawn via `typical_capability`. `STATIC_CLASS_IDS` = Tier-A ∪ Tier-B =
 [`catalog/ADDING_A_CLASS.md`](catalog/ADDING_A_CLASS.md).
 
 **Optional-depth note:** `humidifier` (#71), `beverage_cooler`, `kegerator`,
-`warming_drawer`, `pizza_oven`, `electric_grill`, `electric_smoker`, `espresso_machine`, `drip_coffee_maker`, `coffee_grinder`, `water_dispenser`, `toaster`, `blender`, `food_processor`, `stand_mixer`, `juicer`, `rice_cooker`, `slow_cooker`, `bread_maker`, `dehydrator`, `vacuum_sealer`, `ice_cream_maker`, `yogurt_maker`, `waffle_maker`, `pasta_maker`, `steam_cooker`, `garbage_disposal`, and `trash_compactor` received deepen-series optional-point passes. The other **3** Tier-B ids below remain thin
+`warming_drawer`, `pizza_oven`, `electric_grill`, `electric_smoker`, `espresso_machine`, `drip_coffee_maker`, `coffee_grinder`, `water_dispenser`, `toaster`, `blender`, `food_processor`, `stand_mixer`, `juicer`, `rice_cooker`, `slow_cooker`, `bread_maker`, `dehydrator`, `vacuum_sealer`, `ice_cream_maker`, `yogurt_maker`, `waffle_maker`, `pasta_maker`, `steam_cooker`, `garbage_disposal`, `trash_compactor`, and `boiler` received deepen-series optional-point passes. The other **2** Tier-B ids below remain thin
 (no optional-depth extras beyond the initial thin table). Most deepen-series work
 (#56–#73) hit Tier-A classes listed in §4 Tier-A.
 
@@ -516,13 +517,13 @@ sim spawn via `typical_capability`. `STATIC_CLASS_IDS` = Tier-A ∪ Tier-B =
 | `steam_cooker` | Optional depth: cook_s/water_empty/sabbath/eco/heater_on/high_temp_alarm/lid_open/steam_ready/timer_s |
 | `garbage_disposal` | Optional depth: run_s/jam/reset_needed/reverse/sabbath/eco/motor_on/overload_trip/air_switch/timer_s |
 | `trash_compactor` | Optional depth: ram_state/bin_full/sabbath/eco/motor_on/drawer_open/overload_trip/key_lock/timer_s |
-| `boiler` | CH/DHW plant |
+| `boiler` | Optional depth: pressure_bar/burner_on/flame_out/low_pressure/sabbath/eco/high_temp_alarm/lockout/ignition_fail/timer_s |
 | `water_softener` | Regen / salt |
 | `water_filter` | TDS / flush |
 | `humidifier` | Optional depth: warm_mist/auto_humidity/mineral_filter/uv_clean/scale_alert/tank_removed/misting/night_mode + typical output_level/mist_type/wick_state + humidity setpoint |
 
-Count: **31** Tier-B ids, all with thin static tables + sim; **28** optional-depth
-passes (`humidifier` + `beverage_cooler` + `kegerator` + `warming_drawer` + `pizza_oven` + `electric_grill` + `electric_smoker` + `espresso_machine` + `drip_coffee_maker` + `coffee_grinder` + `water_dispenser` + `toaster` + `blender` + `food_processor` + `stand_mixer` + `juicer` + `rice_cooker` + `slow_cooker` + `bread_maker` + `dehydrator` + `vacuum_sealer` + `ice_cream_maker` + `yogurt_maker` + `waffle_maker` + `pasta_maker` + `steam_cooker` + `garbage_disposal` + `trash_compactor`); **3** still thin.
+Count: **31** Tier-B ids, all with thin static tables + sim; **29** optional-depth
+passes (`humidifier` + `beverage_cooler` + `kegerator` + `warming_drawer` + `pizza_oven` + `electric_grill` + `electric_smoker` + `espresso_machine` + `drip_coffee_maker` + `coffee_grinder` + `water_dispenser` + `toaster` + `blender` + `food_processor` + `stand_mixer` + `juicer` + `rice_cooker` + `slow_cooker` + `bread_maker` + `dehydrator` + `vacuum_sealer` + `ice_cream_maker` + `yogurt_maker` + `waffle_maker` + `pasta_maker` + `steam_cooker` + `garbage_disposal` + `trash_compactor` + `boiler`); **2** still thin.
 
 ---
 
@@ -541,7 +542,7 @@ passes (`humidifier` + `beverage_cooler` + `kegerator` + `warming_drawer` + `piz
 | later | `feat/simulator-tier-a-ui` | 7 — grouped Tier-A picker (first UI slice) |
 | later | WASM UI + conformance suite | 7 — picker + procedure UI (kettle/Domino's/wash-then-dry/oven bake/coffee brew/air fryer cook) + thermal UI + device port chips + blob-load done; smoke suite + write-denial matrix + hub-in-suite done; richer UI remaining |
 | later | Tier-B thin tables | 2 — **Done** (31 Tier-B → 56 total static + sim) |
-| later | catalog optional depth | 7 — **Series progress** (#56–#73 + follow-on): 39 classes deepened (`wine_cooler` + `ice_maker` + `sous_vide` + `multi_cooker` + `toaster_oven` + `dehumidifier` + `range_hood` + `steam_oven` + `cooktop` + `humidifier` + `freezer` + `fridge_freezer` + `beverage_cooler` + `kegerator` + `warming_drawer` + `pizza_oven` + `electric_grill` + `electric_smoker` + `espresso_machine` + `drip_coffee_maker` + `coffee_grinder` + `water_dispenser` + `toaster` + `blender` + `food_processor` + `stand_mixer` + `juicer` + `rice_cooker` + `slow_cooker` + `bread_maker` + `dehydrator` + `vacuum_sealer` + `ice_cream_maker` + `yogurt_maker` + `waffle_maker` + `pasta_maker` + `steam_cooker` + `garbage_disposal` + `trash_compactor`); **3/31 Tier-B still thin**; not catalog-complete |
+| later | catalog optional depth | 7 — **Series progress** (#56–#73 + follow-on): 40 classes deepened (`wine_cooler` + `ice_maker` + `sous_vide` + `multi_cooker` + `toaster_oven` + `dehumidifier` + `range_hood` + `steam_oven` + `cooktop` + `humidifier` + `freezer` + `fridge_freezer` + `beverage_cooler` + `kegerator` + `warming_drawer` + `pizza_oven` + `electric_grill` + `electric_smoker` + `espresso_machine` + `drip_coffee_maker` + `coffee_grinder` + `water_dispenser` + `toaster` + `blender` + `food_processor` + `stand_mixer` + `juicer` + `rice_cooker` + `slow_cooker` + `bread_maker` + `dehydrator` + `vacuum_sealer` + `ice_cream_maker` + `yogurt_maker` + `waffle_maker` + `pasta_maker` + `steam_cooker` + `garbage_disposal` + `trash_compactor` + `boiler`); **2/31 Tier-B still thin**; not catalog-complete |
 | later | lab hub + PSK | 4 — **Done** (`homecooked-hub`, transport PSK) |
 | later | bridge mocks (Matter/Zigbee/BACnet) | 6 — **Done** (thin mocks; real SDKs still open) |
 | later | dryer controller cycle | 4 — **Done** |
@@ -635,3 +636,4 @@ the code that implements them.
 | 0.1.76 | Stream 7 catalog depth: deepen `steam_cooker` optional class points (sabbath_mode/eco_mode/heater_on/high_temp_alarm/lid_open/steam_ready/timer_s + required cook_s/water_empty); remaining thin Tier-B 6→5 |
 | 0.1.77 | Stream 7 catalog depth: deepen `garbage_disposal` optional class points (sabbath_mode/eco_mode/motor_on/overload_trip/air_switch/timer_s + typical run_s/jam/reset_needed/reverse); remaining thin Tier-B 5→4 |
 | 0.1.78 | Stream 7 catalog depth: deepen `trash_compactor` optional class points (sabbath_mode/eco_mode/motor_on/drawer_open/overload_trip/key_lock/timer_s + typical ram_state/bin_full); remaining thin Tier-B 4→3 |
+| 0.1.79 | Stream 7 catalog depth: deepen `boiler` optional class points (sabbath_mode/eco_mode/high_temp_alarm/lockout/ignition_fail/timer_s + typical pressure_bar/burner_on/flame_out/low_pressure); remaining thin Tier-B 3→2 |
