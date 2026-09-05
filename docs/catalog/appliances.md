@@ -1352,13 +1352,19 @@ Dedicated dehumidifier (portable or whole-home).
 **Typical traits:** `identity`, `power`, `connectivity`, `humidity`, `fan`,
 `water`, `filter`, `fault`, `energy`, `time_schedule`.
 
-**Typical controllable settings:** humidity setpoint (% RH), fan, pump / drain
-mode, timer.
+**Typical controllable settings:** humidity setpoint (% RH), fan speed,
+continuous mode, quiet / sleep mode, pump / continuous drain (`pump_mode`),
+delayed start.
 
-**Typical readable state:** RH, tank full, defrost, compressor, filter.
+**Typical readable state:** RH, tank full, bucket removed, defrost, compressor
+on, high/low RH alarms, filter dirty, filter life.
 
-**Notes:** HVAC dry mode stays on `hvac`. Tank-full is `busy` for compressor
-start.
+**Notes:** HVAC dry mode stays on `hvac`. Tank-full / bucket-removed are `busy`
+for compressor start. Catalog depth: optional class points include compressor /
+RH alarms / continuous / quiet / bucket / filter_dirty / delayed start plus
+existing tank_full / pump_mode / defrost; typical also advertises
+`trait.humidity.setpoint_rh` and `trait.fan.fan_speed`. No hydronic
+`thermal_port_*` (room-air reject; not a plant coil).
 
 ### `humidifier`
 

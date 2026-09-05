@@ -224,6 +224,15 @@ fn extra_typical_trait_point(table: &ClassTable, trait_id: TraitId, point: &Cata
     {
         return true;
     }
+    // Dehumidifier: humidity setpoint + fan speed are typical controls.
+    if table.class_id == ApplianceClassId::Dehumidifier {
+        if trait_id == TraitId::Humidity && point.id == "setpoint_rh" {
+            return true;
+        }
+        if trait_id == TraitId::Fan && point.id == "fan_speed" {
+            return true;
+        }
+    }
     false
 }
 
@@ -319,6 +328,23 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "cook_s"
                 | "element_bake"
                 | "element_broil"
+        );
+    }
+    // Stream 7 catalog depth: dehumidifier optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::Dehumidifier {
+        return matches!(
+            point.id,
+            "tank_full"
+                | "pump_mode"
+                | "defrost"
+                | "compressor_on"
+                | "high_rh_alarm"
+                | "low_rh_alarm"
+                | "continuous_mode"
+                | "quiet_mode"
+                | "bucket_removed"
+                | "filter_dirty"
+                | "delayed_start_s"
         );
     }
     // Stream 5: device-facing thermal-port surface on Tier-A water_heater / fridge / hvac / dishwasher / dryer.
@@ -908,6 +934,88 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("trait.cycle.remaining_s", &Value::DurationS(100))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn dehumidifier_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::Dehumidifier).unwrap();
+        for id in [
+            "class.dehumidifier.tank_full",
+            "class.dehumidifier.pump_mode",
+            "class.dehumidifier.defrost",
+            "class.dehumidifier.compressor_on",
+            "class.dehumidifier.high_rh_alarm",
+            "class.dehumidifier.low_rh_alarm",
+            "class.dehumidifier.continuous_mode",
+            "class.dehumidifier.quiet_mode",
+            "class.dehumidifier.bucket_removed",
+            "class.dehumidifier.filter_dirty",
+            "class.dehumidifier.delayed_start_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical dehumidifier"
+            );
+        }
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Humidity)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.humidity.setpoint_rh"));
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Fan)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.fan.fan_speed"));
+        cap.validate_write("class.dehumidifier.pump_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.dehumidifier.continuous_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.dehumidifier.quiet_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write(
+            "class.dehumidifier.delayed_start_s",
+            &Value::DurationS(3600),
+        )
+        .unwrap();
+        cap.validate_write("trait.humidity.setpoint_rh", &Value::Percent(45.0))
+            .unwrap();
+        cap.validate_write("trait.fan.fan_speed", &Value::U8(2))
+            .unwrap();
+        let err = cap
+            .validate_write("class.dehumidifier.tank_full", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.dehumidifier.defrost", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.dehumidifier.compressor_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.dehumidifier.high_rh_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.dehumidifier.low_rh_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.dehumidifier.bucket_removed", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.dehumidifier.filter_dirty", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }

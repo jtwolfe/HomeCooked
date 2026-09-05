@@ -873,6 +873,149 @@ mod tests {
     }
 
     #[test]
+    fn dehumidifier_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let dh = sim.spawn(ApplianceClassId::Dehumidifier).unwrap();
+
+        assert_eq!(
+            sim.read_value(&dh, "class.dehumidifier.tank_full").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&dh, "class.dehumidifier.pump_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&dh, "class.dehumidifier.defrost").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&dh, "class.dehumidifier.compressor_on")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&dh, "class.dehumidifier.high_rh_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&dh, "class.dehumidifier.low_rh_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&dh, "class.dehumidifier.continuous_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&dh, "class.dehumidifier.quiet_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&dh, "class.dehumidifier.bucket_removed")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&dh, "class.dehumidifier.filter_dirty")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&dh, "class.dehumidifier.delayed_start_s")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&dh, "trait.humidity.current_rh").unwrap(),
+            Value::Percent(55.0)
+        );
+        assert_eq!(
+            sim.read_value(&dh, "trait.humidity.setpoint_rh").unwrap(),
+            Value::Percent(45.0)
+        );
+        assert_eq!(
+            sim.read_value(&dh, "trait.fan.fan_speed").unwrap(),
+            Value::U8(2)
+        );
+
+        sim.write(&dh, "class.dehumidifier.pump_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&dh, "class.dehumidifier.pump_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&dh, "class.dehumidifier.continuous_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&dh, "class.dehumidifier.continuous_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&dh, "class.dehumidifier.quiet_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&dh, "class.dehumidifier.quiet_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(
+            &dh,
+            "class.dehumidifier.delayed_start_s",
+            Value::DurationS(1800),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&dh, "class.dehumidifier.delayed_start_s")
+                .unwrap(),
+            Value::DurationS(1800)
+        );
+        sim.write(&dh, "trait.humidity.setpoint_rh", Value::Percent(40.0))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&dh, "trait.humidity.setpoint_rh").unwrap(),
+            Value::Percent(40.0)
+        );
+        sim.write(&dh, "trait.fan.fan_speed", Value::U8(4)).unwrap();
+        assert_eq!(
+            sim.read_value(&dh, "trait.fan.fan_speed").unwrap(),
+            Value::U8(4)
+        );
+
+        let err = sim
+            .write(&dh, "class.dehumidifier.tank_full", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&dh, "class.dehumidifier.defrost", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&dh, "class.dehumidifier.compressor_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&dh, "class.dehumidifier.high_rh_alarm", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&dh, "class.dehumidifier.low_rh_alarm", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&dh, "class.dehumidifier.bucket_removed", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&dh, "class.dehumidifier.filter_dirty", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {
