@@ -737,9 +737,14 @@ timer, top/bottom balance, steam burst (optional).
 
 **Typical readable state:** stone temp, dome temp, preheat ready, door, heater.
 
-**Notes:** Consumer outdoor Ooni-style units with Bluetooth fit here if they
-expose a setpoint. Uncontrolled wood-fired ovens without electronics are out of
-catalog.
+**Notes:**
+
+- Consumer outdoor Ooni-style units with Bluetooth fit here if they expose a
+  setpoint. Uncontrolled wood-fired ovens without electronics are out of
+  catalog.
+- Catalog depth: optional class points include `stone_c`, `dome_c`,
+  `top_bottom_balance`, sabbath, eco, `heater_on`, `high_temp_alarm`,
+  `door_ajar`, `timer_s`, and `steam_inject` (see variables-and-settings).
 
 ### `air_fryer`
 
