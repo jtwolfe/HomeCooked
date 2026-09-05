@@ -1,9 +1,9 @@
 //! Shared thermal **vocabulary** types for catalog / docs alignment.
 //!
 //! These enums match tokens already used on device `thermal_port_media` and
-//! `thermal_port_direction` catalog points. They are **not** a promotion of the
-//! full plant runtime (`ThermalPlant`, transfer dialogue, tick) into schema —
-//! that remains crate-local in `homecooked-thermal`.
+//! `thermal_port_direction` catalog points. Plant **dialogue** shapes
+//! (reservoirs, transfer offer/accept/…) live in [`crate::plant`]; the live
+//! `ThermalPlant` engine / tick remains in `homecooked-thermal`.
 //!
 //! See [`docs/standard/thermal-plant.md`](../../../docs/standard/thermal-plant.md).
 

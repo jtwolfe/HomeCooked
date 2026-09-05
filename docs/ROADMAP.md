@@ -1,6 +1,6 @@
 # HomeCooked roadmap — ~75% project completeness
 
-Version **0.1.103**. Planning doc for a long flesh-out of the catalog, control
+Version **0.1.104**. Planning doc for a long flesh-out of the catalog, control
 stack, and simulator. It does **not** freeze APIs; crate and YAML shapes may
 evolve with the code that implements each stream.
 
@@ -19,7 +19,7 @@ What exists on `main` today (Done highlights called out):
 |------|--------|
 | Catalog docs | Appliance class index (**56** ids), traits, variables/settings in `docs/catalog/` |
 | Standard docs | Overview, thermal-plant, procedures, bridges, control-system sketches; washer/dryer I/O example |
-| `homecooked-schema` | Serde types, capability model, write validation; **56** static class tables (**25 Tier-A + 31 Tier-B**); optional thermal-port class points on `water_heater` + `fridge` + `hvac` + `dishwasher` + `dryer`; `ClassTable.thermal_ports: &[HeatPortSpec]` (static advertisement matching sim seeds); shared thermal **vocabulary** (`Media` / `PortDirection` / `TempBandC` / `HeatPortSpec`) — **Done** |
+| `homecooked-schema` | Serde types, capability model, write validation; **56** static class tables (**25 Tier-A + 31 Tier-B**); optional thermal-port class points on `water_heater` + `fridge` + `hvac` + `dishwasher` + `dryer`; `ClassTable.thermal_ports: &[HeatPortSpec]` (static advertisement matching sim seeds); shared thermal **vocabulary** + plant **dialogue** types (`Media` / `PortDirection` / `TempBandC` / `HeatPortSpec` / `Reservoir` / `HeatPort` / transfer offer/accept/decline/counter) — **Done** |
 | `homecooked-protocol` | Envelope, request/response kinds, discovery, JSON, errors (v0.1.0); **invalid Envelope JSON table tests** |
 | `homecooked-core` | Device registry, capability-enforced read/write |
 | `homecooked-sim` | In-memory devices for all 56 statically tabled classes; microwave cook ticks advance `elapsed_s`; water_heater/fridge/hvac/dishwasher/dryer thermal-port seeds + RW attach |
@@ -29,7 +29,7 @@ What exists on `main` today (Done highlights called out):
 | `homecooked-hal` | Firmware HAL sketch + host `MockHal` |
 | `homecooked-procedure` | Procedure documents + sequential runner; Domino's microwave + wash-then-dry + oven bake + coffee brew + air fryer cook + thin `thermal_wait` / `wait_dhw_reservoir` / continuous-requeue `wait_dhw_with_requeue` + `thermal_offer` / `offer_fridge_dhw` / soft-decline `offer_fridge_dhw_soft` / Counter `offer_fridge_dhw_counter` fixtures |
 | `homecooked-controller` | Host controller sim: IoMap + MockHal + interlocks + washer cotton / **dryer cycle**; **lab TCP endpoints** (`ControllerEndpoint` + `DryerControllerEndpoint` interlock deny; washer/dryer **cycle start** + **pause/resume/cancel** + readable phase/state + lab tick; washer **CottonOptions** via adjacent `wash_temp_c`/`spin_rpm` writes; dryer **DryOptions** via adjacent `dryness`/`heat_level` writes) — **Done** |
-| `homecooked-thermal` | First executable thermal plant slice (types, registry, offer/accept, tick); re-exports schema thermal vocabulary; plant **runtime** still crate-local (not promoted with ClassTable `HeatPortSpec`) |
+| `homecooked-thermal` | First executable thermal plant **engine** (registry, offer/accept/counter, tick); re-exports schema vocabulary + dialogue types; live `ThermalPlant` stays here |
 | `homecooked-bridge` | **Modbus + Matter + Zigbee + BACnet mocks** (no real serial/TCP/CHIP/z2m/BACnet stacks) — **Done** |
 | `homecooked-transport` | Lab TCP JSON envelopes; **optional PSK pairing**; sim-backed server + **pluggable `RequestHandler`**; malformed frame table tests — **Done** |
 | `homecooked-hub` | Optional multi-device lab TCP aggregator (**not required for devices**) — **Done** |
@@ -50,15 +50,17 @@ catalog `thermal_port_*` on `water_heater` / `fridge` / `hvac` / `dishwasher` /
 `humidifier` + `freezer` + `fridge_freezer` + `beverage_cooler` + `kegerator` + `warming_drawer` + `pizza_oven` + `electric_grill` + `electric_smoker` + `espresso_machine` + `drip_coffee_maker` + `coffee_grinder` + `water_dispenser` + `toaster` + `blender` + `food_processor` + `stand_mixer` + `juicer` + `rice_cooker` + `slow_cooker` + `bread_maker` + `dehydrator` + `vacuum_sealer` + `ice_cream_maker` + `yogurt_maker` + `waffle_maker` + `pasta_maker` + `steam_cooker` + `garbage_disposal` + `trash_compactor` + `boiler` + `water_softener` + `water_filter` + `washer` + `dryer` + `washer_dryer` + `fridge` + `dishwasher` + `microwave` + `oven` + `range` + `induction_hob` + `air_fryer` + `kettle` + `coffee_machine` + `water_heater` + `hvac` (56 classes; Tier-B optional-depth passes complete; undepened Tier-A deepen series: `washer` + `dryer` + `washer_dryer` + `fridge` + `dishwasher` + `microwave` + `oven` + `range` + `induction_hob` + `air_fryer` + `kettle` + `coffee_machine` + `water_heater` + `hvac`; all listed undepened Tier-A classes now have optional-depth passes; honest caveats still apply for real bridges, TLS, full HAL binding for every typical point, etc.);
 `write_denial_matrix` + `catalog_hygiene` conformance.
 
-**Still open (beyond / still thin vs a strict §2 reading):** promote full plant
-**runtime** into schema (`Media` / `PortDirection` / `TempBandC` / `HeatPortSpec`
-+ `ClassTable.thermal_ports` landed; `ThermalPlant` / transfer dialogue still
-crate-local); **real bridge SDKs** (Modbus serial/TCP or Matter/CHIP — mocks only
+**Still open (beyond / still thin vs a strict §2 reading):** plant dialogue
+**types** now schema-owned (`Media` / `PortDirection` / `TempBandC` /
+`HeatPortSpec` + `ClassTable.thermal_ports` + `Reservoir` / `HeatPort` /
+transfer offer/accept/decline/counter); live `ThermalPlant` **engine** remains
+in `homecooked-thermal`; **real bridge SDKs** (Modbus serial/TCP or Matter/CHIP — mocks only
 today); TLS (still out of scope for lab transport); **catalog optional-depth passes complete** for all listed classes — deepen series (#56–#73 + follow-on) landed optional-point passes on **56** classes
 (mostly Tier-A + Tier-B `humidifier` / `beverage_cooler` / `kegerator` / `warming_drawer` / `pizza_oven` / `electric_grill` / `electric_smoker` / `espresso_machine` / `drip_coffee_maker` / `coffee_grinder` / `water_dispenser` / `toaster` / `blender` / `food_processor` / `stand_mixer` / `juicer` / `rice_cooker` / `slow_cooker` / `bread_maker` / `dehydrator` / `vacuum_sealer` / `ice_cream_maker` / `yogurt_maker` / `waffle_maker` / `pasta_maker` / `steam_cooker` / `garbage_disposal` / `trash_compactor` / `boiler` / `water_softener` / `water_filter` + undepened Tier-A `washer` + `dryer` + `washer_dryer` + `fridge` + `dishwasher` + `microwave` + `oven` + `range` + `induction_hob` + `air_fryer` + `kettle` + `coffee_machine` + `water_heater` + `hvac`); **0 of 31 Tier-B** ids remain thin tables
 (all 31 have optional-depth passes; all listed undepened Tier-A classes now have optional-depth passes (0 remaining); see §4); procedure⇄thermal **dedicated wasm UI** landed thin
 (Thermal procedures subsection + `run_thermal_procedure` + outcome badges for accept/soft/counter/requeue/temp;
-plant Counter replies landed; schema plant runtime / real bridges / TLS / full conformance console still deferred); washer/dryer
+plant Counter replies + schema plant-dialogue types landed; live plant engine /
+real bridges / TLS / full conformance console still deferred); washer/dryer
 **typical_capability over lab TCP** landed (0.1.99) — full HAL binding for every
 typical point still not required (CottonOptions / DryOptions / cancel-pause-resume already landed).
 
@@ -81,11 +83,11 @@ thin **`thermal_offer`** (#65); catalog optional-depth PRs **#56–#57, #63–#6
 achieved** remains honest — not that every §2 bullet is production-complete or
 that real bridge SDKs / TLS are done. This is **not** IEC certification,
 production firmware, or a shipping commercial appliance. Remaining work is depth
-beyond the lab bar (real bridge SDK, full plant runtime schema promotion, TLS,
+beyond the lab bar (real bridge SDK, live plant engine still in thermal, TLS,
 fuller typed multi-round as separate steps; washer/dryer lab
 typical_capability-over-wire landed — full HAL binding for every typical point
 still not required; dedicated thermal procedure wasm UI landed thin in 0.1.102;
-plant Counter replies landed in 0.1.103).
+plant Counter replies landed in 0.1.103; schema plant-dialogue types in 0.1.104).
 
 ---
 
@@ -123,12 +125,12 @@ production firmware:
 - **Real bridge SDK** — in-scope asks for *one* real Matter **or** Modbus
   implementation; `homecooked-bridge` has Modbus + Matter + Zigbee + BACnet
   **mocks** only (no serial/TCP Modbus, CHIP, z2m, or BACnet stack).
-- **Plant runtime** — device `thermal_port_*` points exist on
+- **Plant engine** — device `thermal_port_*` points exist on
   `water_heater` / `fridge` / `hvac` / `dishwasher` / `dryer`; shared vocabulary
-  (`Media` / `PortDirection` / `TempBandC` / `HeatPortSpec`) +
-  `ClassTable.thermal_ports` advertisement live in `homecooked-schema`; plant
-  object runtime (`ThermalPlant`, reservoirs, offer/accept, tick) remains
-  crate-local in `homecooked-thermal` (not full schema promotion).
+  + plant dialogue types (`Media` / `PortDirection` / `TempBandC` /
+  `HeatPortSpec` / `Reservoir` / `HeatPort` / transfer messages) +
+  `ClassTable.thermal_ports` live in `homecooked-schema`; live `ThermalPlant`
+  engine (registry / negotiate / tick) remains in `homecooked-thermal`.
 - **Richer UI** — picker + procedure runner + thermal panel + port chips are
   in; conformance-oriented / deeper screens remain.
 - **Deeper catalog optional points** — thin tables cover all 31 Tier-B ids;
@@ -199,7 +201,7 @@ production firmware:
   none — all 31 Tier-B classes now have optional-depth passes. **Remaining
   undepened Tier-A (0):** none — all listed undepened Tier-A classes now have
   optional-depth passes. Honest caveats still apply for real bridges, TLS,
-  plant runtime schema promotion, full HAL binding for every typical point, etc.
+  live plant engine beyond dialogue types, full HAL binding for every typical point, etc.
 - **Procedure⇄thermal depth** — thin `thermal_wait` on reservoir `temp_c` and
   thin `thermal_offer` (offer + immediate accept / decline / **Counter**; soft
   `on_decline: continue`; thin `fallback_power_w` retry; `accept_counter`
@@ -208,7 +210,7 @@ production firmware:
   `wait_dhw_with_requeue` + conformance) are present; **dedicated wasm/UI**
   (Thermal procedures one-click + outcome badges + `run_thermal_procedure`)
   landed thin — not a full conformance console; plant Counter replies landed
-  (0.1.103). Dual-path dishwasher demo can still
+  (0.1.103); schema plant-dialogue types (0.1.104). Dual-path dishwasher demo can still
   orchestrate transfer outside the procedure JSON.
 - **TLS** — lab TCP stays cleartext (+ optional PSK); TLS/OAuth remain out of
   scope for the lab path.
@@ -339,14 +341,15 @@ multiple small PRs.
 
 1. Schema representation of thermal / hydraulic ports from
    `docs/standard/thermal-plant.md` (sketch → types). **Progressed (device
-   ports Done; vocabulary types in schema; `ClassTable` carries `HeatPortSpec`;
-   plant runtime still crate-local)** —
+   ports Done; vocabulary + plant dialogue types in schema; `ClassTable`
+   carries `HeatPortSpec`; live `ThermalPlant` engine still in thermal)** —
    first executable plant slice in `homecooked-thermal` (reservoirs, heat ports,
    offer/accept, tick transfer); `Media` / `PortDirection` / `TempBandC` /
    `HeatPortSpec` shared with catalog tokens via `homecooked-schema`.
    Device-facing optional catalog points landed on
    `water_heater` / `fridge` / `hvac` / `dishwasher` / `dryer`; static
-   `ClassTable.thermal_ports` specs match sim seeds (not a full schema promotion of plant runtime).
+   `ClassTable.thermal_ports` specs match sim seeds; dialogue types schema-owned;
+   live plant engine remains in `homecooked-thermal`.
 2. Sim devices that advertise and update a minimal port set (e.g. water heater
    / HVAC heat interface). **Done (thin)** for `water_heater` + `fridge` +
    `hvac` + `dishwasher` + `dryer`: optional `thermal_port_*` class points; sim seeds match plant /
@@ -354,15 +357,15 @@ multiple small PRs.
    simulator-web device panel auto-surfaces ports when `thermal_port_id` is
    present (no class-id hardcoding). Broader classes still open.
 3. Docs note what remains vendor / experimental. **Progressed** — catalog +
-   thermal-plant note that plant **runtime** stays in `homecooked-thermal`;
-   vocabulary types are schema-owned.
+   thermal-plant note that live plant **engine** stays in `homecooked-thermal`;
+   vocabulary + dialogue types are schema-owned.
 
 **Definition of done**
 
 - ~~At least one Tier-A thermal-capable class exercises port read/write in tests.~~
   **Met** — `water_heater` (+ lighter `fridge` + `hvac` + `dishwasher` + `dryer`) in schema/sim tests and
   conformance scenario `water_heater_thermal_ports`. Plant **runtime** types remain
-  crate-local in `homecooked-thermal`; vocabulary enums are in schema (this slice).
+  in `homecooked-thermal`; vocabulary + dialogue types are in schema.
 
 ### Stream 6 — One real bridge + stubs
 
@@ -567,7 +570,7 @@ passes (`humidifier` + `beverage_cooler` + `kegerator` + `warming_drawer` + `piz
 | later | Tier-A table batches | 2 |
 | later | procedure + sim | 3 — **Done** (kettle + Domino's + wash-then-dry + `oven_bake_180` + `coffee_brew_espresso` + `air_fryer_cook_200` + thin `thermal_wait` + `thermal_offer` soft decline/fallback + plant Counter `accept_counter` + continuous `requeue_offer`) |
 | later | HAL + controller-sim + TCP | 4 — TCP lab smoke + washer+dryer controller-sim-over-TCP interlock smoke **Done** |
-| later | thermal ports | 5 — **Done (thin)** water_heater+fridge+hvac+dishwasher+dryer catalog/sim ports; schema vocabulary + `ClassTable.HeatPortSpec`; plant runtime still crate-local |
+| later | thermal ports | 5 — **Done (thin)** water_heater+fridge+hvac+dishwasher+dryer catalog/sim ports; schema vocabulary + dialogue types + `ClassTable.HeatPortSpec`; live `ThermalPlant` engine in thermal |
 | later | `feat/bridges-modbus` | 6 — Modbus + stubs (first slice) |
 | later | `feat/matter-mock-bridge` | 6 — Matter mock fabric + kettle map |
 | later | `feat/simulator-tier-a-ui` | 7 — grouped Tier-A picker (first UI slice) |
@@ -692,3 +695,4 @@ the code that implements them.
 | 0.1.101 | Stream 3/5: procedure⇄thermal **continuous re-queue** (`thermal_wait` + `requeue_offer` + inline transfer fields; re-negotiate each poll); fixture `wait_dhw_with_requeue` + conformance `procedure_thermal_wait_requeue`; Still-open refresh (dedicated wasm UI / plant Counter / schema plant runtime / real bridges / TLS remain deferred) |
 | 0.1.102 | Stream 3/5/7: dedicated procedure⇄thermal **wasm/simulator-web UI** (Thermal procedures subsection + picker `[thermal]` badges + `run_thermal_procedure` attach-plant one-click + richer step outcome badges for accept/soft/requeue/temp); Still-open refresh (plant Counter / schema plant runtime / real bridges / TLS remain deferred; not a full conformance console) |
 | 0.1.103 | Stream 3/5: plant **Counter** replies (`TransferReply::Counter` when `0 < available max < offer.min`; procedure `accept_counter` auto-accepts suggested band; fallback still covers unanswered Counter); fixture `offer_fridge_dhw_counter` + conformance `procedure_thermal_offer_counter`; Still-open refresh (schema plant runtime / real bridges / TLS / full conformance console remain deferred) |
+| 0.1.104 | Stream 5: promote plant **dialogue** types (`ReservoirRole` / `Reservoir` / `HeatPort` / `PortRef` / `PowerBandW` / `TransferTarget` / `TransferOffer` / `TransferAccept` / `TransferDecline` / `TransferCounter` / `TransferReply` / `TransferResult`) into `homecooked-schema`; thermal re-exports; live `ThermalPlant` engine stays in `homecooked-thermal`; Still-open refresh (real bridges / TLS / full conformance console remain deferred) |

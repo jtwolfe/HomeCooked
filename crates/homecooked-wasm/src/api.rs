@@ -104,6 +104,12 @@ impl From<homecooked_thermal::Error> for ApiError {
     }
 }
 
+impl From<homecooked_schema::PlantTypeError> for ApiError {
+    fn from(err: homecooked_schema::PlantTypeError) -> Self {
+        Self::invalid_request(err.to_string())
+    }
+}
+
 impl From<CoreError> for ApiError {
     fn from(err: CoreError) -> Self {
         Self {

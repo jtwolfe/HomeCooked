@@ -97,7 +97,7 @@ Direction is from the appliance's point of view on each **heat port**.
 |---------|------------|--------------|
 | Appliance class | Washer, fridge, HPWH, HVAC, … | `docs/catalog/appliances.md` |
 | Plant object | Reservoir, loop segment, plant controller | Future plant catalog / this sketch |
-| Heat port | Advertised attachment on an appliance | Optional class points (`thermal_port_*`) on `water_heater` / `fridge` / `hvac` / `dishwasher` / `dryer`; static `ClassTable.thermal_ports` (`HeatPortSpec`) in `homecooked-schema`; plant runtime still in `homecooked-thermal` |
+| Heat port | Advertised attachment on an appliance | Optional class points (`thermal_port_*`) on `water_heater` / `fridge` / `hvac` / `dishwasher` / `dryer`; static `ClassTable.thermal_ports` (`HeatPortSpec`) + dialogue types in `homecooked-schema`; live `ThermalPlant` engine in `homecooked-thermal` |
 
 **Rule:** do not invent parallel "thermal washer" classes. A `dryer` stays a
 `dryer`. If it can export condenser heat, it advertises a heat port that
@@ -237,12 +237,15 @@ cargo test -p homecooked-procedure thermal_wait
 cargo test -p homecooked-conformance procedure_thermal_wait_dhw
 ```
 
-**Continuous re-queue** across wait polls lives under §8.4. **Still deferred:**
-promoting full plant **runtime** into schema (vocabulary types +
-`ClassTable.HeatPortSpec` live in `homecooked-schema`; `ThermalPlant` / transfer
-dialogue remain crate-local); thin dedicated wasm/UI (Thermal procedures + `run_thermal_procedure`) landed; fuller multi-round beyond thin Counter /
-`accept_counter` (dual-path orchestrator UI remains). Soft decline + thin
-fallback retry live under §8.3; plant Counter replies under §8.5.
+**Continuous re-queue** across wait polls lives under §8.4. Plant **dialogue**
+types (vocabulary + `ClassTable.HeatPortSpec` + reservoirs / heat ports /
+transfer offer/accept/decline/counter) live in `homecooked-schema`; the live
+`ThermalPlant` **engine** remains in `homecooked-thermal`. Thin dedicated
+wasm/UI (Thermal procedures + `run_thermal_procedure`) landed. **Still
+deferred:** fuller multi-round beyond thin Counter / `accept_counter`
+(dual-path orchestrator UI remains); real bridges / TLS / full conformance
+console. Soft decline + thin fallback retry live under §8.3; plant Counter
+replies under §8.5.
 
 ### 8.3 Thin procedure⇄thermal bridge (`thermal_offer`)
 
@@ -319,8 +322,9 @@ cargo test -p homecooked-procedure thermal_wait_with_requeue
 cargo test -p homecooked-conformance procedure_thermal_wait_requeue
 ```
 
-**Still deferred:** fuller typed multi-round as separate steps; promoting full
-plant runtime into schema; real bridges / TLS / full conformance console.
+**Still deferred:** fuller typed multi-round as separate steps; real bridges /
+TLS / full conformance console. (Plant dialogue types are schema-owned; live
+engine remains in `homecooked-thermal`.)
 Plant Counter replies live under §8.5.
 
 ### 8.5 Plant Counter replies (`accept_counter`)
@@ -354,8 +358,9 @@ cargo test -p homecooked-procedure accept_counter
 cargo test -p homecooked-conformance procedure_thermal_offer_counter
 ```
 
-**Still deferred:** schema plant runtime promotion; real bridges; TLS; full
-conformance console. Thin dedicated wasm UI already lists this fixture.
+**Still deferred:** real bridges; TLS; full conformance console. Plant dialogue
+types are schema-owned; live engine remains in `homecooked-thermal`. Thin
+dedicated wasm UI already lists this fixture.
 
 ---
 
@@ -364,14 +369,15 @@ conformance console. Thin dedicated wasm UI already lists this fixture.
 | Version | Notes |
 |---------|--------|
 | 0.1.0 | Initial thermal / hydraulic coupling sketch |
-| 0.1.0+ | First executable plant slice in `homecooked-thermal` (types, registry, offer/accept, tick). Sketch text unchanged; types remain experimental / not catalog ids. |
+| 0.1.0+ | First executable plant slice in `homecooked-thermal` (types, registry, offer/accept, tick). Sketch text unchanged; dialogue types later schema-owned; engine remains experimental / not catalog ids. |
 | 0.1.0+ | Dual-path demo: thermal fridge→DHW then `dishwasher_dhw_preheat` procedure (conformance + wasm). |
-| 0.1.0+ | Catalog/sim device telemetry surface: optional `thermal_port_id` / `direction` / `media` / `max_power_w` / `attached_reservoir_id` (RW) on `water_heater`, `fridge`, `hvac`, `dishwasher` (`inlet_preheat` sink), and `dryer` (`exhaust` source / air / 2000 W). Plant types remain crate-local in `homecooked-thermal`. |
+| 0.1.0+ | Catalog/sim device telemetry surface: optional `thermal_port_id` / `direction` / `media` / `max_power_w` / `attached_reservoir_id` (RW) on `water_heater`, `fridge`, `hvac`, `dishwasher` (`inlet_preheat` sink), and `dryer` (`exhaust` source / air / 2000 W). Plant engine remains in `homecooked-thermal`. |
 | 0.1.0+ | Thin procedure⇄thermal: `thermal_wait` step + backend hooks + `wait_dhw_reservoir` fixture + conformance `procedure_thermal_wait_dhw`. Offer/negotiate-as-steps and wasm UI still deferred. |
 | 0.1.0+ | Thin procedure⇄thermal: `thermal_offer` / `offer_transfer` + backend `thermal_offer`/`thermal_accept`/`thermal_negotiate` + `offer_fridge_dhw` fixture + conformance `procedure_thermal_offer_dhw`. Multi-round dialogue / soft decline / richer wasm UI still deferred. |
-| 0.1.0+ | Schema thermal vocabulary (`Media` / `PortDirection` / `TempBandC` / `HeatPortSpec`) in `homecooked-schema`; plant runtime remains crate-local in `homecooked-thermal`. |
-| 0.1.0+ | `ClassTable.thermal_ports` advertises static `HeatPortSpec` for the five thermal-port classes (match sim seeds); catalog `thermal_port_*` points remain the device RW surface; plant runtime still crate-local. |
+| 0.1.0+ | Schema thermal vocabulary (`Media` / `PortDirection` / `TempBandC` / `HeatPortSpec`) in `homecooked-schema`; plant engine remains in `homecooked-thermal`. |
+| 0.1.0+ | `ClassTable.thermal_ports` advertises static `HeatPortSpec` for the five thermal-port classes (match sim seeds); catalog `thermal_port_*` points remain the device RW surface. |
 | 0.1.0+ | Soft decline (`on_decline: fail|continue`) + thin `fallback_power_w` retry; plant negotiate declines when max < offer min; fixture `offer_fridge_dhw_soft` + conformance `procedure_thermal_offer_soft_decline`. Continuous re-queue / dedicated wasm UI still deferred. |
-| 0.1.0+ | Continuous re-queue: `thermal_wait` + `requeue_offer` + inline transfer fields re-negotiate each poll; fixture `wait_dhw_with_requeue` + conformance `procedure_thermal_wait_requeue`. Dedicated wasm UI / plant Counter / schema plant runtime still deferred. |
+| 0.1.0+ | Continuous re-queue: `thermal_wait` + `requeue_offer` + inline transfer fields re-negotiate each poll; fixture `wait_dhw_with_requeue` + conformance `procedure_thermal_wait_requeue`. Dedicated wasm UI / plant Counter still deferred at the time. |
 | 0.1.0+ | Dedicated thin procedure⇄thermal **wasm/simulator-web UI**: Thermal procedures subsection + picker badges + `run_thermal_procedure` (attach plant + run) + step outcome badges (accept/soft/requeue/temp). |
-| 0.1.0+ | Plant **Counter** replies: `TransferReply::Counter` when `0 < max < min`; procedure `accept_counter` auto-accepts the suggested band; fixture `offer_fridge_dhw_counter` + conformance `procedure_thermal_offer_counter`. Schema plant runtime / real bridges / TLS / full conformance console still deferred. |
+| 0.1.0+ | Plant **Counter** replies: `TransferReply::Counter` when `0 < max < min`; procedure `accept_counter` auto-accepts the suggested band; fixture `offer_fridge_dhw_counter` + conformance `procedure_thermal_offer_counter`. Real bridges / TLS / full conformance console still deferred. |
+| 0.1.0+ | Schema plant **dialogue** types (`Reservoir` / `HeatPort` / transfer offer/accept/decline/counter/…) promoted into `homecooked-schema`; `homecooked-thermal` re-exports; live `ThermalPlant` engine remains crate-local. Real bridges / TLS / full conformance console still deferred. |
