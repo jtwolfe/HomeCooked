@@ -744,6 +744,22 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "timer_s"
         );
     }
+    // Stream 7 catalog depth: bread_maker optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::BreadMaker {
+        return matches!(
+            point.id,
+            "crust"
+                | "loaf_size"
+                | "pan_present"
+                | "keep_warm"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "heater_on"
+                | "high_temp_alarm"
+                | "lid_open"
+                | "timer_s"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -2950,6 +2966,56 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.slow_cooker.lid_open", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn bread_maker_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::BreadMaker).unwrap();
+        for id in [
+            "class.bread_maker.crust",
+            "class.bread_maker.loaf_size",
+            "class.bread_maker.pan_present",
+            "class.bread_maker.keep_warm",
+            "class.bread_maker.sabbath_mode",
+            "class.bread_maker.eco_mode",
+            "class.bread_maker.heater_on",
+            "class.bread_maker.high_temp_alarm",
+            "class.bread_maker.lid_open",
+            "class.bread_maker.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical bread_maker"
+            );
+        }
+        cap.validate_write("class.bread_maker.crust", &Value::Enum("dark".into()))
+            .unwrap();
+        cap.validate_write("class.bread_maker.loaf_size", &Value::Enum("large".into()))
+            .unwrap();
+        cap.validate_write("class.bread_maker.keep_warm", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.bread_maker.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.bread_maker.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.bread_maker.timer_s", &Value::DurationS(3600))
+            .unwrap();
+        let err = cap
+            .validate_write("class.bread_maker.pan_present", &Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.bread_maker.heater_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.bread_maker.high_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.bread_maker.lid_open", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }

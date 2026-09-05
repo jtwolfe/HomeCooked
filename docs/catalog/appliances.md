@@ -1194,10 +1194,15 @@ Automatic bread machine (mix, knead, rise, bake in a pan).
 `program`, `heater`, `motor`, `time_schedule`, `fault`, `energy`, `audio`.
 
 **Typical controllable settings:** program (`basic`, `whole_wheat`, `french`,
-`quick`, `dough`, `jam`, `bake_only`), crust, loaf size, delay.
+`quick`, `dough`, `jam`, `bake_only`), crust, loaf size, delay, keep-warm.
 
 **Typical readable state:** phase (`knead`, `rise`, `bake`, `keep_warm`),
 remaining, pan present, lid, overtemp.
+
+**Notes:**
+- Catalog depth: optional class points include `crust`, `loaf_size`,
+  `pan_present`, `keep_warm`, sabbath, eco, `heater_on`, `high_temp_alarm`,
+  `lid_open`, and `timer_s` (see variables-and-settings).
 
 ### `dehydrator`
 

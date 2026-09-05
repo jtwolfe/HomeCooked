@@ -1467,9 +1467,16 @@ Cycle remaining via `trait.cycle.remaining_s`. Setpoint resolution typically 0.1
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `crust` | enum | — | `light` `medium` `dark` | r/w | opt | |
+| `crust` | enum | — | `light` `medium` `dark` | r/w | opt | Crust color |
 | `loaf_size` | enum | — | `small` `medium` `large` | r/w | opt | |
-| `pan_present` | bool | — | | r/e | opt | |
+| `pan_present` | bool | — | | r/e | opt | Baking pan seated |
+| `keep_warm` | bool | — | | r/w/e | opt | Keep-warm after bake |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving bake / hold |
+| `heater_on` | bool | — | | r/e | opt | Heater element active |
+| `high_temp_alarm` | bool | — | | r/e | opt | Chamber / dry-run over-temp |
+| `lid_open` | bool | — | | r/e | opt | Lid open |
+| `timer_s` | duration_s | second | 0–86400 | r/w/e | opt | Delay start / bake remaining |
 
 ---
 
