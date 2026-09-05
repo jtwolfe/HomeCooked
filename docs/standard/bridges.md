@@ -1,6 +1,6 @@
 # Bridges — integration with existing home automation
 
-Version **0.1.0** — design extension (docs sketch).
+Version **0.1.1** — design extension plus first crate slice.
 
 HomeCooked is an **appliance semantics layer** for heavy whitegoods and
 kitchen / utility plant. It is **not** a replacement for Zigbee, Matter,
@@ -146,8 +146,28 @@ so those assets can appear beside kitchen devices in one client. Mapping tips:
 
 ---
 
-## 8. Document history
+## 8. First implementation slice
+
+`crates/homecooked-bridge` is the first executable adapter:
+
+- [`Bridge`](../../crates/homecooked-bridge/src/bridge.rs) trait maps foreign
+  reads/writes ↔ HomeCooked `device_id` + qualified point + `Value`.
+- **Modbus** is implemented with a YAML/JSON register map and an in-memory
+  slave (no serial/TCP). Example:
+  [`water_heater_map.yaml`](../../crates/homecooked-bridge/examples/water_heater_map.yaml)
+  (`trait.temperature.setpoint_c`, `trait.temperature.current_c`,
+  `trait.power.power_state`).
+- **Zigbee / Matter / BACnet** compile as stubs that return a clear
+  unsupported error. Matter was deferred so CI needs no external SDK.
+
+See the crate [`README`](../../crates/homecooked-bridge/README.md). Real
+plant buses, pairing, and mesh administration stay out of scope (§5).
+
+---
+
+## 9. Document history
 
 | Version | Notes |
 |---------|--------|
 | 0.1.0 | Initial bridges / home-automation integration sketch |
+| 0.1.1 | First crate slice: Modbus mock adapter + Zigbee/Matter/BACnet stubs |

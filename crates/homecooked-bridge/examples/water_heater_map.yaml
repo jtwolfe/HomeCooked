@@ -1,0 +1,40 @@
+# INFORMATIVE EXAMPLE — fake water_heater Modbus map (not a frozen schema)
+# Holding registers store temperature as signed tenths of a degree C (i16).
+# Coil 0 is power: true → trait.power.power_state "on", false → "off".
+#
+# Catalog points (see docs/catalog and crates/homecooked-schema):
+#   trait.temperature.setpoint_c   F32  °C   (RWE)
+#   trait.temperature.current_c    F32  °C   (RE)
+#   trait.power.power_state        enum off|standby|on|fault  (RE)
+#
+# There is no catalog bool `trait.power.on`; the coil maps the on/off
+# subset of `trait.power.power_state`. Commands `trait.power.power_on` /
+# `trait.power.power_off` are not mapped in this slice.
+version: "0.1.0"
+class_id: water_heater
+device_id: water-heater-plant
+slave_id: 1
+entries:
+  - point: trait.temperature.setpoint_c
+    kind: holding
+    address: 0
+    scale: 0.1
+    signed: true
+    access: rw
+    initial_raw: 550
+
+  - point: trait.temperature.current_c
+    kind: holding
+    address: 1
+    scale: 0.1
+    signed: true
+    access: r
+    initial_raw: 480
+
+  - point: trait.power.power_state
+    kind: coil
+    address: 0
+    true_token: on
+    false_token: off
+    access: rw
+    initial_raw: 1
