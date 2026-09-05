@@ -864,6 +864,22 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "timer_s"
         );
     }
+    // Stream 7 catalog depth: garbage_disposal optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::GarbageDisposal {
+        return matches!(
+            point.id,
+            "run_s"
+                | "jam"
+                | "reset_needed"
+                | "reverse"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "motor_on"
+                | "overload_trip"
+                | "air_switch"
+                | "timer_s"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -3486,6 +3502,54 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.steam_cooker.steam_ready", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn garbage_disposal_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::GarbageDisposal).unwrap();
+        for id in [
+            "class.garbage_disposal.run_s",
+            "class.garbage_disposal.jam",
+            "class.garbage_disposal.reset_needed",
+            "class.garbage_disposal.reverse",
+            "class.garbage_disposal.sabbath_mode",
+            "class.garbage_disposal.eco_mode",
+            "class.garbage_disposal.motor_on",
+            "class.garbage_disposal.overload_trip",
+            "class.garbage_disposal.air_switch",
+            "class.garbage_disposal.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical garbage_disposal"
+            );
+        }
+        cap.validate_write("class.garbage_disposal.run_s", &Value::DurationS(20))
+            .unwrap();
+        cap.validate_write("class.garbage_disposal.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.garbage_disposal.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.garbage_disposal.air_switch", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.garbage_disposal.timer_s", &Value::DurationS(30))
+            .unwrap();
+        let err = cap
+            .validate_write("class.garbage_disposal.jam", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.garbage_disposal.reset_needed", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.garbage_disposal.motor_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.garbage_disposal.overload_trip", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }
