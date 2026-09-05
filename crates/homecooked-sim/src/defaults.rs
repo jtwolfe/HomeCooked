@@ -245,6 +245,10 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             ApplianceClassId::Blender => Value::Bool(true),
             _ => Value::Bool(false),
         },
+        "jug_present" => match ctx.identity.class_id {
+            ApplianceClassId::Juicer => Value::Bool(true),
+            _ => Value::Bool(false),
+        },
         "bowl_present" => match ctx.identity.class_id {
             ApplianceClassId::FoodProcessor | ApplianceClassId::StandMixer => Value::Bool(true),
             _ => Value::Bool(false),

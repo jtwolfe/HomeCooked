@@ -1359,10 +1359,15 @@ Head up → `safety_interlock` on start.
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `speed_level` | u8 | — | 0–max | r/w | opt | |
-| `reverse` | command | void | — | w | opt | Clear jam |
-| `pulp_full` | bool | — | | r/e | opt | |
-| `jug_present` | bool | — | | r/e | opt | |
+| `speed_level` | u8 | — | 0–10 | r/w | req | Auger / centrifuge speed |
+| `reverse` | command | void | — | w | opt | Momentary reverse to clear jam |
+| `pulp_full` | bool | — | | r/e | opt | Pulp bin full |
+| `jug_present` | bool | — | | r/e | opt | Juice jug / pitcher seated |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving motor duty |
+| `motor_on` | bool | — | | r/e | opt | Drive motor active |
+| `overload_trip` | bool | — | | r/e | opt | Stall / thermal overload trip |
+| `timer_s` | duration_s | second | 0–3600 | r/w/e | opt | Timed juice / remaining |
 
 ---
 

@@ -700,6 +700,20 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "timer_s"
         );
     }
+    // Stream 7 catalog depth: juicer optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::Juicer {
+        return matches!(
+            point.id,
+            "reverse"
+                | "pulp_full"
+                | "jug_present"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "motor_on"
+                | "overload_trip"
+                | "timer_s"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -2759,6 +2773,53 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.stand_mixer.overload_trip", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn juicer_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::Juicer).unwrap();
+        for id in [
+            "class.juicer.speed_level",
+            "class.juicer.reverse",
+            "class.juicer.pulp_full",
+            "class.juicer.jug_present",
+            "class.juicer.sabbath_mode",
+            "class.juicer.eco_mode",
+            "class.juicer.motor_on",
+            "class.juicer.overload_trip",
+            "class.juicer.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical juicer"
+            );
+        }
+        cap.validate_write("class.juicer.speed_level", &Value::U8(6))
+            .unwrap();
+        cap.validate_write("class.juicer.reverse", &Value::Void)
+            .unwrap();
+        cap.validate_write("class.juicer.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.juicer.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.juicer.timer_s", &Value::DurationS(90))
+            .unwrap();
+        let err = cap
+            .validate_write("class.juicer.pulp_full", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.juicer.jug_present", &Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.juicer.motor_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.juicer.overload_trip", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }
