@@ -835,6 +835,22 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "timer_s"
         );
     }
+    // Stream 7 catalog depth: pasta_maker optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::PastaMaker {
+        return matches!(
+            point.id,
+            "die"
+                | "jam"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "motor_on"
+                | "dough_ready"
+                | "hopper_empty"
+                | "die_present"
+                | "overload_trip"
+                | "timer_s"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -3354,6 +3370,60 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.waffle_maker.batter_done", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn pasta_maker_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::PastaMaker).unwrap();
+        for id in [
+            "class.pasta_maker.die",
+            "class.pasta_maker.jam",
+            "class.pasta_maker.sabbath_mode",
+            "class.pasta_maker.eco_mode",
+            "class.pasta_maker.motor_on",
+            "class.pasta_maker.dough_ready",
+            "class.pasta_maker.hopper_empty",
+            "class.pasta_maker.die_present",
+            "class.pasta_maker.overload_trip",
+            "class.pasta_maker.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical pasta_maker"
+            );
+        }
+        cap.validate_write("class.pasta_maker.die", &Value::Enum("fettuccine".into()))
+            .unwrap();
+        cap.validate_write("class.pasta_maker.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.pasta_maker.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.pasta_maker.timer_s", &Value::DurationS(300))
+            .unwrap();
+        let err = cap
+            .validate_write("class.pasta_maker.jam", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.pasta_maker.motor_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.pasta_maker.dough_ready", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.pasta_maker.hopper_empty", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.pasta_maker.die_present", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.pasta_maker.overload_trip", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }

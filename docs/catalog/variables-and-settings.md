@@ -1575,8 +1575,16 @@ Cycle remaining via `trait.cycle.remaining_s`. Setpoint resolution typically 0.1
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `die` | enum | — | `spaghetti` `fettuccine` `penne` `other` | r/w | opt | |
-| `jam` | bool | — | | r/e | opt | |
+| `die` | enum | — | `spaghetti` `fettuccine` `penne` `other` | r/w | opt | Extrusion die shape |
+| `jam` | bool | — | | r/e | opt | Extruder / mixer jam |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving mix / extrude profile |
+| `motor_on` | bool | — | | r/e | opt | Drive motor active |
+| `dough_ready` | bool | — | | r/e | opt | Mix complete / dough ready to extrude |
+| `hopper_empty` | bool | — | | r/e | opt | Flour / dough hopper empty |
+| `die_present` | bool | — | | r/e | opt | Extrusion die seated |
+| `overload_trip` | bool | — | | r/e | opt | Motor overload / thermal trip |
+| `timer_s` | duration_s | second | 0–3600 | r/w/e | opt | Delay start / remaining cycle timer |
 
 ---
 
