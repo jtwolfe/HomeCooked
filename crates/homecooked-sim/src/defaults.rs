@@ -293,6 +293,14 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             ApplianceClassId::ElectricGrill => Value::F32(ctx.ambient_c),
             _ => Value::F32(numeric_default(point)),
         },
+        "chamber_c" => match ctx.identity.class_id {
+            ApplianceClassId::ElectricSmoker => Value::F32(ctx.ambient_c),
+            _ => Value::F32(numeric_default(point)),
+        },
+        "fuel_percent" => match ctx.identity.class_id {
+            ApplianceClassId::ElectricSmoker => Value::Percent(80.0),
+            _ => Value::Percent(0.0),
+        },
         "power_limit_w" => match ctx.identity.class_id {
             ApplianceClassId::Cooktop
             | ApplianceClassId::InductionHob

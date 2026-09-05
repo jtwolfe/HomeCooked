@@ -1118,9 +1118,18 @@ Setpoint typically 100–250 °C.
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `smoke_on` | bool | — | | r/w/e | opt | |
-| `fuel_percent` | percent | percent | 0–100 | r/e | opt | Pellets / puck |
-| `water_pan` | enum | — | `ok` `empty` `missing` `na` | r/e | opt | |
+| `chamber_c` | f32 | celsius | | r/e | opt | Cabinet / chamber temperature |
+| `smoke_on` | bool | — | | r/w/e | opt | Smoke generator / wood-tray heater |
+| `fuel_percent` | percent | percent | 0–100 | r/e | opt | Pellets / puck / wood-chip level |
+| `water_pan` | enum | — | `ok` `empty` `missing` `na` | r/e | opt | Water pan status |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving heater duty |
+| `heater_on` | bool | — | | r/e | opt | Element / heater active |
+| `high_temp_alarm` | bool | — | | r/e | opt | Overtemp / too-hot |
+| `door_ajar` | bool | — | | r/e | opt | Door open / ajar bit |
+| `timer_s` | duration_s | second | 0–10800 | r/w/e | opt | Cook / countdown timer |
+
+Setpoint typically 50–150 °C.
 
 Probe targets use `trait.temperature.probe_*` with zones `probe_1`…
 
