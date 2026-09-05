@@ -10,7 +10,7 @@ use crate::spec::CatalogPoint;
 use crate::types::{ValueRange, ValueType};
 use crate::version::{CATALOG_VERSION, DEFAULT_CLASS_VERSION, DEFAULT_TRAIT_VERSION};
 
-pub use classes::STATIC_CLASS_IDS;
+pub use classes::{STATIC_CLASS_IDS, TIER_A_CLASS_IDS};
 pub use traits::trait_table;
 
 /// Shared-trait table: required and optional points for one trait.
@@ -30,7 +30,7 @@ impl TraitTable {
     }
 }
 
-/// Static table for a class with a full encoding in this crate (PR2: 9 classes).
+/// Static table for a class with a full encoding in this crate (Tier-A batches).
 #[derive(Debug, Clone, Copy)]
 pub struct ClassTable {
     pub class_id: ApplianceClassId,
@@ -60,14 +60,14 @@ pub fn list_all_class_ids() -> &'static [ApplianceClassId] {
     ApplianceClassId::ALL
 }
 
-/// Static table for one of the nine fully-encoded classes, if present.
+/// Static table for one of the fully-encoded (static) classes, if present.
 pub fn class_table(class_id: ApplianceClassId) -> Option<&'static ClassTable> {
     classes::STATIC_CLASS_TABLES
         .iter()
         .find(|t| t.class_id == class_id)
 }
 
-/// All nine fully-encoded class tables.
+/// All fully-encoded class tables.
 pub fn static_class_tables() -> &'static [ClassTable] {
     classes::STATIC_CLASS_TABLES
 }
@@ -269,9 +269,29 @@ mod tests {
     }
 
     #[test]
-    fn static_tables_for_nine_classes() {
-        assert_eq!(STATIC_CLASS_IDS.len(), 9);
+    fn tier_a_ids_match_roadmap() {
+        assert_eq!(TIER_A_CLASS_IDS.len(), 25);
+        for id in TIER_A_CLASS_IDS {
+            assert!(
+                ApplianceClassId::ALL.contains(id),
+                "{id} is not in the appliances index"
+            );
+        }
+        let mut seen = std::collections::BTreeSet::new();
+        for id in TIER_A_CLASS_IDS {
+            assert!(seen.insert(*id), "duplicate Tier-A id {id}");
+        }
+    }
+
+    #[test]
+    fn static_tables_for_encoded_classes() {
+        assert_eq!(STATIC_CLASS_IDS.len(), static_class_tables().len());
+        assert_eq!(STATIC_CLASS_IDS.len(), 18);
         for id in STATIC_CLASS_IDS {
+            assert!(
+                TIER_A_CLASS_IDS.contains(id),
+                "{id} is static but not Tier-A"
+            );
             let table = class_table(*id).expect("static table");
             assert_eq!(table.class_id, *id);
             assert!(
@@ -309,6 +329,35 @@ mod tests {
                 assert!(is_snake_case_id(p.id));
             }
         }
+    }
+
+    #[test]
+    fn freezer_and_washer_dryer_typical_writes() {
+        let freezer = typical_capability(ApplianceClassId::Freezer).unwrap();
+        freezer
+            .validate_write("trait.temperature.setpoint_c#freezer", &Value::F32(-18.0))
+            .unwrap();
+        let err = freezer
+            .validate_write("trait.temperature.setpoint_c#freezer", &Value::F32(0.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::OutOfRange);
+
+        let wd = typical_capability(ApplianceClassId::WasherDryer).unwrap();
+        wd.validate_write(
+            "class.washer_dryer.combo_mode",
+            &Value::Enum("wash_and_dry".into()),
+        )
+        .unwrap();
+        wd.validate_write("class.washer_dryer.spin_rpm", &Value::U16(800))
+            .unwrap();
+        let err = wd
+            .validate_write("class.washer_dryer.spin_rpm", &Value::U16(2000))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::OutOfRange);
+
+        let hvac = typical_capability(ApplianceClassId::Hvac).unwrap();
+        hvac.validate_write("class.hvac.hvac_mode", &Value::Enum("heat".into()))
+            .unwrap();
     }
 
     #[test]

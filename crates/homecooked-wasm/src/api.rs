@@ -434,7 +434,7 @@ mod tests {
     }
 
     #[test]
-    fn list_classes_is_the_nine_static_tables() {
+    fn list_classes_is_the_static_catalog_tables() {
         let classes: Vec<ClassInfo> =
             serde_json::from_str(&WasmApi::list_appliance_classes()).unwrap();
         assert_eq!(classes.len(), STATIC_CLASS_IDS.len());
@@ -503,7 +503,7 @@ mod tests {
             ErrorCode::InvalidRequest
         );
         assert_eq!(
-            api.create_device("washer_dryer").unwrap_err().code,
+            api.create_device("beverage_cooler").unwrap_err().code,
             ErrorCode::InvalidRequest
         );
         assert_eq!(

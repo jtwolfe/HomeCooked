@@ -1,4 +1,7 @@
-//! Static tables for the nine PR2 classes.
+//! Static tables for encoded catalog classes (Tier-A batches).
+//!
+//! Point ids, types, units, ranges, and required flags are copied from
+//! `docs/catalog/variables-and-settings.md`. Do not invent core point ids.
 
 use crate::access::AccessMode;
 use crate::ids::{ApplianceClassId, TraitId};
@@ -43,6 +46,37 @@ const fn int(min: i64, max: i64) -> Option<CatalogRange> {
 
 const fn en(tokens: &'static [&'static str]) -> Option<CatalogRange> {
     Some(CatalogRange::Enum(tokens))
+}
+
+const fn dummy_point() -> CatalogPoint {
+    CatalogPoint::variable("", ValueType::Bool, None, None, AccessMode::R, false)
+}
+
+const fn append_points<const N: usize>(
+    dest: &mut [CatalogPoint; N],
+    mut i: usize,
+    src: &[CatalogPoint],
+) -> usize {
+    let mut j = 0;
+    while j < src.len() {
+        dest[i] = src[j];
+        i += 1;
+        j += 1;
+    }
+    i
+}
+
+const fn concat3<const N: usize>(
+    a: &[CatalogPoint],
+    b: &[CatalogPoint],
+    c: &[CatalogPoint],
+) -> [CatalogPoint; N] {
+    let mut dest = [dummy_point(); N];
+    let mut i = 0;
+    i = append_points(&mut dest, i, a);
+    i = append_points(&mut dest, i, b);
+    let _ = append_points(&mut dest, i, c);
+    dest
 }
 
 const WASHER_TRAITS: &[TraitId] = &[
@@ -90,7 +124,7 @@ const WASH_TEMP_BAND: &[&str] = &["cold", "warm", "hot", "90"];
 const SOIL_LEVEL: &[&str] = &["light", "normal", "heavy"];
 const LOAD_SIZE: &[&str] = &["small", "medium", "large", "auto"];
 
-static WASHER_POINTS: &[CatalogPoint] = &[
+const WASHER_POINTS: &[CatalogPoint] = &[
     s(
         "wash_temp_c",
         ValueType::F32,
@@ -272,7 +306,7 @@ const HEAT_LEVEL: &[&str] = &["low", "medium", "high", "air"];
 const LINT_FILTER: &[&str] = &["ok", "missing", "clogged"];
 const DRAIN_TANK: &[&str] = &["ok", "full", "missing", "na"];
 
-static DRYER_POINTS: &[CatalogPoint] = &[
+const DRYER_POINTS: &[CatalogPoint] = &[
     s(
         "dryness",
         ValueType::Enum,
@@ -371,7 +405,8 @@ const FRIDGE_OPTIONAL_TRAITS: &[TraitId] = &[
 
 const FRIDGE_ZONES: &[&str] = &["fridge"];
 
-static FRIDGE_POINTS: &[CatalogPoint] = &[
+/// Shared extras for fridge-like cold cabinets (fridge, freezer, fridge_freezer).
+const COLD_CABINET_POINTS: &[CatalogPoint] = &[
     s(
         "vacation_mode",
         ValueType::Bool,
@@ -990,16 +1025,558 @@ static AIR_FRYER_POINTS: &[CatalogPoint] = &[
     ),
 ];
 
+const WASHER_DRYER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::TimeSchedule,
+    TraitId::DoorLid,
+    TraitId::ChildLock,
+    TraitId::Cycle,
+    TraitId::Program,
+    TraitId::Water,
+    TraitId::Temperature,
+    TraitId::Motor,
+    TraitId::Humidity,
+    TraitId::Heater,
+    TraitId::Fan,
+    TraitId::Filter,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Remote,
+    TraitId::Maintenance,
+    TraitId::Audio,
+    TraitId::Safety,
+];
+
+const WASHER_DRYER_PROGRAMS: &[&str] = &[
+    "cotton",
+    "eco",
+    "wool",
+    "delicates",
+    "quick",
+    "rinse",
+    "spin",
+    "bedding",
+    "allergy",
+    "outdoor",
+    "synthetic",
+    "handwash",
+    "drum_clean",
+    "timed",
+    "air_fluff",
+    "hygiene",
+    "rack",
+    "custom",
+];
+
+const WASHER_DRYER_PHASES: &[&str] = &[
+    "fill",
+    "prewash",
+    "wash",
+    "rinse",
+    "spin",
+    "drain",
+    "soak",
+    "steam",
+    "heating",
+    "drying",
+    "cooling",
+    "anti_crease",
+    "complete",
+];
+
+const COMBO_MODE: &[&str] = &["wash_only", "dry_only", "wash_and_dry"];
+
+const WASHER_DRYER_EXTRA: &[CatalogPoint] = &[
+    s(
+        "combo_mode",
+        ValueType::Enum,
+        None,
+        en(COMBO_MODE),
+        AccessMode::RW,
+        true,
+    ),
+    s(
+        "dry_after_wash",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    s(
+        "max_dry_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 18000),
+        AccessMode::RW,
+        false,
+    ),
+];
+
+const WASHER_DRYER_POINT_COUNT: usize = 30;
+const WASHER_DRYER_MERGED: [CatalogPoint; WASHER_DRYER_POINT_COUNT] =
+    concat3(WASHER_POINTS, DRYER_POINTS, WASHER_DRYER_EXTRA);
+const WASHER_DRYER_POINTS: &[CatalogPoint] = &WASHER_DRYER_MERGED;
+
+const FREEZER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::DoorLid,
+    TraitId::Temperature,
+    TraitId::Zone,
+    TraitId::Lighting,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Remote,
+    TraitId::Maintenance,
+    TraitId::ChildLock,
+    TraitId::Audio,
+];
+
+const FREEZER_ZONES: &[&str] = &["freezer"];
+
+const FRIDGE_FREEZER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::DoorLid,
+    TraitId::Temperature,
+    TraitId::Zone,
+    TraitId::Lighting,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Remote,
+    TraitId::Maintenance,
+    TraitId::ChildLock,
+    TraitId::Audio,
+];
+
+const FRIDGE_FREEZER_OPTIONAL_TRAITS: &[TraitId] = &[
+    TraitId::Ice,
+    TraitId::Dispense,
+    TraitId::Filter,
+    TraitId::Humidity,
+];
+
+const FRIDGE_FREEZER_ZONES: &[&str] = &["fridge", "freezer"];
+
+const WINE_COOLER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::DoorLid,
+    TraitId::Temperature,
+    TraitId::Zone,
+    TraitId::Humidity,
+    TraitId::Lighting,
+    TraitId::ChildLock,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Audio,
+];
+
+const WINE_COOLER_ZONES: &[&str] = &["upper", "lower"];
+
+static WINE_COOLER_POINTS: &[CatalogPoint] = &[
+    s(
+        "vibration_reduce",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    s(
+        "uv_protect",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+];
+
+const ICE_MAKER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::DoorLid,
+    TraitId::Ice,
+    TraitId::Water,
+    TraitId::Filter,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Maintenance,
+    TraitId::ChildLock,
+];
+
+static ICE_MAKER_POINTS: &[CatalogPoint] = &[
+    v(
+        "clean_cycle_needed",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "water_temp_c",
+        ValueType::F32,
+        Some(Unit::Celsius),
+        num(0.0, 40.0),
+        AccessMode::R,
+        false,
+    ),
+];
+
+const WATER_HEATER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Temperature,
+    TraitId::Heater,
+    TraitId::Water,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::TimeSchedule,
+    TraitId::Safety,
+    TraitId::Maintenance,
+];
+
+const WATER_HEATER_MODE: &[&str] = &[
+    "heat_pump",
+    "hybrid",
+    "electric",
+    "vacation",
+    "high_demand",
+    "off",
+];
+const WATER_HEATER_FORM: &[&str] = &["tank", "tankless", "heat_pump"];
+
+static WATER_HEATER_POINTS: &[CatalogPoint] = &[
+    s(
+        "mode",
+        ValueType::Enum,
+        None,
+        en(WATER_HEATER_MODE),
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "inlet_c",
+        ValueType::F32,
+        Some(Unit::Celsius),
+        None,
+        AccessMode::R,
+        false,
+    ),
+    v(
+        "outlet_c",
+        ValueType::F32,
+        Some(Unit::Celsius),
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "hot_remaining_percent",
+        ValueType::Percent,
+        Some(Unit::Percent),
+        num(0.0, 100.0),
+        AccessMode::RE,
+        false,
+    ),
+    v("leak", ValueType::Bool, None, None, AccessMode::RE, false),
+    v(
+        "dry_fire",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "recirc_on",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    ),
+    v(
+        "form_factor",
+        ValueType::Enum,
+        None,
+        en(WATER_HEATER_FORM),
+        AccessMode::R,
+        false,
+    ),
+];
+
+const HVAC_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Temperature,
+    TraitId::Humidity,
+    TraitId::Fan,
+    TraitId::Filter,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::TimeSchedule,
+    TraitId::Zone,
+    TraitId::Safety,
+    TraitId::Maintenance,
+];
+
+const HVAC_MODE: &[&str] = &[
+    "off",
+    "heat",
+    "cool",
+    "auto",
+    "fan_only",
+    "dry",
+    "emergency_heat",
+];
+const REVERSING_VALVE: &[&str] = &["heat", "cool", "unknown"];
+
+static HVAC_POINTS: &[CatalogPoint] = &[
+    s(
+        "hvac_mode",
+        ValueType::Enum,
+        None,
+        en(HVAC_MODE),
+        AccessMode::RWE,
+        true,
+    ),
+    s(
+        "heat_setpoint_c",
+        ValueType::F32,
+        Some(Unit::Celsius),
+        num(10.0, 32.0),
+        AccessMode::RWE,
+        false,
+    ),
+    s(
+        "cool_setpoint_c",
+        ValueType::F32,
+        Some(Unit::Celsius),
+        num(10.0, 32.0),
+        AccessMode::RWE,
+        false,
+    ),
+    s(
+        "deadband_c",
+        ValueType::F32,
+        Some(Unit::Celsius),
+        num(0.5, 5.0),
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "space_c",
+        ValueType::F32,
+        Some(Unit::Celsius),
+        None,
+        AccessMode::RE,
+        true,
+    ),
+    v(
+        "outdoor_c",
+        ValueType::F32,
+        Some(Unit::Celsius),
+        None,
+        AccessMode::R,
+        false,
+    ),
+    s("hold", ValueType::Bool, None, None, AccessMode::RWE, false),
+    s("quiet", ValueType::Bool, None, None, AccessMode::RW, false),
+    s("eco", ValueType::Bool, None, None, AccessMode::RW, false),
+    v(
+        "compressor_on",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "aux_heat",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "defrost",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "reversing_valve",
+        ValueType::Enum,
+        None,
+        en(REVERSING_VALVE),
+        AccessMode::R,
+        false,
+    ),
+];
+
+const DEHUMIDIFIER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Humidity,
+    TraitId::Fan,
+    TraitId::Water,
+    TraitId::Filter,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::TimeSchedule,
+];
+
+static DEHUMIDIFIER_POINTS: &[CatalogPoint] = &[
+    v(
+        "tank_full",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "pump_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "defrost",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+];
+
+const RANGE_HOOD_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Fan,
+    TraitId::Lighting,
+    TraitId::Filter,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Remote,
+    TraitId::Audio,
+];
+
+const GREASE_FILTER: &[&str] = &["ok", "clogged", "missing"];
+const CHARCOAL_FILTER: &[&str] = &["ok", "replace", "na"];
+
+static RANGE_HOOD_POINTS: &[CatalogPoint] = &[
+    s(
+        "auto_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    s(
+        "delay_off_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 1800),
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "voc_index",
+        ValueType::U16,
+        None,
+        int(0, 500),
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "grease_filter",
+        ValueType::Enum,
+        None,
+        en(GREASE_FILTER),
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "charcoal_filter",
+        ValueType::Enum,
+        None,
+        en(CHARCOAL_FILTER),
+        AccessMode::RE,
+        false,
+    ),
+];
+
+/// Roadmap §4 Tier-A class set (25 ids). Tables land in batches.
+pub const TIER_A_CLASS_IDS: &[ApplianceClassId] = &[
+    ApplianceClassId::Washer,
+    ApplianceClassId::Dryer,
+    ApplianceClassId::WasherDryer,
+    ApplianceClassId::Fridge,
+    ApplianceClassId::Freezer,
+    ApplianceClassId::FridgeFreezer,
+    ApplianceClassId::Dishwasher,
+    ApplianceClassId::Microwave,
+    ApplianceClassId::Oven,
+    ApplianceClassId::SteamOven,
+    ApplianceClassId::Range,
+    ApplianceClassId::Cooktop,
+    ApplianceClassId::InductionHob,
+    ApplianceClassId::AirFryer,
+    ApplianceClassId::Kettle,
+    ApplianceClassId::CoffeeMachine,
+    ApplianceClassId::WaterHeater,
+    ApplianceClassId::Hvac,
+    ApplianceClassId::Dehumidifier,
+    ApplianceClassId::RangeHood,
+    ApplianceClassId::ToasterOven,
+    ApplianceClassId::SousVide,
+    ApplianceClassId::MultiCooker,
+    ApplianceClassId::IceMaker,
+    ApplianceClassId::WineCooler,
+];
+
+/// Classes with a static `ClassTable` in this crate (PR1 batch + original nine).
 pub const STATIC_CLASS_IDS: &[ApplianceClassId] = &[
     ApplianceClassId::Washer,
     ApplianceClassId::Dryer,
+    ApplianceClassId::WasherDryer,
     ApplianceClassId::Fridge,
+    ApplianceClassId::Freezer,
+    ApplianceClassId::FridgeFreezer,
+    ApplianceClassId::WineCooler,
+    ApplianceClassId::IceMaker,
     ApplianceClassId::Dishwasher,
     ApplianceClassId::Microwave,
     ApplianceClassId::Oven,
     ApplianceClassId::InductionHob,
-    ApplianceClassId::Kettle,
     ApplianceClassId::AirFryer,
+    ApplianceClassId::Kettle,
+    ApplianceClassId::WaterHeater,
+    ApplianceClassId::Hvac,
+    ApplianceClassId::Dehumidifier,
+    ApplianceClassId::RangeHood,
 ];
 
 pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
@@ -1027,7 +1604,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         class_id: ApplianceClassId::Fridge,
         typical_traits: FRIDGE_TRAITS,
         optional_traits: FRIDGE_OPTIONAL_TRAITS,
-        class_points: FRIDGE_POINTS,
+        class_points: COLD_CABINET_POINTS,
         program_tokens: &[],
         cycle_phase_tokens: &[],
         typical_setpoint_c: Some((1.0, 7.0)),
@@ -1091,6 +1668,96 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         program_tokens: AIR_FRYER_PROGRAMS,
         cycle_phase_tokens: &[],
         typical_setpoint_c: Some((80.0, 200.0)),
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::WasherDryer,
+        typical_traits: WASHER_DRYER_TRAITS,
+        optional_traits: &[],
+        class_points: WASHER_DRYER_POINTS,
+        program_tokens: WASHER_DRYER_PROGRAMS,
+        cycle_phase_tokens: WASHER_DRYER_PHASES,
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::Freezer,
+        typical_traits: FREEZER_TRAITS,
+        optional_traits: &[],
+        class_points: COLD_CABINET_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: Some((-24.0, -12.0)),
+        typical_zones: FREEZER_ZONES,
+    },
+    ClassTable {
+        class_id: ApplianceClassId::FridgeFreezer,
+        typical_traits: FRIDGE_FREEZER_TRAITS,
+        optional_traits: FRIDGE_FREEZER_OPTIONAL_TRAITS,
+        class_points: COLD_CABINET_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: Some((-24.0, 7.0)),
+        typical_zones: FRIDGE_FREEZER_ZONES,
+    },
+    ClassTable {
+        class_id: ApplianceClassId::WineCooler,
+        typical_traits: WINE_COOLER_TRAITS,
+        optional_traits: &[],
+        class_points: WINE_COOLER_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: Some((5.0, 20.0)),
+        typical_zones: WINE_COOLER_ZONES,
+    },
+    ClassTable {
+        class_id: ApplianceClassId::IceMaker,
+        typical_traits: ICE_MAKER_TRAITS,
+        optional_traits: &[],
+        class_points: ICE_MAKER_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::WaterHeater,
+        typical_traits: WATER_HEATER_TRAITS,
+        optional_traits: &[],
+        class_points: WATER_HEATER_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: Some((40.0, 70.0)),
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::Hvac,
+        typical_traits: HVAC_TRAITS,
+        optional_traits: &[],
+        class_points: HVAC_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::Dehumidifier,
+        typical_traits: DEHUMIDIFIER_TRAITS,
+        optional_traits: &[],
+        class_points: DEHUMIDIFIER_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::RangeHood,
+        typical_traits: RANGE_HOOD_TRAITS,
+        optional_traits: &[],
+        class_points: RANGE_HOOD_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: None,
         typical_zones: &[],
     },
 ];

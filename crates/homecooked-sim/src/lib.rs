@@ -27,7 +27,7 @@ mod tests {
         let mut sim = Simulator::new();
         let ids = sim.spawn_static_kitchen().unwrap();
         assert_eq!(ids.len(), STATIC_CLASS_IDS.len());
-        assert_eq!(sim.list().len(), 9);
+        assert_eq!(sim.list().len(), STATIC_CLASS_IDS.len());
     }
 
     #[test]
@@ -125,6 +125,102 @@ mod tests {
             )
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn spawn_pr1_tier_a_classes_identity_power_and_writes() {
+        let mut sim = Simulator::new();
+        let batch = [
+            ApplianceClassId::WasherDryer,
+            ApplianceClassId::Freezer,
+            ApplianceClassId::FridgeFreezer,
+            ApplianceClassId::WineCooler,
+            ApplianceClassId::IceMaker,
+            ApplianceClassId::WaterHeater,
+            ApplianceClassId::Hvac,
+            ApplianceClassId::Dehumidifier,
+            ApplianceClassId::RangeHood,
+        ];
+        for class in batch {
+            let id = sim.spawn(class).unwrap();
+            assert_eq!(
+                sim.read_value(&id, "trait.identity.class_id").unwrap(),
+                Value::Enum(class.as_str().into())
+            );
+            let power = sim.read_value(&id, "trait.power.power_state").unwrap();
+            assert!(matches!(power, Value::Enum(_)));
+        }
+
+        let wd = sim.spawn(ApplianceClassId::WasherDryer).unwrap();
+        sim.write(
+            &wd,
+            "class.washer_dryer.combo_mode",
+            Value::Enum("wash_only".into()),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&wd, "class.washer_dryer.combo_mode")
+                .unwrap(),
+            Value::Enum("wash_only".into())
+        );
+
+        let freezer = sim.spawn(ApplianceClassId::Freezer).unwrap();
+        sim.write(
+            &freezer,
+            "trait.temperature.setpoint_c#freezer",
+            Value::F32(-18.0),
+        )
+        .unwrap();
+        let err = sim
+            .write(
+                &freezer,
+                "trait.temperature.setpoint_c#freezer",
+                Value::F32(4.0),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::OutOfRange);
+
+        let ff = sim.spawn(ApplianceClassId::FridgeFreezer).unwrap();
+        assert!(
+            (f32_val(
+                &sim.read_value(&ff, "trait.temperature.current_c#fridge")
+                    .unwrap()
+            ) - 4.0)
+                .abs()
+                < f32::EPSILON
+        );
+        assert!(
+            (f32_val(
+                &sim.read_value(&ff, "trait.temperature.current_c#freezer")
+                    .unwrap()
+            ) + 18.0)
+                .abs()
+                < f32::EPSILON
+        );
+
+        let wine = sim.spawn(ApplianceClassId::WineCooler).unwrap();
+        sim.write(
+            &wine,
+            "trait.temperature.setpoint_c#upper",
+            Value::F32(12.0),
+        )
+        .unwrap();
+
+        let heater = sim.spawn(ApplianceClassId::WaterHeater).unwrap();
+        sim.write(&heater, "trait.temperature.setpoint_c", Value::F32(60.0))
+            .unwrap();
+
+        let hvac = sim.spawn(ApplianceClassId::Hvac).unwrap();
+        sim.write(&hvac, "class.hvac.hvac_mode", Value::Enum("heat".into()))
+            .unwrap();
+        assert!(
+            (f32_val(&sim.read_value(&hvac, "class.hvac.space_c").unwrap()) - 21.0).abs()
+                < f32::EPSILON
+        );
+
+        let hood = sim.spawn(ApplianceClassId::RangeHood).unwrap();
+        sim.write(&hood, "trait.fan.fan_state", Value::Enum("on".into()))
+            .unwrap();
     }
 
     #[test]
