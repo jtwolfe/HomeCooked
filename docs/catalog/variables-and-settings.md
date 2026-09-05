@@ -1182,12 +1182,25 @@ Setpoint typically 200–450 °C.
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `cook_s` | duration_s | second | 1–36000 | r/w | req | |
-| `shake_enable` | bool | — | | r/w | opt | |
-| `shake_due` | bool | — | | r/e | opt | Event when user should shake |
-| `preheat` | bool | — | | r/w | opt | |
-| `basket_present` | bool | — | | r/e | opt | **zoned** dual basket |
-| `sync_finish` | bool | — | | r/w | opt | Dual zone |
+| `cook_s` | duration_s | second | 1–36000 | r/w | req | Cook duration (required surface) |
+| `shake_enable` | bool | — | | r/w | opt | Shake reminder enable (typical) |
+| `shake_due` | bool | — | | r/e | opt | Event when user should shake (typical) |
+| `preheat` | bool | — | | r/w | opt | Preheat before cook (typical) |
+| `basket_present` | bool | — | | r/e | opt | **zoned** dual basket (typical; not a parallel `basket_in`) |
+| `sync_finish` | bool | — | | r/w | opt | Dual zone sync finish (typical) |
+| `sabbath_mode` | bool | — | | r/w/e | opt | Suppress beeps / delay display |
+| `eco_mode` | bool | — | | r/w | opt | Prefer lower average heater/fan duty |
+| `heater_on` | bool | — | | r/e | opt | Element / heater active telemetry |
+| `fan_on` | bool | — | | r/e | opt | Circulating fan active telemetry |
+| `high_temp_alarm` | bool | — | | r/e | opt | Cavity overtemp / too-hot |
+| `door_ajar` | bool | — | | r/e | opt | Drawer / lid ajar bit |
+| `timer_s` | duration_s | second | 0–86400 | r/w/e | opt | Kitchen timer (distinct from `cook_s`) |
+
+Optional depth (tenth undepened Tier-A deepen): sabbath/eco/heater_on/fan_on/
+high_temp_alarm/door_ajar/timer_s; typical also advertises thin-table
+`shake_enable` / `shake_due` / `preheat` / `basket_present` / `sync_finish`.
+Required `cook_s` unchanged. `trait.heater` / `trait.fan` / `trait.door_lid`
+already typical.
 
 ---
 

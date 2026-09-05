@@ -370,6 +370,10 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             ApplianceClassId::InductionHob => Value::Bool(true),
             _ => Value::Bool(false),
         },
+        "basket_present" => match ctx.identity.class_id {
+            ApplianceClassId::AirFryer => Value::Bool(true),
+            _ => Value::Bool(false),
+        },
         "bag_detect" => match ctx.identity.class_id {
             ApplianceClassId::VacuumSealer => Value::Bool(true),
             _ => Value::Bool(false),
