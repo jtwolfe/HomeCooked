@@ -19,8 +19,9 @@ use homecooked_core::DeviceId;
 use homecooked_hal::ChannelId;
 use homecooked_hub::{LabHub, LAB_KETTLE_ID};
 use homecooked_procedure::{
-    run, DeviceBindings, Procedure, COFFEE_BREW_ESPRESSO_JSON, DISHWASHER_DHW_PREHEAT_JSON,
-    KETTLE_HEAT_80_JSON, OVEN_BAKE_180_JSON, WASH_THEN_DRY_JSON,
+    run, DeviceBindings, Procedure, SimulatorBackend, COFFEE_BREW_ESPRESSO_JSON,
+    DISHWASHER_DHW_PREHEAT_JSON, KETTLE_HEAT_80_JSON, OVEN_BAKE_180_JSON, WAIT_DHW_RESERVOIR_JSON,
+    WASH_THEN_DRY_JSON,
 };
 use homecooked_protocol::{Envelope, Payload, PingBody, WriteOp};
 use homecooked_schema::{
@@ -569,6 +570,70 @@ pub fn thermal_then_dishwasher_preheat() -> ScenarioResult {
         return Err(err(
             NAME,
             format!("wash_temp_c={wash_temp:?}, expected 45.0 (preheat-aware)"),
+        ));
+    }
+    Ok(())
+}
+
+/// (4c) Thin procedure⇄thermal: wait on DHW reservoir after fridge→DHW transfer.
+///
+/// Runs plant negotiate+step externally (accepts are one-shot), then
+/// `wait_dhw_reservoir` (`thermal_wait`) against `SimulatorBackend` with the
+/// plant attached — no parallel appliance classes.
+pub fn procedure_thermal_wait_dhw() -> ScenarioResult {
+    const NAME: &str = "procedure_thermal_wait_dhw";
+
+    let mut plant = ThermalPlant::fridge_condenser_dhw_demo()
+        .map_err(|e| err(NAME, format!("demo plant: {e}")))?;
+    let start = plant
+        .get_reservoir("dhw-tank")
+        .and_then(|r| r.temp_c)
+        .ok_or_else(|| err(NAME, "dhw-tank missing temp"))?;
+    if (start - 35.0).abs() >= 1e-4 {
+        return Err(err(NAME, format!("dhw start temp={start}, expected 35")));
+    }
+
+    let offer = TransferOffer::new(
+        PortRef::new("fridge-kitchen", "condenser").map_err(|e| err(NAME, e.to_string()))?,
+        TransferTarget::port("water-heater-plant", "preheat")
+            .map_err(|e| err(NAME, e.to_string()))?,
+        PowerBandW::new(80, 120).map_err(|e| err(NAME, e.to_string()))?,
+        None,
+        1,
+    );
+    match plant.negotiate(offer) {
+        TransferReply::Accept(a) => {
+            if a.accepted_power_w != 120 {
+                return Err(err(
+                    NAME,
+                    format!("accepted_power_w={}, expected 120", a.accepted_power_w),
+                ));
+            }
+        }
+        other => return Err(err(NAME, format!("expected Accept, got {other:?}"))),
+    }
+    plant
+        .step(3_600.0)
+        .map_err(|e| err(NAME, format!("step: {e}")))?;
+    let dhw_end = plant
+        .get_reservoir("dhw-tank")
+        .and_then(|r| r.temp_c)
+        .ok_or_else(|| err(NAME, "dhw-tank missing temp after step"))?;
+    if dhw_end < 36.0 {
+        return Err(err(
+            NAME,
+            format!("dhw end temp={dhw_end}, expected >= 36.0 after transfer"),
+        ));
+    }
+
+    let doc = Procedure::load_json(WAIT_DHW_RESERVOIR_JSON)
+        .map_err(|e| err(NAME, format!("load procedure: {e}")))?;
+    let mut backend = SimulatorBackend::with_plant(Simulator::new(), plant);
+    let result = run(&doc, &mut backend, &DeviceBindings::new());
+    if !result.is_completed() {
+        return Err(err(
+            NAME,
+            format!("thermal_wait expected completed, got {:?}", result.status),
         ));
     }
     Ok(())
@@ -1678,6 +1743,7 @@ pub fn all_scenarios() -> &'static [(&'static str, ScenarioFn)] {
             "thermal_then_dishwasher_preheat",
             thermal_then_dishwasher_preheat,
         ),
+        ("procedure_thermal_wait_dhw", procedure_thermal_wait_dhw),
         ("water_heater_thermal_ports", water_heater_thermal_ports),
         (
             "modbus_water_heater_roundtrip",

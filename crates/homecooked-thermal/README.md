@@ -75,8 +75,13 @@ the integration test in `tests/fridge_condenser_dhw.rs`.
 **Dual-path (thermal + dishwasher procedure):** after this plant raises DHW,
 run `dishwasher_dhw_preheat` (or wasm / conformance
 `thermal_then_dishwasher_preheat`) so dishwasher eco + wash_temp reflect warm
-inlet availability. See
-[`docs/standard/thermal-plant.md`](../../docs/standard/thermal-plant.md) §8.1.
+inlet availability.
+
+**Thin procedure⇄thermal:** attach the plant to
+`homecooked_procedure::SimulatorBackend` and run `wait_dhw_reservoir`
+(`thermal_wait` on `dhw-tank` ≥ 36 °C), or conformance
+`procedure_thermal_wait_dhw`. See
+[`docs/standard/thermal-plant.md`](../../docs/standard/thermal-plant.md) §8.
 
 ## Still sketch / vendor / experimental
 

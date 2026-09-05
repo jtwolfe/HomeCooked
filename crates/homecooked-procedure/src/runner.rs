@@ -252,6 +252,7 @@ fn execute_step(
             Ok(ok_outcome(step, None, None))
         }
         StepAction::Wait => wait_step(step, backend, device.as_deref(), bindings, config),
+        StepAction::ThermalWait => thermal_wait_step(step, backend, config),
     }
 }
 
@@ -443,4 +444,55 @@ fn tick_devices(
         }
     }
     Ok(())
+}
+
+fn thermal_wait_step(
+    step: &Step,
+    backend: &mut impl DeviceBackend,
+    config: &RunConfig,
+) -> Result<StepOutcome, (StepOutcome, FailReason)> {
+    let reservoir_id = step.reservoir_id.as_deref().expect("validated");
+    let cmp = step.cmp.expect("validated");
+    let threshold = step.temp_c.expect("validated");
+    let timeout_ms = step
+        .timeout_s
+        .map(|s| u64::from(s) * 1_000)
+        .expect("validated");
+    let poll = config.poll_interval_ms.max(1);
+    let mut elapsed = 0_u64;
+
+    loop {
+        let got = backend
+            .thermal_read_reservoir_temp(reservoir_id)
+            .map_err(|e| map_backend(step, e))?;
+        if cmp.eval(got, threshold) {
+            return Ok(ok_outcome(
+                step,
+                Some(Value::F32(got as f32)),
+                Some(format!(
+                    "thermal_wait {reservoir_id} {cmp:?} {threshold} satisfied after {elapsed} ms (got {got})"
+                )),
+            ));
+        }
+
+        if elapsed >= timeout_ms {
+            return Err((
+                StepOutcome {
+                    step_id: step.id.clone(),
+                    action: step.action,
+                    ok: false,
+                    read_value: Some(Value::F32(got as f32)),
+                    message: Some(format!(
+                        "thermal_wait timed out after {elapsed} ms (got {got}, want {cmp:?} {threshold})"
+                    )),
+                },
+                FailReason::Timeout,
+            ));
+        }
+
+        let remaining = timeout_ms.saturating_sub(elapsed);
+        let dt = remaining.min(poll);
+        backend.thermal_tick(dt).map_err(|e| map_backend(step, e))?;
+        elapsed = elapsed.saturating_add(dt);
+    }
 }

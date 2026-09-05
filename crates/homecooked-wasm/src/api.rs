@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use homecooked_core::{CoreError, DeviceId};
 use homecooked_procedure::{
     run, ClassHint, DeviceBindings, DeviceRef, FailReason, Procedure, RunResult, RunStatus,
-    StepAction, BUNDLED_EXAMPLE_PROCEDURES, DISHWASHER_DHW_PREHEAT_JSON,
+    SimulatorBackend, StepAction, BUNDLED_EXAMPLE_PROCEDURES, DISHWASHER_DHW_PREHEAT_JSON,
 };
 use homecooked_schema::{
     catalog_group, AccessMode, ApplianceClassId, DeviceIdentity, ErrorCode, Unit, Value,
@@ -440,7 +440,7 @@ impl WasmApi {
         serde_json::to_string(&items).expect("ExampleProcedureInfo serializes")
     }
 
-    /// Full JSON for a bundled example id (`kettle_heat_80`, `reheat_dominos_microwave`, `wash_then_dry`, `dishwasher_dhw_preheat`, `oven_bake_180`, `coffee_brew_espresso`).
+    /// Full JSON for a bundled example id (see [`BUNDLED_EXAMPLE_PROCEDURES`]).
     pub fn get_example_procedure(id: &str) -> Result<String, ApiError> {
         BUNDLED_EXAMPLE_PROCEDURES
             .iter()
@@ -472,10 +472,23 @@ impl WasmApi {
     }
 
     /// Auto-bind / spawn devices by role, then run the procedure against the sim.
+    ///
+    /// When a thermal plant is loaded, temporarily wraps sim+plant in
+    /// [`SimulatorBackend`] so `thermal_wait` steps can read reservoir temps.
     pub fn run_procedure(&mut self, json: &str) -> Result<String, ApiError> {
         let doc = Procedure::load_json(json)?;
         let (bindings, binding_out) = self.bind_procedure_devices(&doc)?;
-        let result = run(&doc, &mut self.sim, &bindings);
+        let result = if self.thermal.is_some() {
+            let plant = self.thermal.take().expect("checked");
+            let sim = std::mem::replace(&mut self.sim, Simulator::new());
+            let mut backend = SimulatorBackend::with_plant(sim, plant);
+            let result = run(&doc, &mut backend, &bindings);
+            self.sim = backend.sim;
+            self.thermal = backend.plant;
+            result
+        } else {
+            run(&doc, &mut self.sim, &bindings)
+        };
         let out = ProcedureRunOut::from_run(result, binding_out);
         serde_json::to_string(&out).map_err(|e| ApiError::internal(e.to_string()))
     }
@@ -538,8 +551,9 @@ impl WasmApi {
     /// Dual-path demo: load fridge→DHW plant, transfer (`dt_s`), assert DHW rose,
     /// then run `dishwasher_dhw_preheat` (eco + wash_temp reflecting warm inlet).
     ///
-    /// Procedures cannot call thermal APIs yet; this helper is the orchestrated
-    /// wasm / conformance path documented in `docs/standard/thermal-plant.md` §8.
+    /// Dual-path orchestrator (transfer outside procedure JSON, then dishwasher
+    /// settings). Thin in-procedure `thermal_wait` is separate — see
+    /// `docs/standard/thermal-plant.md` §8.2 / `wait_dhw_reservoir`.
     pub fn run_thermal_then_dishwasher_preheat(&mut self, dt_s: f32) -> Result<String, ApiError> {
         if !dt_s.is_finite() || dt_s <= 0.0 {
             return Err(ApiError::invalid_request("dt_s must be > 0"));
@@ -1166,7 +1180,7 @@ mod tests {
     fn list_example_procedures_includes_kettle_dominos_laundry_dishwasher_oven_and_coffee() {
         let items: Vec<ExampleProcedureInfo> =
             serde_json::from_str(&WasmApi::list_example_procedures()).unwrap();
-        assert_eq!(items.len(), 6);
+        assert_eq!(items.len(), 7);
         assert_eq!(items[0].id, "kettle_heat_80");
         assert_eq!(items[0].name, "Heat kettle to 80C");
         assert!(items[0].class_hints.iter().any(|c| c == "kettle"));
@@ -1183,6 +1197,9 @@ mod tests {
         assert_eq!(items[5].id, "coffee_brew_espresso");
         assert_eq!(items[5].name, "Brew espresso");
         assert!(items[5].class_hints.iter().any(|c| c == "coffee_machine"));
+        assert_eq!(items[6].id, "wait_dhw_reservoir");
+        assert_eq!(items[6].name, "Wait until DHW reservoir is warm");
+        assert!(items[6].class_hints.is_empty());
     }
 
     #[test]
@@ -1229,6 +1246,13 @@ mod tests {
         assert_eq!(summary.id, "coffee_brew_espresso");
         assert_eq!(summary.step_count, 5);
         assert_eq!(summary.devices[0].role, "coffee_machine");
+
+        let wait_dhw = WasmApi::get_example_procedure("wait_dhw_reservoir").unwrap();
+        let summary: ProcedureSummary =
+            serde_json::from_str(&WasmApi::parse_procedure(&wait_dhw).unwrap()).unwrap();
+        assert_eq!(summary.id, "wait_dhw_reservoir");
+        assert_eq!(summary.step_count, 1);
+        assert!(summary.devices.is_empty());
 
         let err = WasmApi::get_example_procedure("not_a_recipe").unwrap_err();
         assert_eq!(err.code, ErrorCode::InvalidRequest);
@@ -1531,5 +1555,18 @@ mod tests {
         let state = api.get_state(dw_id).unwrap();
         assert!(state.contains("\"eco\"") || state.contains("eco"));
         assert!(state.contains("45") || state.contains("45.0"));
+    }
+
+    #[test]
+    fn run_procedure_thermal_wait_after_demo_transfer() {
+        let mut api = WasmApi::new();
+        api.create_thermal_demo().unwrap();
+        api.thermal_demo_transfer(3_600.0).unwrap();
+        let json = WasmApi::get_example_procedure("wait_dhw_reservoir").unwrap();
+        let raw = api.run_procedure(&json).unwrap();
+        let out: ProcedureRunOut = serde_json::from_str(&raw).unwrap();
+        assert_eq!(out.status, "completed", "thermal_wait failed: {raw}");
+        assert_eq!(out.outcomes.len(), 1);
+        assert!(out.outcomes[0].ok);
     }
 }

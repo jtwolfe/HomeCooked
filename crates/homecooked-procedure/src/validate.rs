@@ -78,6 +78,26 @@ fn validate_step(step: &Step) -> Result<(), Error> {
                 return Err(Error::at_step(&step.id, "assert requires a guard"));
             }
         }
+        StepAction::ThermalWait => {
+            match step.reservoir_id.as_deref() {
+                Some(id) if !id.is_empty() => {}
+                _ => {
+                    return Err(Error::at_step(
+                        &step.id,
+                        "thermal_wait requires reservoir_id",
+                    ));
+                }
+            }
+            if step.cmp.is_none() {
+                return Err(Error::at_step(&step.id, "thermal_wait requires cmp"));
+            }
+            if step.temp_c.is_none() {
+                return Err(Error::at_step(&step.id, "thermal_wait requires temp_c"));
+            }
+            if step.timeout_s.is_none() {
+                return Err(Error::at_step(&step.id, "thermal_wait requires timeout_s"));
+            }
+        }
     }
     Ok(())
 }
@@ -99,6 +119,7 @@ fn action_name(action: StepAction) -> &'static str {
         StepAction::Command => "command",
         StepAction::Wait => "wait",
         StepAction::Assert => "assert",
+        StepAction::ThermalWait => "thermal_wait",
     }
 }
 
