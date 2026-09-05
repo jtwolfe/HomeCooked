@@ -267,6 +267,71 @@ const WASHER_POINTS: &[CatalogPoint] = &[
         AccessMode::RE,
         false,
     ),
+    // Stream 7 undepened Tier-A deepen: laundry optional telemetry/settings.
+    s(
+        "sabbath_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    ),
+    s(
+        "eco_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "door_ajar",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "door_locked",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "water_temp_alarm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "overflow_alarm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "detergent_low",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "timer_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 86400),
+        AccessMode::RWE,
+        false,
+    ),
 ];
 
 const DRYER_TRAITS: &[TraitId] = &[
@@ -1424,7 +1489,7 @@ const WASHER_DRYER_EXTRA: &[CatalogPoint] = &[
     ),
 ];
 
-const WASHER_DRYER_POINT_COUNT: usize = 30;
+const WASHER_DRYER_POINT_COUNT: usize = 38;
 const WASHER_DRYER_MERGED: [CatalogPoint; WASHER_DRYER_POINT_COUNT] =
     concat3(WASHER_POINTS, DRYER_BASE, WASHER_DRYER_EXTRA);
 const WASHER_DRYER_POINTS: &[CatalogPoint] = &WASHER_DRYER_MERGED;

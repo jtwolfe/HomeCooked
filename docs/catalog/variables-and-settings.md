@@ -665,6 +665,14 @@ audio, safety.
 | `bleach_level_percent` | percent | percent | 0–100 | r/e | opt | |
 | `unbalance` | bool | — | | r/e | opt | |
 | `drum_rpm` | u16 | rpm | 0–1600 | r/e | opt | Measured |
+| `sabbath_mode` | bool | — | | r/w/e | opt | Suppress beeps / delay display |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving heater/motor duty (distinct from `eco` program) |
+| `door_ajar` | bool | — | | r/e | opt | Door / lid ajar bit |
+| `door_locked` | bool | — | | r/e | opt | Door lock engaged (cycle safety) |
+| `water_temp_alarm` | bool | — | | r/e | opt | Wash water over/under temp |
+| `overflow_alarm` | bool | — | | r/e | opt | Tub overflow / flood bit |
+| `detergent_low` | bool | — | | r/e | opt | Auto-dose reservoir low (alongside `detergent_level_percent`) |
+| `timer_s` | duration_s | second | 0–86400 | r/w/e | opt | Delay / countdown timer (also see `trait.time_schedule.delay_start_s`) |
 
 ---
 
