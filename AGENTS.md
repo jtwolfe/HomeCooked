@@ -19,6 +19,7 @@ versioned, extensible.
 - `crates/homecooked-core` — device registry, validation against capabilities
 - `crates/homecooked-sim` — in-memory simulated devices driven by catalog
 - `crates/homecooked-wasm` — wasm-bindgen API for the web simulator
+- `crates/homecooked-procedure` — procedure documents, validation, sequential runner
 - `apps/simulator-web` — minimal web UI loading WASM
 
 ## Workflow
