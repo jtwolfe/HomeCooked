@@ -1712,12 +1712,20 @@ uses `trait.filter.life_percent` (not a class `resin_life_percent`).
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `tds_in_ppm` | u16 | ppm | 0–2000 | r/e | opt | |
-| `tds_out_ppm` | u16 | ppm | 0–1000 | r/e | opt | |
-| `tank_full` | bool | — | | r/e | opt | RO |
+| `tds_in_ppm` | u16 | ppm | 0–2000 | r/e | opt | Inlet TDS |
+| `tds_out_ppm` | u16 | ppm | 0–1000 | r/e | opt | Outlet TDS |
+| `tank_full` | bool | — | | r/e | opt | RO storage tank full |
 | `flush` | command | void | — | w | opt | |
+| `sabbath_mode` | bool | — | | r/w/e | opt | Suppress beeps / delay flush display |
+| `eco_mode` | bool | — | | r/w | opt | Lower flush / pump duty |
+| `bypass` | bool | — | | r/w/e | opt | Filter / RO bypass valve |
+| `filter_clogged` | bool | — | | r/e | opt | Clog alarm (alongside filter_state) |
+| `replace_needed` | bool | — | | r/e | opt | Replace reminder (alongside filter_state) |
+| `timer_s` | duration_s | second | 0–3600 | r/w/e | opt | Delay flush / remaining timer |
 
-Filter stages use `trait.filter` zones (`pre`, `ro`, `post`, `remin`).
+Filter stages use `trait.filter` zones (`pre`, `ro`, `post`, `remin`). Filter
+life uses `trait.filter.life_percent`. Measured flow uses
+`trait.water.flow_l_min` (not a class `flow_lpm`).
 
 ---
 

@@ -268,6 +268,15 @@ fn extra_typical_trait_point(table: &ClassTable, trait_id: TraitId, point: &Cata
             return true;
         }
     }
+    // Water filter: filter life + measured flow are typical.
+    if table.class_id == ApplianceClassId::WaterFilter {
+        if trait_id == TraitId::Filter && point.id == "life_percent" {
+            return true;
+        }
+        if trait_id == TraitId::Water && point.id == "flow_l_min" {
+            return true;
+        }
+    }
     // Steam oven: cycle remaining + water hardness are typical.
     if table.class_id == ApplianceClassId::SteamOven {
         if trait_id == TraitId::Cycle && point.id == "remaining_s" {
@@ -932,6 +941,21 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "eco_mode"
                 | "regenerating"
                 | "salt_low"
+                | "timer_s"
+        );
+    }
+    // Stream 7 catalog depth: water_filter optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::WaterFilter {
+        return matches!(
+            point.id,
+            "tds_in_ppm"
+                | "tds_out_ppm"
+                | "tank_full"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "bypass"
+                | "filter_clogged"
+                | "replace_needed"
                 | "timer_s"
         );
     }
@@ -3784,6 +3808,79 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("trait.filter.life_percent", &Value::Percent(50.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn water_filter_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::WaterFilter).unwrap();
+        for id in [
+            "class.water_filter.tds_in_ppm",
+            "class.water_filter.tds_out_ppm",
+            "class.water_filter.tank_full",
+            "class.water_filter.sabbath_mode",
+            "class.water_filter.eco_mode",
+            "class.water_filter.bypass",
+            "class.water_filter.filter_clogged",
+            "class.water_filter.replace_needed",
+            "class.water_filter.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical water_filter"
+            );
+        }
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Filter)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.filter.life_percent"));
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Water)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.water.flow_l_min"));
+        cap.validate_write("class.water_filter.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.water_filter.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.water_filter.bypass", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.water_filter.timer_s", &Value::DurationS(30))
+            .unwrap();
+        let err = cap
+            .validate_write("class.water_filter.tds_in_ppm", &Value::U16(250))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.water_filter.tds_out_ppm", &Value::U16(20))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.water_filter.tank_full", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.water_filter.filter_clogged", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.water_filter.replace_needed", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("trait.filter.life_percent", &Value::Percent(50.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("trait.water.flow_l_min", &Value::F32(2.0))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }
