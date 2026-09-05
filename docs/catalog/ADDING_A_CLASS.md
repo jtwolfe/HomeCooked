@@ -122,7 +122,10 @@ static YOUR_CLASS_POINTS: &[CatalogPoint] = &[
 
 Use the file’s `v`, `s`, `cmd`, `num`, `int`, `en` helpers. Put **required**
 class points in the table with `required: true`; optional catalog points may
-be omitted from `typical_capability` until a device advertises them.
+be omitted from `typical_capability` until a device advertises them. To keep
+optional points in the typical/sim model (demos / catalog depth), allow them in
+`extra_typical_class_point` / `extra_typical_trait_point` in
+`crates/homecooked-schema/src/catalog/mod.rs` (see `wine_cooler`).
 
 For cycle/program classes, add `program_tokens` / `cycle_phase_tokens` slices
 when the catalog documents them. For closed-loop temperature classes, set

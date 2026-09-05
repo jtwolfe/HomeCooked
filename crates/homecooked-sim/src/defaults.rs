@@ -148,7 +148,9 @@ fn zoned_temp_c(class_id: ApplianceClassId, zone: &str) -> Option<f32> {
     match (class_id, zone) {
         (ApplianceClassId::FridgeFreezer, "fridge") => Some(4.0),
         (ApplianceClassId::FridgeFreezer, "freezer") => Some(-18.0),
-        (ApplianceClassId::WineCooler, "upper" | "lower") => Some(12.0),
+        // Dual-zone wine: upper (red) slightly warmer than lower (white).
+        (ApplianceClassId::WineCooler, "upper") => Some(16.0),
+        (ApplianceClassId::WineCooler, "lower") => Some(10.0),
         (ApplianceClassId::Freezer, "freezer") => Some(-18.0),
         _ => None,
     }
@@ -208,6 +210,15 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
         "progress_percent" => Value::Percent(0.0),
         "remaining_s" | "elapsed_s" => Value::DurationS(0),
         "wash_temp_c" => Value::F32(40.0),
+        "bottle_count" => Value::U16(24),
+        "current_rh" => match ctx.identity.class_id {
+            ApplianceClassId::WineCooler => Value::Percent(60.0),
+            _ => Value::Percent(0.0),
+        },
+        "setpoint_rh" => match ctx.identity.class_id {
+            ApplianceClassId::WineCooler => Value::Percent(60.0),
+            _ => Value::Percent(0.0),
+        },
         "spin_rpm" => Value::U16(800),
         "cook_s" => Value::DurationS(600),
         "level" => Value::U8(0),

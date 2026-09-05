@@ -348,17 +348,21 @@ Temperature-controlled cabinet for bottled wine, often dual-zone.
 **Typical controllable settings:**
 
 - Per-zone setpoint (typically 5–20 °C), lighting, sabbath, humidity target
-  (if actively humidified), vibration-reduction / compressor night mode
+  (if actively humidified), vibration-reduction / compressor night mode,
+  UV protect
 
 **Typical readable state:**
 
-- Per-zone temperature and humidity, door, compressor, high/low temp alarm
-- UV / light-on time (optional), filter if present
+- Per-zone temperature and humidity, door, compressor, high/low temp alarm,
+  vibration alert, bottle-count estimate
+- UV protect / interior light (optional), filter if present
 
 **Notes:**
 
 - Not a `fridge`: ranges, humidity, and vibration matter; freezing is a fault.
 - Dual-zone is expected. Single-zone devices advertise one zone.
+- Catalog depth: optional class points include sabbath, compressor, temp alarms,
+  vibration alert, and `bottle_count` (see variables-and-settings).
 
 ### `beverage_cooler`
 
