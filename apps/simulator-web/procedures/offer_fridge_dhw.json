@@ -1,0 +1,19 @@
+{
+  "id": "offer_fridge_dhw",
+  "name": "Offer fridge condenser heat to DHW preheat",
+  "description": "Thin procedure⇄thermal bridge: thermal_offer (alias offer_transfer) submits a TransferOffer to the attached ThermalPlant and immediately negotiates (accept at max allowable power, or decline). When duration_s is set, one plant tick of that length applies the queued accept (fridge→DHW demo). Requires SimulatorBackend + ThermalPlant (e.g. fridge_condenser_dhw_demo). Full multi-round negotiate dialogue and soft decline-without-fail are deferred.",
+  "catalog_version": "0.1.0",
+  "protocol_version": "0.1.0",
+  "devices": [],
+  "steps": [
+    {
+      "id": "offer_condenser",
+      "action": "thermal_offer",
+      "from_port": { "device_id": "fridge-kitchen", "port_id": "condenser" },
+      "to_port": { "device_id": "water-heater-plant", "port_id": "preheat" },
+      "power_w": { "min": 80, "max": 120 },
+      "duration_s": 3600,
+      "priority": 1
+    }
+  ]
+}

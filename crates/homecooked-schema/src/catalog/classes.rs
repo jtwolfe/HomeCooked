@@ -1832,6 +1832,7 @@ const TOASTER_OVEN_PROGRAMS: &[&str] = &[
     "convection",
 ];
 const CRUMB_TRAY: &[&str] = &["ok", "missing", "unknown"];
+const RACK_POSITION: &[&str] = &["lower", "middle", "upper"];
 
 const TOASTER_OVEN_EXTRA: &[CatalogPoint] = &[
     s(
@@ -1850,9 +1851,66 @@ const TOASTER_OVEN_EXTRA: &[CatalogPoint] = &[
         AccessMode::RE,
         false,
     ),
+    v(
+        "door_open",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "timer_remaining_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 43200),
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "delayed_start_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 86400),
+        AccessMode::RW,
+        false,
+    ),
+    s(
+        "rack_position",
+        ValueType::Enum,
+        None,
+        en(RACK_POSITION),
+        AccessMode::RW,
+        false,
+    ),
+    s("bagel", ValueType::Bool, None, None, AccessMode::RW, false),
+    v(
+        "preheating",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "slices",
+        ValueType::U8,
+        None,
+        int(1, 6),
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "toast_done",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
 ];
 
-const TOASTER_OVEN_MERGED: [CatalogPoint; 9] = concat2(OVEN_POINTS, TOASTER_OVEN_EXTRA);
+const TOASTER_OVEN_MERGED: [CatalogPoint; 17] = concat2(OVEN_POINTS, TOASTER_OVEN_EXTRA);
 const TOASTER_OVEN_POINTS: &[CatalogPoint] = &TOASTER_OVEN_MERGED;
 
 const RANGE_TRAITS: &[TraitId] = &[

@@ -565,16 +565,22 @@ Countertop oven / toaster oven / mini convection oven, including many
 **Typical traits:** subset of `oven` plus toaster programs. Usually no pyrolytic
 clean, no meat probe.
 
-**Typical controllable settings:** toast shade, bake/broil/air-fry temp and
-time, convection fan, light.
+**Typical controllable settings:** toast shade, slices, bagel mode, rack
+position, bake/broil/air-fry temp and time (`cook_s`), delayed start, convection
+fan, broil level, light.
 
-**Typical readable state:** running, remaining, cavity temp (if sensed), crumb
-tray missing (optional), door.
+**Typical readable state:** running, remaining (`timer_remaining_s` /
+`trait.cycle.remaining_s`), cavity temp (if sensed), crumb tray, door open,
+preheating, toast done, bake/broil element active.
 
 **Notes:**
 
 - Distinct from `toaster` (slots, no cavity setpoint) and `air_fryer` (basket).
 - If the SKU is a basket air fryer with no bake cavity, use `air_fryer`.
+- Catalog depth: optional class points include door open / timer remaining /
+  delayed start / rack / bagel / preheating / slices / toast done plus existing
+  toast shade / crumb tray and oven-shared convection / broil / cook / elements
+  (see variables-and-settings); typical also advertises `trait.cycle.remaining_s`.
 
 ### `range`
 
