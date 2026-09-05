@@ -8,6 +8,8 @@ of truth**; code must track `docs/catalog/` and `docs/standard/`.
 
 ## Documentation
 
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — ~30% → ~75% completeness plan, Tier-A
+  classes, workstreams and definitions of done
 - [`docs/catalog/appliances.md`](docs/catalog/appliances.md) — appliance classes
   (ids, settings, state, composition, safety notes)
 - [`docs/catalog/variables-and-settings.md`](docs/catalog/variables-and-settings.md) —
