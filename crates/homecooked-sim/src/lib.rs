@@ -4,7 +4,7 @@ mod behavior;
 mod defaults;
 mod simulator;
 
-pub use behavior::{KETTLE_HEAT_RATE_C_PER_S, WASHER_CYCLE_S};
+pub use behavior::{DEFAULT_MICROWAVE_COOK_S, KETTLE_HEAT_RATE_C_PER_S, WASHER_CYCLE_S};
 pub use defaults::{seed_identity, seed_state, sim_capability};
 pub use simulator::Simulator;
 
@@ -310,5 +310,71 @@ mod tests {
         sim.tick(&id, 16_000).unwrap();
         let current = f32_val(&sim.read_value(&id, "trait.temperature.current_c").unwrap());
         assert!((current - 80.0).abs() < 0.01, "current={current}");
+    }
+
+    #[test]
+    fn microwave_cook_advances_elapsed_toward_cook_s() {
+        let mut sim = Simulator::new();
+        let id = sim.spawn(ApplianceClassId::Microwave).unwrap();
+        sim.write(&id, "class.microwave.cook_s", Value::DurationS(45))
+            .unwrap();
+        sim.write(
+            &id,
+            "class.microwave.power_level_percent",
+            Value::Percent(70.0),
+        )
+        .unwrap();
+        sim.write(&id, "trait.cycle.start", Value::Void).unwrap();
+        assert_eq!(
+            sim.read_value(&id, "trait.cycle.cycle_state").unwrap(),
+            Value::Enum("running".into())
+        );
+        assert_eq!(
+            sim.read_value(&id, "trait.cycle.elapsed_s").unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&id, "trait.cycle.remaining_s").unwrap(),
+            Value::DurationS(45)
+        );
+
+        sim.tick(&id, 20_000).unwrap();
+        assert_eq!(
+            sim.read_value(&id, "trait.cycle.elapsed_s").unwrap(),
+            Value::DurationS(20)
+        );
+        assert_eq!(
+            sim.read_value(&id, "trait.cycle.remaining_s").unwrap(),
+            Value::DurationS(25)
+        );
+        let progress = f32_val(&sim.read_value(&id, "trait.cycle.progress_percent").unwrap());
+        assert!(
+            (progress - (20.0 / 45.0 * 100.0)).abs() < 0.5,
+            "progress={progress}"
+        );
+        assert_eq!(
+            sim.read_value(&id, "trait.cycle.cycle_state").unwrap(),
+            Value::Enum("running".into())
+        );
+
+        sim.tick(&id, 25_000).unwrap();
+        assert_eq!(
+            sim.read_value(&id, "trait.cycle.elapsed_s").unwrap(),
+            Value::DurationS(45)
+        );
+        assert_eq!(
+            sim.read_value(&id, "trait.cycle.remaining_s").unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&id, "trait.cycle.cycle_state").unwrap(),
+            Value::Enum("complete".into())
+        );
+        assert_eq!(
+            sim.read_value(&id, "trait.power.power_state").unwrap(),
+            Value::Enum("standby".into())
+        );
+        let done = f32_val(&sim.read_value(&id, "trait.cycle.progress_percent").unwrap());
+        assert!((done - 100.0).abs() < f32::EPSILON);
     }
 }

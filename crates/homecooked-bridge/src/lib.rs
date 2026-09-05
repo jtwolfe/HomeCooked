@@ -1,4 +1,4 @@
-//! Bridge slice for HomeCooked: Modbus + Matter mock adapters, Zigbee/BACnet stubs.
+//! Bridge slice for HomeCooked: Modbus + Matter + Zigbee mock adapters, BACnet stub.
 //!
 //! Aligns with [`docs/standard/bridges.md`](../../docs/standard/bridges.md)
 //! and [`docs/ROADMAP.md`](../../docs/ROADMAP.md) Stream 6.
@@ -16,8 +16,11 @@
 //! backend pattern. There is **no** CHIP / Matter SDK dependency; cluster IDs
 //! in fixtures are illustrative lab constants, not certified product data.
 //!
-//! [`ZigbeeBridge`] and [`BacnetBridge`] compile and return
-//! [`Error::UnsupportedFabric`].
+//! [`zigbee::ZigbeeBridge`] mirrors Matter with a YAML/JSON ZCL-style
+//! endpoint/cluster/attribute map and an in-memory attribute store. There is
+//! **no** zigbee2mqtt / MQTT / ZCL SDK dependency.
+//!
+//! [`BacnetBridge`] compiles and returns [`Error::UnsupportedFabric`].
 
 #![allow(clippy::module_name_repetitions)]
 
@@ -29,18 +32,21 @@ mod error;
 pub mod matter;
 pub mod modbus;
 mod yaml_json;
-mod zigbee;
+pub mod zigbee;
 
 pub use access::MapAccess;
 pub use backend::{MemoryBackend, PointBackend};
 pub use bacnet::BacnetBridge;
-pub use bridge::{Bridge, ForeignLocator, ForeignRaw, ForeignRef, MatterRaw, PointRef};
+pub use bridge::{Bridge, ForeignLocator, ForeignRaw, ForeignRef, MatterRaw, PointRef, ZigbeeRaw};
 pub use error::Error;
 pub use matter::{
     AttrValueType, MatterAttrKey, MatterAttrValue, MatterBridge, MatterEntry, MatterFabric,
     MatterMap, KETTLE_MATTER_MAP_YAML,
 };
-pub use zigbee::ZigbeeBridge;
+pub use zigbee::{
+    ZigbeeAttrKey, ZigbeeAttrValue, ZigbeeBridge, ZigbeeEntry, ZigbeeMap, ZigbeeNetwork,
+    KETTLE_ZIGBEE_MAP_YAML,
+};
 
 pub use modbus::{
     ModbusBridge, ModbusEntry, ModbusMap, ModbusSlave, RegisterKind, WATER_HEATER_MAP_YAML,
@@ -75,8 +81,7 @@ mod stub_tests {
     }
 
     #[test]
-    fn stubs_are_unsupported() {
-        assert_unsupported(ZigbeeBridge::new(), "zigbee");
+    fn bacnet_stub_is_unsupported() {
         assert_unsupported(BacnetBridge::new(), "bacnet");
     }
 
@@ -84,6 +89,15 @@ mod stub_tests {
     fn matter_is_no_longer_a_stub() {
         let bridge = MatterBridge::kettle_example().unwrap();
         assert_eq!(bridge.fabric(), "matter");
+        assert!(bridge
+            .read_point(&PointRef::new("kettle-lab-1", "trait.temperature.setpoint_c").unwrap())
+            .is_ok());
+    }
+
+    #[test]
+    fn zigbee_is_no_longer_a_stub() {
+        let bridge = ZigbeeBridge::kettle_example().unwrap();
+        assert_eq!(bridge.fabric(), "zigbee");
         assert!(bridge
             .read_point(&PointRef::new("kettle-lab-1", "trait.temperature.setpoint_c").unwrap())
             .is_ok());

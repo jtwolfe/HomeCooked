@@ -1,37 +1,37 @@
-//! [`MatterBridge`]: map + in-memory fabric + HomeCooked backend.
+//! [`ZigbeeBridge`]: map + in-memory network + HomeCooked backend.
 
 use homecooked_schema::Value;
 
-use super::map::{MatterEntry, MatterMap};
-use super::store::{MatterAttrKey, MatterAttrValue, MatterFabric};
+use super::map::{ZigbeeEntry, ZigbeeMap};
+use super::store::{ZigbeeAttrKey, ZigbeeAttrValue, ZigbeeNetwork};
 use crate::backend::{MemoryBackend, PointBackend};
 use crate::bridge::{Bridge, ForeignRaw, ForeignRef, PointRef};
 use crate::error::Error;
 
-/// Matter adapter with a mocked fabric (no CHIP / Matter SDK dependency).
+/// Zigbee adapter with a mocked fabric (no zigbee2mqtt / ZCL SDK dependency).
 #[derive(Debug, Clone)]
-pub struct MatterBridge<B> {
-    map: MatterMap,
-    fabric: MatterFabric,
+pub struct ZigbeeBridge<B> {
+    map: ZigbeeMap,
+    fabric: ZigbeeNetwork,
     backend: B,
 }
 
-impl MatterBridge<MemoryBackend> {
-    pub fn with_memory(map: MatterMap) -> Result<Self, Error> {
+impl ZigbeeBridge<MemoryBackend> {
+    pub fn with_memory(map: ZigbeeMap) -> Result<Self, Error> {
         Self::new(map, MemoryBackend::new())
     }
 
     pub fn kettle_example() -> Result<Self, Error> {
-        Self::with_memory(MatterMap::kettle_example()?)
+        Self::with_memory(ZigbeeMap::kettle_example()?)
     }
 }
 
-impl<B: PointBackend> MatterBridge<B> {
-    pub fn new(map: MatterMap, mut backend: B) -> Result<Self, Error> {
+impl<B: PointBackend> ZigbeeBridge<B> {
+    pub fn new(map: ZigbeeMap, mut backend: B) -> Result<Self, Error> {
         map.validate()?;
-        let fabric = MatterFabric::from_map(&map)?;
+        let fabric = ZigbeeNetwork::from_map(&map)?;
         for entry in &map.entries {
-            let key = MatterAttrKey::new(entry.endpoint, entry.cluster_id, entry.attribute_id);
+            let key = ZigbeeAttrKey::new(entry.endpoint, entry.cluster_id, entry.attribute_id);
             let attr = fabric
                 .get(key)
                 .ok_or_else(|| Error::InvalidMap(format!("missing seed for {}", entry.point)))?;
@@ -46,16 +46,16 @@ impl<B: PointBackend> MatterBridge<B> {
         })
     }
 
-    pub fn map(&self) -> &MatterMap {
+    pub fn map(&self) -> &ZigbeeMap {
         &self.map
     }
 
     /// In-memory mock attribute store (not the [`Bridge::fabric`] token).
-    pub fn attr_store(&self) -> &MatterFabric {
+    pub fn attr_store(&self) -> &ZigbeeNetwork {
         &self.fabric
     }
 
-    pub fn attr_store_mut(&mut self) -> &mut MatterFabric {
+    pub fn attr_store_mut(&mut self) -> &mut ZigbeeNetwork {
         &mut self.fabric
     }
 
@@ -77,7 +77,7 @@ impl<B: PointBackend> MatterBridge<B> {
         Ok(())
     }
 
-    fn entry_for_point(&self, point: &PointRef) -> Result<&MatterEntry, Error> {
+    fn entry_for_point(&self, point: &PointRef) -> Result<&ZigbeeEntry, Error> {
         self.require_device(&point.device_id)?;
         self.map
             .entry_for_point(&point.point_id)
@@ -87,23 +87,23 @@ impl<B: PointBackend> MatterBridge<B> {
             })
     }
 
-    fn entry_for_foreign(&self, foreign: &ForeignRef) -> Result<&MatterEntry, Error> {
+    fn entry_for_foreign(&self, foreign: &ForeignRef) -> Result<&ZigbeeEntry, Error> {
         self.require_device(&foreign.device_id)?;
         let (endpoint, cluster_id, attribute_id) =
-            foreign.as_matter().ok_or_else(|| Error::LocatorMismatch {
-                expected: "matter",
+            foreign.as_zigbee().ok_or_else(|| Error::LocatorMismatch {
+                expected: "zigbee",
                 locator: foreign.locator.clone(),
             })?;
         self.map
             .entry_for_attr(endpoint, cluster_id, attribute_id)
-            .ok_or(Error::UnmappedMatterAttribute {
+            .ok_or(Error::UnmappedZigbeeAttribute {
                 endpoint,
                 cluster_id,
                 attribute_id,
             })
     }
 
-    fn apply_attr(&mut self, entry: &MatterEntry, attr: MatterAttrValue) -> Result<Value, Error> {
+    fn apply_attr(&mut self, entry: &ZigbeeEntry, attr: ZigbeeAttrValue) -> Result<Value, Error> {
         self.fabric
             .write(entry.endpoint, entry.cluster_id, entry.attribute_id, attr);
         let value = entry.decode_attr(attr)?;
@@ -112,21 +112,21 @@ impl<B: PointBackend> MatterBridge<B> {
         Ok(value)
     }
 
-    fn raw_to_attr(entry: &MatterEntry, raw: ForeignRaw) -> Result<MatterAttrValue, Error> {
+    fn raw_to_attr(entry: &ZigbeeEntry, raw: ForeignRaw) -> Result<ZigbeeAttrValue, Error> {
         match raw {
-            ForeignRaw::Matter(m) => entry.encode_raw(m),
-            ForeignRaw::Register(_) | ForeignRaw::Coil(_) | ForeignRaw::Zigbee(_) => {
+            ForeignRaw::Zigbee(m) => entry.encode_raw(m),
+            ForeignRaw::Register(_) | ForeignRaw::Coil(_) | ForeignRaw::Matter(_) => {
                 Err(Error::InvalidRaw {
-                    detail: "non-matter raw is not valid for matter bridge".into(),
+                    detail: "non-zigbee raw is not valid for zigbee bridge".into(),
                 })
             }
         }
     }
 }
 
-impl<B: PointBackend> Bridge for MatterBridge<B> {
+impl<B: PointBackend> Bridge for ZigbeeBridge<B> {
     fn fabric(&self) -> &'static str {
-        "matter"
+        "zigbee"
     }
 
     fn read_point(&self, point: &PointRef) -> Result<Value, Error> {
@@ -134,7 +134,7 @@ impl<B: PointBackend> Bridge for MatterBridge<B> {
         let attr = self
             .fabric
             .read(entry.endpoint, entry.cluster_id, entry.attribute_id)
-            .ok_or(Error::UnmappedMatterAttribute {
+            .ok_or(Error::UnmappedZigbeeAttribute {
                 endpoint: entry.endpoint,
                 cluster_id: entry.cluster_id,
                 attribute_id: entry.attribute_id,
@@ -159,7 +159,7 @@ impl<B: PointBackend> Bridge for MatterBridge<B> {
         let attr = self
             .fabric
             .read(entry.endpoint, entry.cluster_id, entry.attribute_id)
-            .ok_or(Error::UnmappedMatterAttribute {
+            .ok_or(Error::UnmappedZigbeeAttribute {
                 endpoint: entry.endpoint,
                 cluster_id: entry.cluster_id,
                 attribute_id: entry.attribute_id,
@@ -177,10 +177,10 @@ impl<B: PointBackend> Bridge for MatterBridge<B> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bridge::MatterRaw;
+    use crate::bridge::ZigbeeRaw;
 
-    fn kettle() -> MatterBridge<MemoryBackend> {
-        MatterBridge::kettle_example().unwrap()
+    fn kettle() -> ZigbeeBridge<MemoryBackend> {
+        ZigbeeBridge::kettle_example().unwrap()
     }
 
     fn point(id: &str) -> PointRef {
@@ -190,7 +190,7 @@ mod tests {
     #[test]
     fn seeds_backend_from_initial_attrs() {
         let bridge = kettle();
-        assert_eq!(Bridge::fabric(&bridge), "matter");
+        assert_eq!(Bridge::fabric(&bridge), "zigbee");
         assert_eq!(
             bridge
                 .backend()
@@ -214,9 +214,9 @@ mod tests {
     #[test]
     fn foreign_attr_write_updates_homecooked_backend() {
         let mut bridge = kettle();
-        let foreign = ForeignRef::matter("kettle-lab-1", 1, 0x0201, 0x0012).unwrap();
+        let foreign = ForeignRef::zigbee("kettle-lab-1", 1, 0x0201, 0x0012).unwrap();
         let value = bridge
-            .write_foreign(&foreign, ForeignRaw::Matter(MatterRaw::Int16(6500)))
+            .write_foreign(&foreign, ForeignRaw::Zigbee(ZigbeeRaw::Int16(6500)))
             .unwrap();
         assert_eq!(value, Value::F32(65.0));
         assert_eq!(
@@ -236,9 +236,9 @@ mod tests {
     #[test]
     fn foreign_onoff_write_updates_power_state() {
         let mut bridge = kettle();
-        let foreign = ForeignRef::matter("kettle-lab-1", 1, 0x0006, 0x0000).unwrap();
+        let foreign = ForeignRef::zigbee("kettle-lab-1", 1, 0x0006, 0x0000).unwrap();
         let value = bridge
-            .write_foreign(&foreign, ForeignRaw::Matter(MatterRaw::Bool(false)))
+            .write_foreign(&foreign, ForeignRaw::Zigbee(ZigbeeRaw::Bool(false)))
             .unwrap();
         assert_eq!(value, Value::Enum("off".into()));
         assert_eq!(
@@ -249,7 +249,7 @@ mod tests {
         );
         assert_eq!(
             bridge.attr_store().read(1, 0x0006, 0x0000),
-            Some(MatterAttrValue::Bool(false))
+            Some(ZigbeeAttrValue::Bool(false))
         );
     }
 
@@ -261,7 +261,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             bridge.attr_store().read(1, 0x0201, 0x0012),
-            Some(MatterAttrValue::Int16(9000))
+            Some(ZigbeeAttrValue::Int16(9000))
         );
         assert_eq!(
             bridge
@@ -282,14 +282,14 @@ mod tests {
             .unwrap();
         assert_eq!(
             bridge.attr_store().read(1, 0x0006, 0x0000),
-            Some(MatterAttrValue::Bool(false))
+            Some(ZigbeeAttrValue::Bool(false))
         );
         bridge
             .write_point(&point("trait.power.power_state"), &Value::Enum("on".into()))
             .unwrap();
         assert_eq!(
             bridge.attr_store().read(1, 0x0006, 0x0000),
-            Some(MatterAttrValue::Bool(true))
+            Some(ZigbeeAttrValue::Bool(true))
         );
     }
 
@@ -302,12 +302,12 @@ mod tests {
         assert!(matches!(err, Error::NotWritable { .. }));
         assert_eq!(
             bridge.attr_store().read(1, 0x0402, 0x0000),
-            Some(MatterAttrValue::Int16(2500))
+            Some(ZigbeeAttrValue::Int16(2500))
         );
 
-        let foreign = ForeignRef::matter("kettle-lab-1", 1, 0x0402, 0x0000).unwrap();
+        let foreign = ForeignRef::zigbee("kettle-lab-1", 1, 0x0402, 0x0000).unwrap();
         bridge
-            .write_foreign(&foreign, ForeignRaw::Matter(MatterRaw::Int16(5120)))
+            .write_foreign(&foreign, ForeignRaw::Zigbee(ZigbeeRaw::Int16(5120)))
             .unwrap();
         assert_eq!(
             bridge
@@ -330,10 +330,10 @@ mod tests {
             bridge.read_point(&unknown),
             Err(Error::UnmappedPoint { .. })
         ));
-        let missing = ForeignRef::matter("kettle-lab-1", 1, 0x9999, 0).unwrap();
+        let missing = ForeignRef::zigbee("kettle-lab-1", 1, 0x9999, 0).unwrap();
         assert!(matches!(
-            bridge.write_foreign(&missing, ForeignRaw::Matter(MatterRaw::Bool(true))),
-            Err(Error::UnmappedMatterAttribute { .. })
+            bridge.write_foreign(&missing, ForeignRaw::Zigbee(ZigbeeRaw::Bool(true))),
+            Err(Error::UnmappedZigbeeAttribute { .. })
         ));
         let modbus = ForeignRef::holding("kettle-lab-1", 0).unwrap();
         assert!(matches!(

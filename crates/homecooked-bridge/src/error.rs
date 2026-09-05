@@ -24,6 +24,11 @@ pub enum Error {
         cluster_id: u32,
         attribute_id: u32,
     },
+    DuplicateZigbeeAttribute {
+        endpoint: u16,
+        cluster_id: u32,
+        attribute_id: u32,
+    },
     UnmappedPoint {
         device_id: String,
         point_id: String,
@@ -33,6 +38,11 @@ pub enum Error {
         address: u16,
     },
     UnmappedMatterAttribute {
+        endpoint: u16,
+        cluster_id: u32,
+        attribute_id: u32,
+    },
+    UnmappedZigbeeAttribute {
         endpoint: u16,
         cluster_id: u32,
         attribute_id: u32,
@@ -93,6 +103,14 @@ impl fmt::Display for Error {
                 f,
                 "duplicate Matter attribute ep{endpoint}/cluster={cluster_id:#x}/attr={attribute_id:#x}"
             ),
+            Self::DuplicateZigbeeAttribute {
+                endpoint,
+                cluster_id,
+                attribute_id,
+            } => write!(
+                f,
+                "duplicate Zigbee attribute ep{endpoint}/cluster={cluster_id:#x}/attr={attribute_id:#x}"
+            ),
             Self::UnmappedPoint {
                 device_id,
                 point_id,
@@ -107,6 +125,14 @@ impl fmt::Display for Error {
             } => write!(
                 f,
                 "unmapped Matter attribute ep{endpoint}/cluster={cluster_id:#x}/attr={attribute_id:#x}"
+            ),
+            Self::UnmappedZigbeeAttribute {
+                endpoint,
+                cluster_id,
+                attribute_id,
+            } => write!(
+                f,
+                "unmapped Zigbee attribute ep{endpoint}/cluster={cluster_id:#x}/attr={attribute_id:#x}"
             ),
             Self::DeviceMismatch { expected, actual } => {
                 write!(f, "device mismatch: expected {expected}, got {actual}")

@@ -51,7 +51,7 @@ Open <http://127.0.0.1:8080>.
    key telemetry chips (power / temperature / cycle when present),
    variables, and settings.
 4. Write settings / fire commands (`start`, `power_on`, …).
-5. Use **Tick** or **Auto tick** so simulated behavior (kettle heat, washer
+5. Use **Tick** or **Auto tick** so simulated behavior (kettle heat, washer / microwave
    progress) advances.
 
 Writes that fail capability checks (`out_of_range`, `not_writable`, …) show
@@ -80,8 +80,8 @@ Results show completed/failed status, role bindings, and per-step ok/fail
 `crates/homecooked-procedure/examples/`.
 
 The kettle sample is the happy-path demo (sim heats ~5 °C/s). The microwave
-fixture parses and writes cook settings; the sim does not yet advance
-`trait.cycle.elapsed_s` for microwave, so the wait step will time out.
+fixture writes cook settings and starts a cycle; sim ticks advance
+`trait.cycle.elapsed_s` toward `class.microwave.cook_s` so the wait step can complete.
 
 ## Thermal plant panel
 

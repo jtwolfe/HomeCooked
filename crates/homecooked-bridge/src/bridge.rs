@@ -49,6 +49,11 @@ pub enum ForeignLocator {
         cluster_id: u32,
         attribute_id: u32,
     },
+    Zigbee {
+        endpoint: u16,
+        cluster_id: u32,
+        attribute_id: u32,
+    },
 }
 
 impl fmt::Display for ForeignLocator {
@@ -63,12 +68,20 @@ impl fmt::Display for ForeignLocator {
                 f,
                 "ep{endpoint}/cluster={cluster_id:#x}/attr={attribute_id:#x}"
             ),
+            Self::Zigbee {
+                endpoint,
+                cluster_id,
+                attribute_id,
+            } => write!(
+                f,
+                "zb-ep{endpoint}/cluster={cluster_id:#x}/attr={attribute_id:#x}"
+            ),
         }
     }
 }
 
-/// Foreign fabric address on a mapped device (Modbus register / coil, Matter
-/// endpoint+cluster+attribute, …).
+/// Foreign fabric address on a mapped device (Modbus register / coil, Matter /
+/// Zigbee endpoint+cluster+attribute, …).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ForeignRef {
     pub device_id: String,
@@ -120,10 +133,26 @@ impl ForeignRef {
         )
     }
 
+    pub fn zigbee(
+        device_id: impl Into<String>,
+        endpoint: u16,
+        cluster_id: u32,
+        attribute_id: u32,
+    ) -> Result<Self, Error> {
+        Self::new(
+            device_id,
+            ForeignLocator::Zigbee {
+                endpoint,
+                cluster_id,
+                attribute_id,
+            },
+        )
+    }
+
     pub fn as_modbus(&self) -> Option<(RegisterKind, u16)> {
         match self.locator {
             ForeignLocator::Modbus { kind, address } => Some((kind, address)),
-            ForeignLocator::Matter { .. } => None,
+            ForeignLocator::Matter { .. } | ForeignLocator::Zigbee { .. } => None,
         }
     }
 
@@ -134,7 +163,18 @@ impl ForeignRef {
                 cluster_id,
                 attribute_id,
             } => Some((endpoint, cluster_id, attribute_id)),
-            ForeignLocator::Modbus { .. } => None,
+            ForeignLocator::Modbus { .. } | ForeignLocator::Zigbee { .. } => None,
+        }
+    }
+
+    pub fn as_zigbee(&self) -> Option<(u16, u32, u32)> {
+        match self.locator {
+            ForeignLocator::Zigbee {
+                endpoint,
+                cluster_id,
+                attribute_id,
+            } => Some((endpoint, cluster_id, attribute_id)),
+            ForeignLocator::Modbus { .. } | ForeignLocator::Matter { .. } => None,
         }
     }
 }
@@ -146,11 +186,21 @@ pub enum ForeignRaw {
     Coil(bool),
     /// Matter mock attribute payload.
     Matter(MatterRaw),
+    /// Zigbee mock attribute payload.
+    Zigbee(ZigbeeRaw),
 }
 
 /// Raw Matter attribute encoding used by the in-memory mock fabric.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MatterRaw {
+    Bool(bool),
+    Int16(i16),
+    UInt16(u16),
+}
+
+/// Raw Zigbee attribute encoding used by the in-memory mock network.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ZigbeeRaw {
     Bool(bool),
     Int16(i16),
     UInt16(u16),

@@ -1,0 +1,53 @@
+# INFORMATIVE EXAMPLE — fake kettle Zigbee map (not a certified product).
+#
+# Cluster and attribute IDs below are ILLUSTRATIVE LAB CONSTANTS chosen to
+# resemble common Zigbee ZCL cluster shapes (OnOff, TemperatureMeasurement, and a
+# thermostat-like setpoint). They are NOT a claim of Zigbee compliance, zigbee2mqtt
+# integration, or Zigbee Alliance certification.
+#
+# Catalog points (see docs/catalog and crates/homecooked-schema):
+#   trait.power.power_state        enum off|standby|on|fault  (RE)
+#   trait.temperature.current_c    F32  °C   (RE)
+#   trait.temperature.setpoint_c   F32  °C   (RWE)
+#
+# There is no catalog bool `trait.power.on`; OnOff maps the on/off subset of
+# `trait.power.power_state`. TemperatureMeasurement MeasuredValue is stored as
+# int16 hundredths of a degree C (scale: 0.01).
+version: "0.1.0"
+class_id: kettle
+device_id: kettle-lab-1
+node_id: 1
+entries:
+  - point: trait.power.power_state
+    endpoint: 1
+    # OnOff cluster (illustrative lab constant)
+    cluster_id: 0x0006
+    # OnOff attribute
+    attribute_id: 0x0000
+    value_type: bool
+    true_token: on
+    false_token: off
+    access: rw
+    initial_bool: true
+
+  - point: trait.temperature.current_c
+    endpoint: 1
+    # TemperatureMeasurement cluster (illustrative lab constant)
+    cluster_id: 0x0402
+    # MeasuredValue attribute
+    attribute_id: 0x0000
+    value_type: int16
+    scale: 0.01
+    access: r
+    initial_int: 2500
+
+  - point: trait.temperature.setpoint_c
+    endpoint: 1
+    # Thermostat-like lab constant (OccupiedHeatingSetpoint-shaped); NOT a
+    # claim that kettle is a Matter thermostat device.
+    cluster_id: 0x0201
+    attribute_id: 0x0012
+    value_type: int16
+    scale: 0.01
+    access: rw
+    initial_int: 8000

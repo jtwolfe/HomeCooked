@@ -1,6 +1,6 @@
 # Bridges — integration with existing home automation
 
-Version **0.1.2** — design extension plus first crate slice.
+Version **0.1.3** — design extension plus first crate slice.
 
 HomeCooked is an **appliance semantics layer** for heavy whitegoods and
 kitchen / utility plant. It is **not** a replacement for Zigbee, Matter,
@@ -164,11 +164,16 @@ so those assets can appear beside kitchen devices in one client. Mapping tips:
   (OnOff + TemperatureMeasurement-style attributes mapped to kettle
   `trait.power.power_state` / `trait.temperature.*`). Cluster IDs in that
   fixture are **illustrative lab constants**, not a certified Matter product.
-- **Zigbee / BACnet** compile as stubs that return a clear unsupported error.
+- **Zigbee** is implemented as a **thin mock network** (no zigbee2mqtt / ZCL
+  SDK): YAML/JSON endpoint + cluster + attribute → point map and an in-memory
+  attribute store. Example:
+  [`kettle_zigbee_map.yaml`](../../crates/homecooked-bridge/examples/kettle_zigbee_map.yaml).
+  Cluster IDs are **illustrative lab constants**.
+- **BACnet** compiles as a stub that returns a clear unsupported error.
 
 See the crate [`README`](../../crates/homecooked-bridge/README.md). Real
-plant buses, pairing, mesh administration, and production Matter stacks stay
-out of scope (§5).
+plant buses, pairing, mesh administration, and production Matter / Zigbee
+stacks stay out of scope (§5).
 
 ---
 
@@ -179,3 +184,4 @@ out of scope (§5).
 | 0.1.0 | Initial bridges / home-automation integration sketch |
 | 0.1.1 | First crate slice: Modbus mock adapter + Zigbee/Matter/BACnet stubs |
 | 0.1.2 | Matter mock bridge (in-memory attributes + kettle map); Zigbee/BACnet remain stubs |
+| 0.1.3 | Zigbee mock bridge (in-memory attributes + kettle map); BACnet remains stub |
