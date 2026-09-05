@@ -30,16 +30,17 @@ What exists on `main` today:
 | `homecooked-procedure` | Procedure documents + sequential runner |
 | `homecooked-controller` | Host controller sim: IoMap + MockHal + interlocks + washer cotton cycle |
 | `homecooked-thermal` | First executable thermal plant slice (types, registry, offer/accept, tick) |
+| `homecooked-bridge` | First bridge slice: Modbus map + in-memory slave; Zigbee/Matter/BACnet stubs |
 | CI | rustfmt, clippy (`-D warnings`), `cargo test --workspace`, wasm-pack |
 
 **25 Tier-A classes are fully tabled** (see §4).
 
 `list_all_class_ids` already covers the full appliances index; most classes are
 ids-only (no static tables / sim yet). Thermal has `homecooked-thermal` (plant
-slice; catalog/sim ports still open). Bridges remain a **design sketch**
-without a dedicated crate; control-system has HAL + controller-sim +
-io-map/interlock crates (TCP transport still open); procedures has
-`homecooked-procedure`.
+slice; catalog/sim ports still open). Bridges have `homecooked-bridge`
+(Modbus first slice + stubs; real serial/TCP and other fabrics still
+open); control-system has HAL + controller-sim + io-map/interlock crates
+(TCP transport still open); procedures has `homecooked-procedure`.
 
 Rough completeness: docs + thin protocol/sim spine ≈ **~30%** of the 75%
 target below. Remaining work is depth (tables, I/O map, interlocks, HAL/sim
@@ -174,16 +175,24 @@ multiple small PRs.
 
 **Milestones**
 
-1. Choose **Matter or Modbus** for the first non-stub bridge.
-2. Implement mapping for a small subset of Tier-A points (discover / read /
-   write where the alien stack allows).
-3. Stubs (compile + clear “unimplemented”) for the other bridge families in
-   `docs/standard/bridges.md`.
+1. ~~Choose **Matter or Modbus** for the first non-stub bridge.~~ **Done** —
+   Modbus (in-memory slave; no serial/TCP SDK, so CI stays hardware-free).
+2. ~~Implement mapping for a small subset of Tier-A points.~~ **Done (first
+   slice)** — `homecooked-bridge` maps a fake `water_heater` (setpoint,
+   current temp, power state) through a YAML/JSON register map. Tests cover
+   foreign → HomeCooked and HomeCooked → register.
+3. ~~Stubs (compile + clear “unimplemented”) for the other bridge families.~~
+   **Done** — `ZigbeeBridge`, `MatterBridge`, `BacnetBridge` return
+   `Error::UnsupportedFabric` and point at
+   [`standard/bridges.md`](./standard/bridges.md).
 
 **Definition of done**
 
 - One bridge crate or module with tests against a fake peer or recorded
   fixtures; stubs documented in README / bridges doc.
+  **Met for the first slice** — see `crates/homecooked-bridge`. Real
+  serial/TCP Modbus, Matter SDK, and Zigbee/BACnet adapters remain
+  follow-up.
 
 ### Stream 7 — WASM UI + conformance suite
 
@@ -258,7 +267,7 @@ absent static tables are OK until after the 75% bar.
 | later | procedure + sim | 3 |
 | later | HAL + controller-sim + TCP | 4 |
 | later | thermal ports | 5 |
-| later | Matter *or* Modbus bridge | 6 |
+| later | `feat/bridges-modbus` | 6 — Modbus + stubs (first slice) |
 | later | WASM UI + conformance | 7 |
 
 One concern per PR when practical. Catalog/standard docs land before or with

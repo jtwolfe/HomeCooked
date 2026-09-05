@@ -47,6 +47,7 @@ is **0.1.0** (peers are rejected only on protocol **major** mismatch).
 | `homecooked-procedure` | [`crates/homecooked-procedure`](crates/homecooked-procedure) | Procedure / recipe documents, validation, sequential runner ([procedures.md](docs/standard/procedures.md)) |
 | `homecooked-controller` | [`crates/homecooked-controller`](crates/homecooked-controller) | Host controller sim: IoMap + MockHal + interlocks + washer cotton cycle ([control-system.md](docs/standard/control-system.md)) |
 | `homecooked-thermal` | [`crates/homecooked-thermal`](crates/homecooked-thermal) | Thermal plant slice: reservoirs, heat ports, offer/accept, tick transfer ([thermal-plant.md](docs/standard/thermal-plant.md)) |
+| `homecooked-bridge` | [`crates/homecooked-bridge`](crates/homecooked-bridge) | Fabric bridges: Modbus adapter (mocked transport) plus Zigbee/Matter/BACnet stubs ([bridges.md](docs/standard/bridges.md)) |
 | simulator-web | [`apps/simulator-web`](apps/simulator-web) | Static HTML/JS UI that loads the wasm-pack output |
 
 `list_all_class_ids` covers the full class index in

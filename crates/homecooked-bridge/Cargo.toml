@@ -1,0 +1,15 @@
+[package]
+name = "homecooked-bridge"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description = "HomeCooked fabric bridges: Modbus adapter plus Zigbee/Matter/BACnet stubs"
+readme = "README.md"
+
+[dependencies]
+homecooked-schema = { path = "../homecooked-schema" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
