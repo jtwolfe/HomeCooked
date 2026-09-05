@@ -5609,6 +5609,137 @@ mod tests {
     }
 
     #[test]
+    fn water_filter_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let filter = sim.spawn(ApplianceClassId::WaterFilter).unwrap();
+
+        assert_eq!(
+            sim.read_value(&filter, "class.water_filter.tds_in_ppm")
+                .unwrap(),
+            Value::U16(250)
+        );
+        assert_eq!(
+            sim.read_value(&filter, "class.water_filter.tds_out_ppm")
+                .unwrap(),
+            Value::U16(20)
+        );
+        assert_eq!(
+            sim.read_value(&filter, "class.water_filter.tank_full")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&filter, "class.water_filter.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&filter, "class.water_filter.eco_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&filter, "class.water_filter.bypass")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&filter, "class.water_filter.filter_clogged")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&filter, "class.water_filter.replace_needed")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&filter, "class.water_filter.timer_s")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&filter, "trait.filter.life_percent")
+                .unwrap(),
+            Value::Percent(75.0)
+        );
+        assert_eq!(
+            sim.read_value(&filter, "trait.water.flow_l_min").unwrap(),
+            Value::F32(1.5)
+        );
+
+        sim.write(
+            &filter,
+            "class.water_filter.sabbath_mode",
+            Value::Bool(true),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&filter, "class.water_filter.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&filter, "class.water_filter.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&filter, "class.water_filter.eco_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&filter, "class.water_filter.bypass", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&filter, "class.water_filter.bypass")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&filter, "class.water_filter.timer_s", Value::DurationS(45))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&filter, "class.water_filter.timer_s")
+                .unwrap(),
+            Value::DurationS(45)
+        );
+
+        let err = sim
+            .write(&filter, "class.water_filter.tds_in_ppm", Value::U16(300))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&filter, "class.water_filter.tds_out_ppm", Value::U16(30))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&filter, "class.water_filter.tank_full", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &filter,
+                "class.water_filter.filter_clogged",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &filter,
+                "class.water_filter.replace_needed",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&filter, "trait.filter.life_percent", Value::Percent(50.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&filter, "trait.water.flow_l_min", Value::F32(2.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {

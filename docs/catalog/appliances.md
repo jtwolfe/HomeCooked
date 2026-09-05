@@ -1476,13 +1476,19 @@ Point-of-use or whole-home filter / RO system with electronics.
 `fault`, `maintenance`, `dispense` (if a faucet is instrumented).
 
 **Typical controllable settings:** filter-reset per stage, flush, RO tank empty
-(service).
+(service), sabbath, eco, bypass, `timer_s`.
 
-**Typical readable state:** filter life per stage, TDS in/out (RO), leak, flow,
-tank full.
+**Typical readable state:**
+
+- Filter life per stage via `trait.filter.life_percent`, TDS in/out (RO), leak
+- Flow via `trait.water.flow_l_min`, tank full, `filter_clogged` / `replace_needed`
 
 **Notes:** Fridge filters stay on the fridge `filter` trait. This class is a
-standalone appliance.
+standalone appliance. Catalog depth: optional class points include sabbath, eco,
+bypass, `filter_clogged`, `replace_needed`, and `timer_s`, plus thin-table
+`tds_in_ppm` / `tds_out_ppm` / `tank_full`; filter life uses
+`trait.filter.life_percent` and flow uses `trait.water.flow_l_min` (not a class
+`flow_lpm`) (see variables-and-settings).
 
 ---
 

@@ -200,6 +200,18 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             ApplianceClassId::WaterSoftener => Value::F32(0.0),
             _ => Value::F32(numeric_default(point)),
         },
+        "tds_in_ppm" => match ctx.identity.class_id {
+            ApplianceClassId::WaterFilter => Value::U16(250),
+            _ => Value::U16(int_min(point, 0) as u16),
+        },
+        "tds_out_ppm" => match ctx.identity.class_id {
+            ApplianceClassId::WaterFilter => Value::U16(20),
+            _ => Value::U16(int_min(point, 0) as u16),
+        },
+        "flow_l_min" => match ctx.identity.class_id {
+            ApplianceClassId::WaterFilter => Value::F32(1.5),
+            _ => Value::F32(numeric_default(point)),
+        },
         "brew_setpoint_c" => Value::F32(93.0),
         "shot_ml" => match ctx.identity.class_id {
             ApplianceClassId::EspressoMachine => Value::U16(36),
@@ -447,6 +459,7 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             ApplianceClassId::RangeHood => Value::Percent(75.0),
             ApplianceClassId::WaterDispenser => Value::Percent(85.0),
             ApplianceClassId::WaterSoftener => Value::Percent(90.0),
+            ApplianceClassId::WaterFilter => Value::Percent(75.0),
             _ => Value::Percent(0.0),
         },
         "current_rh" => match ctx.identity.class_id {
