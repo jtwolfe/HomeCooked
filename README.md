@@ -41,6 +41,8 @@ is **0.1.0** (peers are rejected only on protocol **major** mismatch).
 | `homecooked-core` | [`crates/homecooked-core`](crates/homecooked-core) | Device registry, capability-enforced read/write, request handling |
 | `homecooked-sim` | [`crates/homecooked-sim`](crates/homecooked-sim) | In-memory devices for the nine static classes |
 | `homecooked-wasm` | [`crates/homecooked-wasm`](crates/homecooked-wasm) | wasm-bindgen JSON API over the simulator |
+| `homecooked-io-map` | [`crates/homecooked-io-map`](crates/homecooked-io-map) | Chassis I/O map serde+validate |
+| `homecooked-interlock` | [`crates/homecooked-interlock`](crates/homecooked-interlock) | Declarative interlock rules |
 | simulator-web | [`apps/simulator-web`](apps/simulator-web) | Static HTML/JS UI that loads the wasm-pack output |
 
 `list_all_class_ids` covers the full class index in
