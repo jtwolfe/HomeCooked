@@ -6659,6 +6659,146 @@ mod tests {
     }
 
     #[test]
+    fn dishwasher_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let dw = sim.spawn(ApplianceClassId::Dishwasher).unwrap();
+
+        assert_eq!(
+            sim.read_value(&dw, "class.dishwasher.rinse_aid_level")
+                .unwrap(),
+            Value::Enum("ok".into())
+        );
+        assert_eq!(
+            sim.read_value(&dw, "class.dishwasher.salt_level").unwrap(),
+            Value::Enum("ok".into())
+        );
+        assert_eq!(
+            sim.read_value(&dw, "class.dishwasher.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&dw, "class.dishwasher.eco_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&dw, "class.dishwasher.door_ajar").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&dw, "class.dishwasher.door_locked").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&dw, "class.dishwasher.rinse_aid_low")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&dw, "class.dishwasher.salt_low").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&dw, "class.dishwasher.overflow_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&dw, "class.dishwasher.timer_s").unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&dw, "class.dishwasher.wash_temp_c").unwrap(),
+            Value::F32(40.0)
+        );
+        assert_eq!(
+            sim.read_value(&dw, "trait.time_schedule.delay_start_s")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+        // Thermal ports still present.
+        assert_eq!(
+            sim.read_value(&dw, "class.dishwasher.thermal_port_id")
+                .unwrap(),
+            Value::String("inlet_preheat".into())
+        );
+
+        sim.write(&dw, "class.dishwasher.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&dw, "class.dishwasher.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&dw, "class.dishwasher.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&dw, "class.dishwasher.eco_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&dw, "class.dishwasher.timer_s", Value::DurationS(7200))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&dw, "class.dishwasher.timer_s").unwrap(),
+            Value::DurationS(7200)
+        );
+        sim.write(&dw, "class.dishwasher.wash_temp_c", Value::F32(45.0))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&dw, "class.dishwasher.wash_temp_c").unwrap(),
+            Value::F32(45.0)
+        );
+        sim.write(
+            &dw,
+            "trait.time_schedule.delay_start_s",
+            Value::DurationS(1800),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&dw, "trait.time_schedule.delay_start_s")
+                .unwrap(),
+            Value::DurationS(1800)
+        );
+
+        let err = sim
+            .write(
+                &dw,
+                "class.dishwasher.rinse_aid_level",
+                Value::Enum("low".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &dw,
+                "class.dishwasher.salt_level",
+                Value::Enum("low".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&dw, "class.dishwasher.door_ajar", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&dw, "class.dishwasher.door_locked", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&dw, "class.dishwasher.rinse_aid_low", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&dw, "class.dishwasher.salt_low", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&dw, "class.dishwasher.overflow_alarm", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn dishwasher_thermal_port_read_write() {
         let mut sim = Simulator::new();
         let id = sim.spawn(ApplianceClassId::Dishwasher).unwrap();

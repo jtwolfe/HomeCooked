@@ -193,7 +193,13 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             _ => Value::F32(numeric_default(point)),
         },
         "salt_level" => match ctx.identity.class_id {
-            ApplianceClassId::WaterSoftener => Value::Enum("ok".into()),
+            ApplianceClassId::WaterSoftener | ApplianceClassId::Dishwasher => {
+                Value::Enum("ok".into())
+            }
+            _ => first_enum(point).unwrap_or_else(|| Value::Enum("unknown".into())),
+        },
+        "rinse_aid_level" => match ctx.identity.class_id {
+            ApplianceClassId::Dishwasher => Value::Enum("ok".into()),
             _ => first_enum(point).unwrap_or_else(|| Value::Enum("unknown".into())),
         },
         "treated_l" => match ctx.identity.class_id {

@@ -903,16 +903,29 @@ Setpoint typically 1–10 °C. CO₂ setpoint writes are vendor unless advertise
 | `sanitize` | bool | — | | r/w | opt | |
 | `zone_wash` | enum | — | `all` `upper` `lower` | r/w | opt | |
 | `tab_mode` | bool | — | | r/w | opt | Combined detergent tab |
-| `rinse_aid_level` | enum | — | `empty` `low` `ok` | r/e | opt | |
-| `salt_level` | enum | — | `empty` `low` `ok` `na` | r/e | opt | |
+| `rinse_aid_level` | enum | — | `empty` `low` `ok` | r/e | opt | Thin-table level (typical) |
+| `salt_level` | enum | — | `empty` `low` `ok` `na` | r/e | opt | Thin-table level (typical) |
 | `rinse_aid_dose` | u8 | — | 0–6 | r/w | opt | |
 | `turbidity` | u16 | — | 0–1000 device units | r | opt | Auto programs |
-| `wash_temp_c` | f32 | celsius | 30–75 | r/w | opt | |
+| `wash_temp_c` | f32 | celsius | 30–75 | r/w | opt | Typical |
+| `sabbath_mode` | bool | — | | r/w/e | opt | Suppress beeps / delay display |
+| `eco_mode` | bool | — | | r/w | opt | Prefer lower energy / water |
+| `door_ajar` | bool | — | | r/e | opt | Door / lid ajar bit |
+| `door_locked` | bool | — | | r/e | opt | Door lock engaged |
+| `rinse_aid_low` | bool | — | | r/e | opt | Rinse-aid low alarm (alongside `rinse_aid_level`) |
+| `salt_low` | bool | — | | r/e | opt | Salt / regenerant low alarm (alongside `salt_level`) |
+| `overflow_alarm` | bool | — | | r/e | opt | Tub overflow / flood bit |
+| `timer_s` | duration_s | second | 0–86400 | r/w/e | opt | End / delay timer |
 | `thermal_port_id` | string | — | local port id | r | opt | Device heat port (e.g. `inlet_preheat`); see thermal-plant |
 | `thermal_port_direction` | enum | — | `source` `sink` `bidirectional` | r | opt | Seed `sink` (DHW inlet preheat) |
 | `thermal_port_media` | enum | — | `water` `air` `glycol` `refrigerant_proxy` `unknown` | r | opt | Seed `water` |
 | `thermal_port_max_power_w` | f32 | watt | | r | opt | Seed 1800 (demo) |
 | `thermal_port_attached_reservoir_id` | string | — | reservoir id or empty | r/w | opt | Attach/detach plant reservoir |
+
+Optional depth (fifth undepened Tier-A deepen): sabbath/eco/door/alarms/timer;
+typical also advertises thin-table `rinse_aid_level` / `salt_level` /
+`wash_temp_c` and trait `delay_start_s`. `thermal_port_*` inlet-preheat surface
+unchanged.
 
 ---
 

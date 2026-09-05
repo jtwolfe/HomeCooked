@@ -277,11 +277,14 @@ fn extra_typical_trait_point(table: &ClassTable, trait_id: TraitId, point: &Cata
             return true;
         }
     }
-    // Washer / dryer / washer_dryer: delay start is typical laundry scheduling
-    // (reuse TimeSchedule).
+    // Washer / dryer / washer_dryer / dishwasher: delay start is typical
+    // laundry/wash scheduling (reuse TimeSchedule).
     if matches!(
         table.class_id,
-        ApplianceClassId::Washer | ApplianceClassId::Dryer | ApplianceClassId::WasherDryer
+        ApplianceClassId::Washer
+            | ApplianceClassId::Dryer
+            | ApplianceClassId::WasherDryer
+            | ApplianceClassId::Dishwasher
     ) && trait_id == TraitId::TimeSchedule
         && point.id == "delay_start_s"
     {
@@ -301,7 +304,26 @@ fn extra_typical_trait_point(table: &ClassTable, trait_id: TraitId, point: &Cata
 
 /// Optional class points that the typical model still advertises for demos.
 fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
-    if table.class_id == ApplianceClassId::Dishwasher && point.id == "wash_temp_c" {
+    // Stream 7 undepened Tier-A deepen: dishwasher optional telemetry/settings.
+    // Advertise thin-table rinse_aid_level/salt_level + wash_temp_c; add depth
+    // sabbath/eco/door/alarms/timer. thermal_port_* stay via Stream 5 match below
+    // (do not return false here).
+    if table.class_id == ApplianceClassId::Dishwasher
+        && matches!(
+            point.id,
+            "wash_temp_c"
+                | "rinse_aid_level"
+                | "salt_level"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "door_ajar"
+                | "door_locked"
+                | "rinse_aid_low"
+                | "salt_low"
+                | "overflow_alarm"
+                | "timer_s"
+        )
+    {
         return true;
     }
     // Stream 7 undepened Tier-A deepen: washer optional telemetry/settings in typical sim.
@@ -4562,6 +4584,84 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.washer.detergent_low", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn dishwasher_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::Dishwasher).unwrap();
+        for id in [
+            "class.dishwasher.wash_temp_c",
+            "class.dishwasher.rinse_aid_level",
+            "class.dishwasher.salt_level",
+            "class.dishwasher.sabbath_mode",
+            "class.dishwasher.eco_mode",
+            "class.dishwasher.door_ajar",
+            "class.dishwasher.door_locked",
+            "class.dishwasher.rinse_aid_low",
+            "class.dishwasher.salt_low",
+            "class.dishwasher.overflow_alarm",
+            "class.dishwasher.timer_s",
+            // Thermal ports remain advertised (Stream 5).
+            "class.dishwasher.thermal_port_id",
+            "class.dishwasher.thermal_port_direction",
+            "class.dishwasher.thermal_port_media",
+            "class.dishwasher.thermal_port_max_power_w",
+            "class.dishwasher.thermal_port_attached_reservoir_id",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical dishwasher"
+            );
+        }
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::TimeSchedule)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.time_schedule.delay_start_s"));
+        cap.validate_write("class.dishwasher.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.dishwasher.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.dishwasher.timer_s", &Value::DurationS(3600))
+            .unwrap();
+        cap.validate_write("class.dishwasher.wash_temp_c", &Value::F32(45.0))
+            .unwrap();
+        cap.validate_write("trait.time_schedule.delay_start_s", &Value::DurationS(1800))
+            .unwrap();
+        let err = cap
+            .validate_write(
+                "class.dishwasher.rinse_aid_level",
+                &Value::Enum("ok".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.dishwasher.salt_level", &Value::Enum("ok".into()))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.dishwasher.door_ajar", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.dishwasher.door_locked", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.dishwasher.rinse_aid_low", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.dishwasher.salt_low", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.dishwasher.overflow_alarm", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }
