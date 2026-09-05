@@ -3,8 +3,8 @@
 
 use homecooked_core::{CoreError, DeviceId};
 use homecooked_schema::{
-    AccessMode, ApplianceClassId, DeviceIdentity, ErrorCode, Unit, Value, ValueRange, ValueType,
-    STATIC_CLASS_IDS,
+    catalog_group, AccessMode, ApplianceClassId, DeviceIdentity, ErrorCode, Unit, Value,
+    ValueRange, ValueType, TIER_A_CLASS_IDS,
 };
 use homecooked_sim::Simulator;
 use serde::{Deserialize, Serialize};
@@ -74,6 +74,8 @@ impl std::error::Error for ApiError {}
 pub struct ClassInfo {
     pub id: String,
     pub label: String,
+    /// Catalog Index group from `docs/catalog/appliances.md` (Laundry, Cold, …).
+    pub group: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -117,11 +119,15 @@ impl WasmApi {
     }
 
     pub fn list_appliance_classes() -> String {
-        let classes: Vec<ClassInfo> = STATIC_CLASS_IDS
+        // Catalog Index order so the UI can emit one `<optgroup>` per group
+        // without duplicating group membership in JS.
+        let classes: Vec<ClassInfo> = ApplianceClassId::ALL
             .iter()
+            .filter(|id| TIER_A_CLASS_IDS.contains(id))
             .map(|id| ClassInfo {
                 id: id.as_str().to_string(),
                 label: class_label(*id),
+                group: catalog_group(*id).to_string(),
             })
             .collect();
         serde_json::to_string(&classes).expect("ClassInfo serializes")
@@ -434,22 +440,67 @@ mod tests {
     }
 
     #[test]
-    fn list_classes_is_the_static_catalog_tables() {
+    fn list_appliance_classes_covers_tier_a() {
         let classes: Vec<ClassInfo> =
             serde_json::from_str(&WasmApi::list_appliance_classes()).unwrap();
-        assert_eq!(classes.len(), STATIC_CLASS_IDS.len());
+        assert_eq!(classes.len(), 25);
+        assert_eq!(classes.len(), TIER_A_CLASS_IDS.len());
+
+        let listed: std::collections::BTreeSet<&str> =
+            classes.iter().map(|c| c.id.as_str()).collect();
+        let expected: std::collections::BTreeSet<&str> =
+            TIER_A_CLASS_IDS.iter().map(|id| id.as_str()).collect();
+        assert_eq!(listed, expected);
+
         assert!(classes
             .iter()
-            .any(|c| c.id == "kettle" && c.label == "Kettle"));
+            .any(|c| c.id == "kettle" && c.label == "Kettle" && c.group == "Beverage"));
+        assert!(classes.iter().any(|c| c.id == "induction_hob"
+            && c.label == "Induction Hob"
+            && c.group == "Cooking"));
         assert!(classes
             .iter()
-            .any(|c| c.id == "induction_hob" && c.label == "Induction Hob"));
+            .any(|c| c.id == "steam_oven" && c.label == "Steam Oven" && c.group == "Cooking"));
         assert!(classes
             .iter()
-            .any(|c| c.id == "steam_oven" && c.label == "Steam Oven"));
+            .any(|c| c.id == "wine_cooler" && c.label == "Wine Cooler" && c.group == "Cold"));
         assert!(classes
             .iter()
-            .any(|c| c.id == "coffee_machine" && c.label == "Coffee Machine"));
+            .any(|c| c.id == "hvac" && c.label == "Hvac" && c.group == "Climate"));
+
+        let groups: Vec<&str> = classes.iter().map(|c| c.group.as_str()).collect();
+        let mut seen = Vec::new();
+        for group in groups {
+            if seen.last() != Some(&group) {
+                assert!(
+                    !seen.contains(&group),
+                    "class list is not grouped: {group} appears twice"
+                );
+                seen.push(group);
+            }
+        }
+    }
+
+    #[test]
+    fn create_describe_get_state_for_every_tier_a_class() {
+        let mut api = WasmApi::new();
+        for class in TIER_A_CLASS_IDS {
+            let id = api
+                .create_device(class.as_str())
+                .unwrap_or_else(|e| panic!("create {} failed: {e}", class.as_str()));
+            assert!(
+                id.starts_with(&format!("sim-{}-", class.as_str())),
+                "unexpected device id {id} for {}",
+                class.as_str()
+            );
+            let desc: serde_json::Value =
+                serde_json::from_str(&api.describe(&id).unwrap()).unwrap();
+            assert_eq!(desc["identity"]["class_id"], class.as_str());
+            assert!(desc["points"].as_array().is_some_and(|p| !p.is_empty()));
+            let state: serde_json::Value =
+                serde_json::from_str(&api.get_state(&id).unwrap()).unwrap();
+            assert!(state.as_object().is_some_and(|o| !o.is_empty()));
+        }
     }
 
     #[test]

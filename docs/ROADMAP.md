@@ -23,7 +23,7 @@ What exists on `main` today:
 | `homecooked-protocol` | Envelope, request/response kinds, discovery, JSON, errors (v0.1.0) |
 | `homecooked-core` | Device registry, capability-enforced read/write |
 | `homecooked-sim` | In-memory devices for the 25 Tier-A static classes |
-| `homecooked-wasm` + `apps/simulator-web` | wasm-bindgen JSON API and minimal static UI |
+| `homecooked-wasm` + `apps/simulator-web` | wasm-bindgen JSON API; simulator-web grouped Tier-A picker (25 classes) |
 | `homecooked-io-map` | Chassis I/O map serde + validate |
 | `homecooked-interlock` | Declarative interlock rules (washer heater/spin) |
 | `homecooked-hal` | Firmware HAL sketch + host `MockHal` |
@@ -200,13 +200,25 @@ multiple small PRs.
 
 1. Simulator-web UX sufficient to pick a Tier-A class, inspect capabilities,
    and exercise reads/writes.
+   **Done (picker slice)** — `list_appliance_classes` / `create_device` cover
+   all 25 `TIER_A_CLASS_IDS` (same set as `STATIC_CLASS_IDS`). simulator-web
+   shows the full Tier-A picker grouped with `<optgroup>` from the catalog
+   Index (Laundry / Cold / Wash / Cooking / Ventilation / Beverage /
+   Countertop / Utility / Climate). Class id + a few key telemetry chips
+   (power / temperature / cycle when present) are shown in the device
+   header. **Still open:** procedure UI, thermal-port UI, and richer
+   conformance-oriented screens.
 2. Conformance suite: catalog id hygiene, capability advertisement rules,
    protocol major-version rejection, representative write denials.
+   **Still open** — not started in this slice.
 3. CI runs the conformance suite (or a `cargo test` subset tagged as such).
+   **Still open** — CI already runs rustfmt / clippy / `cargo test` /
+   wasm-pack; a named conformance suite is follow-up.
 
 **Definition of done**
 
 - wasm-pack build remains in CI; UI documented in `apps/simulator-web`.
+  *(Picker + list/spawn coverage is in; suite depth is not.)*
 - Conformance failures are actionable (named assertions, not a single opaque
   binary).
 
@@ -268,7 +280,8 @@ absent static tables are OK until after the 75% bar.
 | later | HAL + controller-sim + TCP | 4 |
 | later | thermal ports | 5 |
 | later | `feat/bridges-modbus` | 6 — Modbus + stubs (first slice) |
-| later | WASM UI + conformance | 7 |
+| later | `feat/simulator-tier-a-ui` | 7 — grouped Tier-A picker (first UI slice) |
+| later | WASM UI + conformance suite | 7 — remaining |
 
 One concern per PR when practical. Catalog/standard docs land before or with
 the code that implements them.

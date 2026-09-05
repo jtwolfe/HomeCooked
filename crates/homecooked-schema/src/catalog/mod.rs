@@ -13,6 +13,43 @@ use crate::version::{CATALOG_VERSION, DEFAULT_CLASS_VERSION, DEFAULT_TRAIT_VERSI
 pub use classes::{STATIC_CLASS_IDS, TIER_A_CLASS_IDS};
 pub use traits::trait_table;
 
+/// Catalog Index groups from `docs/catalog/appliances.md`, in table order.
+pub const CATALOG_GROUP_ORDER: &[&str] = &[
+    "Laundry",
+    "Cold",
+    "Wash",
+    "Cooking",
+    "Ventilation",
+    "Beverage",
+    "Countertop",
+    "Utility",
+    "Climate",
+];
+
+/// Index table group for a class id (`docs/catalog/appliances.md`).
+pub fn catalog_group(class_id: ApplianceClassId) -> &'static str {
+    use ApplianceClassId::*;
+    match class_id {
+        Washer | Dryer | WasherDryer => "Laundry",
+        Fridge | Freezer | FridgeFreezer | WineCooler | BeverageCooler | IceMaker | Kegerator => {
+            "Cold"
+        }
+        Dishwasher => "Wash",
+        Microwave | Oven | SteamOven | ToasterOven | Range | Cooktop | InductionHob
+        | WarmingDrawer | PizzaOven | AirFryer | ElectricGrill | ElectricSmoker => "Cooking",
+        RangeHood => "Ventilation",
+        CoffeeMachine | EspressoMachine | DripCoffeeMaker | CoffeeGrinder | Kettle
+        | WaterDispenser => "Beverage",
+        Toaster | Blender | FoodProcessor | StandMixer | Juicer | RiceCooker | SlowCooker
+        | MultiCooker | SousVide | BreadMaker | Dehydrator | VacuumSealer | IceCreamMaker
+        | YogurtMaker | WaffleMaker | PastaMaker | SteamCooker => "Countertop",
+        GarbageDisposal | TrashCompactor | WaterHeater | Boiler | WaterSoftener | WaterFilter => {
+            "Utility"
+        }
+        Hvac | Dehumidifier | Humidifier => "Climate",
+    }
+}
+
 /// Shared-trait table: required and optional points for one trait.
 #[derive(Debug, Clone, Copy)]
 pub struct TraitTable {
@@ -266,6 +303,27 @@ mod tests {
         let ids: Vec<&str> = list_all_class_ids().iter().map(|c| c.as_str()).collect();
         assert_eq!(ids, INDEX);
         assert_eq!(ids.len(), 56);
+    }
+
+    #[test]
+    fn catalog_groups_match_appliances_index() {
+        assert_eq!(CATALOG_GROUP_ORDER.len(), 9);
+        for id in ApplianceClassId::ALL {
+            assert!(
+                CATALOG_GROUP_ORDER.contains(&catalog_group(*id)),
+                "{id} group {} is not an Index group",
+                catalog_group(*id)
+            );
+        }
+        assert_eq!(catalog_group(ApplianceClassId::Washer), "Laundry");
+        assert_eq!(catalog_group(ApplianceClassId::WineCooler), "Cold");
+        assert_eq!(catalog_group(ApplianceClassId::Dishwasher), "Wash");
+        assert_eq!(catalog_group(ApplianceClassId::SteamOven), "Cooking");
+        assert_eq!(catalog_group(ApplianceClassId::RangeHood), "Ventilation");
+        assert_eq!(catalog_group(ApplianceClassId::Kettle), "Beverage");
+        assert_eq!(catalog_group(ApplianceClassId::SousVide), "Countertop");
+        assert_eq!(catalog_group(ApplianceClassId::WaterHeater), "Utility");
+        assert_eq!(catalog_group(ApplianceClassId::Hvac), "Climate");
     }
 
     #[test]

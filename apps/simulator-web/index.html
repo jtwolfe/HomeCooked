@@ -16,8 +16,8 @@
         <p class="eyebrow">HomeCooked · catalog 0.1.0</p>
         <h1>Appliance simulator</h1>
         <p class="lede">
-          Spawn a catalog class, write settings, and tick simulated time. WASM
-          wraps <code>homecooked-sim</code>.
+          Spawn any Tier-A catalog class (grouped picker), write settings, and
+          tick simulated time. WASM wraps <code>homecooked-sim</code>.
         </p>
       </div>
       <p id="status" class="status" role="status">Loading WASM…</p>
@@ -40,7 +40,7 @@ python3 -m http.server 8080</pre>
       <aside class="panel">
         <h2>Devices</h2>
         <label class="field">
-          <span>Appliance class</span>
+          <span>Appliance class (Tier-A)</span>
           <select id="class-select"></select>
         </label>
         <button id="create-btn" type="button">Create device</button>
@@ -52,8 +52,8 @@ python3 -m http.server 8080</pre>
         <div id="placeholder" class="placeholder">
           <p>Select or create a device to inspect variables and settings.</p>
           <p class="muted">
-            Kettle heats ~5&nbsp;°C/s toward setpoint when powered on. Washer
-            cycle progress is a 60s stub.
+            All 25 Tier-A classes are spawnable. Kettle heats ~5&nbsp;°C/s
+            toward setpoint when powered on. Washer cycle progress is a 60s stub.
           </p>
         </div>
 
@@ -63,6 +63,7 @@ python3 -m http.server 8080</pre>
               <p class="eyebrow" id="device-class"></p>
               <h2 id="device-title">Device</h2>
               <p class="mono" id="device-id"></p>
+              <ul id="device-highlights" class="highlights" hidden></ul>
             </div>
             <div class="tick-bar">
               <label class="field compact">
