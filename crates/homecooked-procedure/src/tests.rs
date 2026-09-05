@@ -4,8 +4,8 @@ use homecooked_schema::{typical_capability, ApplianceClassId, ErrorCode};
 use homecooked_sim::Simulator;
 
 use crate::{
-    run, DeviceBindings, FailReason, Procedure, RunStatus, StepAction, KETTLE_HEAT_80_JSON,
-    REHEAT_DOMINOS_MICROWAVE_JSON, WASH_THEN_DRY_JSON,
+    run, DeviceBindings, FailReason, Procedure, RunStatus, StepAction, DISHWASHER_DHW_PREHEAT_JSON,
+    KETTLE_HEAT_80_JSON, REHEAT_DOMINOS_MICROWAVE_JSON, WASH_THEN_DRY_JSON,
 };
 
 fn kettle_bindings(sim: &mut Simulator) -> DeviceBindings {
@@ -43,6 +43,7 @@ fn bundled_example_constants_parse() {
             "kettle_heat_80",
             "reheat_dominos_microwave",
             "wash_then_dry",
+            "dishwasher_dhw_preheat",
         ]
     );
 }
@@ -419,4 +420,57 @@ fn wash_then_dry_completes_against_sim() {
         .unwrap(),
         homecooked_schema::Value::Enum("complete".into())
     );
+}
+
+#[test]
+fn parse_dishwasher_dhw_preheat_fixture() {
+    let doc = Procedure::load_json(DISHWASHER_DHW_PREHEAT_JSON).unwrap();
+    assert_eq!(doc.id, "dishwasher_dhw_preheat");
+    assert_eq!(doc.devices.len(), 1);
+    assert_eq!(doc.devices[0].role, "dishwasher");
+    assert_eq!(doc.steps.len(), 4);
+    assert_eq!(doc.steps[0].id, "program_eco");
+    assert_eq!(doc.steps[1].id, "wash_temp_preheat");
+    assert_eq!(doc.steps[2].action, StepAction::Assert);
+    assert_eq!(doc.steps[3].action, StepAction::Assert);
+}
+
+#[test]
+fn dishwasher_dhw_preheat_validates_against_typical_caps() {
+    let doc = Procedure::load_json(DISHWASHER_DHW_PREHEAT_JSON).unwrap();
+    let dw = typical_capability(ApplianceClassId::Dishwasher).unwrap();
+    let mut caps = HashMap::new();
+    caps.insert("dishwasher".to_string(), &dw);
+    doc.validate_with_capabilities(Some(&caps)).unwrap();
+}
+
+#[test]
+fn dishwasher_dhw_preheat_completes_against_sim() {
+    let doc = Procedure::load_json(DISHWASHER_DHW_PREHEAT_JSON).unwrap();
+    let mut sim = Simulator::new();
+    let id = sim.spawn(ApplianceClassId::Dishwasher).unwrap();
+    let bindings = DeviceBindings::new().bind("dishwasher", id.as_str());
+    let result = run(&doc, &mut sim, &bindings);
+    assert!(
+        result.is_completed(),
+        "expected completed, got {:?}",
+        result.status
+    );
+    assert_eq!(result.outcomes.len(), 4);
+    assert!(result.outcomes.iter().all(|o| o.ok));
+
+    let program = sim
+        .read_value(
+            &homecooked_core::DeviceId::new(id.as_str()),
+            "trait.program.program",
+        )
+        .unwrap();
+    assert_eq!(program, homecooked_schema::Value::Enum("eco".into()));
+    let wash_temp = sim
+        .read_value(
+            &homecooked_core::DeviceId::new(id.as_str()),
+            "class.dishwasher.wash_temp_c",
+        )
+        .unwrap();
+    assert_eq!(wash_temp, homecooked_schema::Value::F32(45.0));
 }

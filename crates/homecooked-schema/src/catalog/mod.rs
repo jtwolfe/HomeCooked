@@ -160,7 +160,7 @@ pub fn typical_capability(class_id: ApplianceClassId) -> Option<CapabilityModel>
     }
 
     for p in table.class_points {
-        if !p.required {
+        if !p.required && !extra_typical_class_point(table, p) {
             continue;
         }
         let mut cap =
@@ -180,6 +180,11 @@ fn extra_typical_trait_point(table: &ClassTable, trait_id: TraitId, point: &Cata
     trait_id == TraitId::Temperature
         && point.id == "setpoint_c"
         && table.typical_setpoint_c.is_some()
+}
+
+/// Optional class points that the typical model still advertises for demos.
+fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
+    table.class_id == ApplianceClassId::Dishwasher && point.id == "wash_temp_c"
 }
 
 fn specialize_trait_point(

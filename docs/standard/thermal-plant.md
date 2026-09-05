@@ -181,6 +181,32 @@ ordinary HomeCooked reads/writes on vendor or experimental points.
   points into HomeCooked reservoir objects while whitegoods stay on richer
   appliance semantics.
 
+### 8.1 Dual-path demo (v0.1 executable)
+
+Procedures cannot call thermal APIs yet. The runnable dual-path demo therefore
+orchestrates **outside** the procedure JSON:
+
+1. **Thermal path** — `ThermalPlant::fridge_condenser_dhw_demo()`, negotiate
+   fridge condenser → water_heater preheat, `step(3600)` → DHW rises
+   35.0 → 36.2 °C (`homecooked-thermal`, wasm `create_thermal_demo` /
+   `thermal_demo_transfer`).
+2. **Procedure path** — `dishwasher_dhw_preheat` writes `trait.program.program`
+   = `eco` and `class.dishwasher.wash_temp_c` = 45 reflecting warm inlet /
+   lower electrical boost (`homecooked-procedure`).
+
+Orchestrators:
+
+| Surface | Entry |
+|---------|--------|
+| Conformance | `thermal_then_dishwasher_preheat` in `homecooked-conformance` |
+| WASM | `run_thermal_then_dishwasher_preheat(dt_s)` |
+| Web sim | Thermal panel (path 1) + procedure picker `dishwasher_dhw_preheat` (path 2) |
+
+```bash
+cargo test -p homecooked-conformance thermal_then_dishwasher
+cargo test -p homecooked-wasm run_thermal_then_dishwasher
+```
+
 ---
 
 ## 9. Document history
@@ -189,3 +215,4 @@ ordinary HomeCooked reads/writes on vendor or experimental points.
 |---------|--------|
 | 0.1.0 | Initial thermal / hydraulic coupling sketch |
 | 0.1.0+ | First executable plant slice in `homecooked-thermal` (types, registry, offer/accept, tick). Sketch text unchanged; types remain experimental / not catalog ids. |
+| 0.1.0+ | Dual-path demo: thermal fridge→DHW then `dishwasher_dhw_preheat` procedure (conformance + wasm). Procedures still cannot call thermal APIs directly. |

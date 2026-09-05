@@ -141,6 +141,13 @@ pub fn thermal_demo_transfer(dt_s: f32) -> Result<String, JsError> {
     with_api_mut(|api| api.thermal_demo_transfer(dt_s)).map_err(js_err)
 }
 
+/// Dual-path: fridge→DHW transfer then dishwasher_dhw_preheat procedure.
+/// Returns ThermalThenDishwasherOut JSON.
+#[wasm_bindgen]
+pub fn run_thermal_then_dishwasher_preheat(dt_s: f32) -> Result<String, JsError> {
+    with_api_mut(|api| api.run_thermal_then_dishwasher_preheat(dt_s)).map_err(js_err)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -164,6 +171,7 @@ mod tests {
         assert_eq!(from_fn, from_api);
         assert!(from_fn.contains("\"kettle_heat_80\""));
         assert!(from_fn.contains("\"reheat_dominos_microwave\""));
+        assert!(from_fn.contains("\"dishwasher_dhw_preheat\""));
     }
 
     #[test]
@@ -174,5 +182,14 @@ mod tests {
         let tick = thermal_demo_transfer(3_600.0).unwrap();
         assert!(tick.contains("\"power_w\":120") || tick.contains("\"power_w\": 120"));
         assert!(tick.contains("36.2") || tick.contains("36.200"));
+    }
+
+    #[test]
+    fn bindgen_thermal_then_dishwasher_preheat() {
+        let raw = run_thermal_then_dishwasher_preheat(3_600.0).unwrap();
+        assert!(raw.contains("thermal_then_dishwasher_preheat"));
+        assert!(raw.contains("36.2") || raw.contains("36.200"));
+        assert!(raw.contains("\"completed\"") || raw.contains("completed"));
+        assert!(raw.contains("dishwasher"));
     }
 }

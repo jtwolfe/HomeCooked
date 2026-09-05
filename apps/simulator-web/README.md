@@ -100,6 +100,17 @@ The **Thermal plant** panel loads the fridge condenser → DHW demo from
 The panel lists reservoirs (temps), heat ports, and the last transfer
 results / reply.
 
+### Dual-path: thermal then dishwasher preheat
+
+Procedures cannot call thermal APIs yet. Demo both legs:
+
+1. Use this thermal panel (or wasm `run_thermal_then_dishwasher_preheat(3600)`).
+2. In the procedure panel, load **Dishwasher with DHW preheat available**
+   (`dishwasher_dhw_preheat`) and Run — writes `eco` + `wash_temp_c` = 45.
+
+Automated coverage: `cargo test -p homecooked-wasm run_thermal_then_dishwasher`
+and conformance scenario `thermal_then_dishwasher_preheat`.
+
 ## Manual smoke (after wasm-pack)
 
 With the page served as above, spawn at least:

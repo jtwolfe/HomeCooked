@@ -16,8 +16,13 @@ A procedure is an ordered list of steps. Each step is one of `read`,
 `lte`) may be AND-combined. Multi-device roles may appear in the document;
 the runner binds them through a role → device-id map.
 
-Worked example (microwave-only Domino’s reheat sketch):
+Worked example (microwave-only Domino's reheat sketch):
 [`examples/reheat_dominos_microwave.json`](examples/reheat_dominos_microwave.json).
+
+Dishwasher companion to the fridge→DHW thermal demo (procedure leg only —
+thermal must run out-of-band first):
+[`examples/dishwasher_dhw_preheat.json`](examples/dishwasher_dhw_preheat.json).
+See [`docs/standard/thermal-plant.md`](../../docs/standard/thermal-plant.md) §8.1.
 
 ## Runner
 
