@@ -10,7 +10,7 @@ use homecooked_procedure::{
 };
 use homecooked_schema::{
     catalog_group, AccessMode, ApplianceClassId, DeviceIdentity, ErrorCode, Unit, Value,
-    ValueRange, ValueType, TIER_A_CLASS_IDS,
+    ValueRange, ValueType, STATIC_CLASS_IDS,
 };
 use homecooked_sim::Simulator;
 use homecooked_thermal::{
@@ -271,10 +271,11 @@ impl WasmApi {
 
     pub fn list_appliance_classes() -> String {
         // Catalog Index order so the UI can emit one `<optgroup>` per group
-        // without duplicating group membership in JS.
+        // without duplicating group membership in JS. Lists every statically
+        // tabled class (Tier-A ∪ Tier-B = full catalog).
         let classes: Vec<ClassInfo> = ApplianceClassId::ALL
             .iter()
-            .filter(|id| TIER_A_CLASS_IDS.contains(id))
+            .filter(|id| STATIC_CLASS_IDS.contains(id))
             .map(|id| ClassInfo {
                 id: id.as_str().to_string(),
                 label: class_label(*id),
@@ -925,6 +926,7 @@ fn json_f64(v: &serde_json::Value) -> Option<f64> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use homecooked_schema::TIER_A_CLASS_IDS;
 
     fn f32_of(state: &serde_json::Value, point: &str) -> f32 {
         state[point]["value"].as_f64().unwrap() as f32
@@ -934,14 +936,18 @@ mod tests {
     fn list_appliance_classes_covers_tier_a() {
         let classes: Vec<ClassInfo> =
             serde_json::from_str(&WasmApi::list_appliance_classes()).unwrap();
-        assert_eq!(classes.len(), 25);
-        assert_eq!(classes.len(), TIER_A_CLASS_IDS.len());
+        assert_eq!(classes.len(), 56);
+        assert_eq!(classes.len(), STATIC_CLASS_IDS.len());
+        assert!(classes.len() >= TIER_A_CLASS_IDS.len());
 
         let listed: std::collections::BTreeSet<&str> =
             classes.iter().map(|c| c.id.as_str()).collect();
         let expected: std::collections::BTreeSet<&str> =
-            TIER_A_CLASS_IDS.iter().map(|id| id.as_str()).collect();
+            STATIC_CLASS_IDS.iter().map(|id| id.as_str()).collect();
         assert_eq!(listed, expected);
+        for id in TIER_A_CLASS_IDS {
+            assert!(listed.contains(id.as_str()));
+        }
 
         assert!(classes
             .iter()
@@ -975,7 +981,7 @@ mod tests {
     #[test]
     fn create_describe_get_state_for_every_tier_a_class() {
         let mut api = WasmApi::new();
-        for class in TIER_A_CLASS_IDS {
+        for class in STATIC_CLASS_IDS {
             let id = api
                 .create_device(class.as_str())
                 .unwrap_or_else(|e| panic!("create {} failed: {e}", class.as_str()));
@@ -1050,10 +1056,9 @@ mod tests {
             api.create_device("not_a_class").unwrap_err().code,
             ErrorCode::InvalidRequest
         );
-        assert_eq!(
-            api.create_device("beverage_cooler").unwrap_err().code,
-            ErrorCode::InvalidRequest
-        );
+        // Every catalog id is tabled (Tier-A ∪ Tier-B); spawn succeeds.
+        let id = api.create_device("beverage_cooler").unwrap();
+        assert!(id.starts_with("sim-beverage_cooler-"));
         assert_eq!(
             api.describe("missing").unwrap_err().code,
             ErrorCode::UnknownDevice

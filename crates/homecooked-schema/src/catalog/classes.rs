@@ -1,4 +1,4 @@
-//! Static tables for encoded catalog classes (Tier-A batches).
+//! Static tables for encoded catalog classes (Tier-A + Tier-B).
 //!
 //! Point ids, types, units, ranges, and required flags are copied from
 //! `docs/catalog/variables-and-settings.md`. Do not invent core point ids.
@@ -1972,6 +1972,1407 @@ static MULTI_COOKER_POINTS: &[CatalogPoint] = &[
     ),
 ];
 
+// ---------------------------------------------------------------------------
+// Tier-B class tables (thinner: typical traits + catalog class points)
+// ---------------------------------------------------------------------------
+
+const BEVERAGE_COOLER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::DoorLid,
+    TraitId::Temperature,
+    TraitId::Lighting,
+    TraitId::Fault,
+    TraitId::Energy,
+];
+
+static BEVERAGE_COOLER_POINTS: &[CatalogPoint] = &[];
+
+const KEGERATOR_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::DoorLid,
+    TraitId::Temperature,
+    TraitId::Dispense,
+    TraitId::Lighting,
+    TraitId::Fault,
+    TraitId::Energy,
+];
+
+static KEGERATOR_POINTS: &[CatalogPoint] = &[
+    v(
+        "co2_kpa",
+        ValueType::F32,
+        Some(Unit::Kilopascal),
+        num(0.0, 400.0),
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "keg_percent",
+        ValueType::Percent,
+        Some(Unit::Percent),
+        num(0.0, 100.0),
+        AccessMode::RE,
+        false,
+    ),
+];
+
+const WARMING_DRAWER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Temperature,
+    TraitId::DoorLid,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Safety,
+];
+
+const WARMING_LEVEL: &[&str] = &["low", "medium", "high"];
+
+static WARMING_DRAWER_POINTS: &[CatalogPoint] = &[
+    s(
+        "level",
+        ValueType::Enum,
+        None,
+        en(WARMING_LEVEL),
+        AccessMode::RW,
+        false,
+    ),
+    s("moist", ValueType::Bool, None, None, AccessMode::RW, false),
+];
+
+const PIZZA_OVEN_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Temperature,
+    TraitId::Cycle,
+    TraitId::Heater,
+    TraitId::DoorLid,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Safety,
+];
+
+static PIZZA_OVEN_POINTS: &[CatalogPoint] = &[
+    v(
+        "stone_c",
+        ValueType::F32,
+        Some(Unit::Celsius),
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "dome_c",
+        ValueType::F32,
+        Some(Unit::Celsius),
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "top_bottom_balance",
+        ValueType::I16,
+        Some(Unit::Percent),
+        int(-100, 100),
+        AccessMode::RW,
+        false,
+    ),
+];
+
+const ELECTRIC_GRILL_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Temperature,
+    TraitId::Cycle,
+    TraitId::Heater,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Safety,
+];
+
+const GREASE_TRAY: &[&str] = &["ok", "missing", "full"];
+
+static ELECTRIC_GRILL_POINTS: &[CatalogPoint] = &[
+    v(
+        "plate_top_c",
+        ValueType::F32,
+        Some(Unit::Celsius),
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "plate_bottom_c",
+        ValueType::F32,
+        Some(Unit::Celsius),
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s("sear", ValueType::Bool, None, None, AccessMode::RW, false),
+    v(
+        "grease_tray",
+        ValueType::Enum,
+        None,
+        en(GREASE_TRAY),
+        AccessMode::RE,
+        false,
+    ),
+];
+
+const ELECTRIC_SMOKER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Temperature,
+    TraitId::Cycle,
+    TraitId::Heater,
+    TraitId::Humidity,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::TimeSchedule,
+    TraitId::Safety,
+];
+
+const WATER_PAN: &[&str] = &["ok", "empty", "missing", "na"];
+
+static ELECTRIC_SMOKER_POINTS: &[CatalogPoint] = &[
+    s(
+        "smoke_on",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    ),
+    v(
+        "fuel_percent",
+        ValueType::Percent,
+        Some(Unit::Percent),
+        num(0.0, 100.0),
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "water_pan",
+        ValueType::Enum,
+        None,
+        en(WATER_PAN),
+        AccessMode::RE,
+        false,
+    ),
+];
+
+const ESPRESSO_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Water,
+    TraitId::Temperature,
+    TraitId::Cycle,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Maintenance,
+    TraitId::Safety,
+];
+
+const WATER_SOURCE: &[&str] = &["tank", "plumbed"];
+
+static ESPRESSO_MACHINE_POINTS: &[CatalogPoint] = &[
+    s(
+        "brew_setpoint_c",
+        ValueType::F32,
+        Some(Unit::Celsius),
+        num(85.0, 100.0),
+        AccessMode::RW,
+        true,
+    ),
+    s(
+        "steam_setpoint_c",
+        ValueType::F32,
+        Some(Unit::Celsius),
+        num(110.0, 135.0),
+        AccessMode::RW,
+        false,
+    ),
+    s(
+        "preinfusion_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 15),
+        AccessMode::RW,
+        false,
+    ),
+    s(
+        "shot_ml",
+        ValueType::U16,
+        Some(Unit::Milliliter),
+        int(10, 100),
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "shot_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 90),
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "brew_pressure_bar",
+        ValueType::F32,
+        Some(Unit::Bar),
+        num(0.0, 16.0),
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "pump_on",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "water_source",
+        ValueType::Enum,
+        None,
+        en(WATER_SOURCE),
+        AccessMode::RW,
+        false,
+    ),
+    s(
+        "remote_brew_enabled",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    cmd("start_shot", Some(CatalogRange::CommandVoid), false),
+    cmd("stop_shot", Some(CatalogRange::CommandVoid), false),
+];
+
+const DRIP_COFFEE_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Water,
+    TraitId::Temperature,
+    TraitId::Cycle,
+    TraitId::TimeSchedule,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Maintenance,
+    TraitId::Audio,
+];
+
+const DRIP_STRENGTH: &[&str] = &["mild", "normal", "strong"];
+
+static DRIP_COFFEE_MAKER_POINTS: &[CatalogPoint] = &[
+    s(
+        "cups",
+        ValueType::U8,
+        None,
+        int(1, 12),
+        AccessMode::RW,
+        false,
+    ),
+    s(
+        "strength",
+        ValueType::Enum,
+        None,
+        en(DRIP_STRENGTH),
+        AccessMode::RW,
+        false,
+    ),
+    s(
+        "keep_warm_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 7200),
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "carafe_present",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s("bloom", ValueType::Bool, None, None, AccessMode::RW, false),
+];
+
+const COFFEE_GRINDER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Motor,
+    TraitId::Cycle,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::ChildLock,
+];
+
+static COFFEE_GRINDER_POINTS: &[CatalogPoint] = &[
+    s(
+        "grind_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(1, 60),
+        AccessMode::RW,
+        false,
+    ),
+    s(
+        "dose_g",
+        ValueType::F32,
+        Some(Unit::Gram),
+        num(5.0, 30.0),
+        AccessMode::RW,
+        false,
+    ),
+    s(
+        "grind_level",
+        ValueType::U8,
+        None,
+        int(1, 40),
+        AccessMode::RW,
+        true,
+    ),
+    v(
+        "hopper_present",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+];
+
+const WATER_DISPENSER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Temperature,
+    TraitId::Dispense,
+    TraitId::Water,
+    TraitId::ChildLock,
+    TraitId::Filter,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Safety,
+];
+
+static WATER_DISPENSER_POINTS: &[CatalogPoint] = &[
+    s(
+        "hot_setpoint_c",
+        ValueType::F32,
+        Some(Unit::Celsius),
+        num(60.0, 100.0),
+        AccessMode::RW,
+        false,
+    ),
+    s(
+        "cold_setpoint_c",
+        ValueType::F32,
+        Some(Unit::Celsius),
+        num(4.0, 15.0),
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "bottle_empty",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+];
+
+const TOASTER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Cycle,
+    TraitId::Heater,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Audio,
+    TraitId::Safety,
+];
+
+const CARRIAGE: &[&str] = &["up", "down"];
+
+static TOASTER_POINTS: &[CatalogPoint] = &[
+    s(
+        "shade",
+        ValueType::U8,
+        None,
+        int(1, 7),
+        AccessMode::RW,
+        true,
+    ),
+    s("bagel", ValueType::Bool, None, None, AccessMode::RW, false),
+    s("frozen", ValueType::Bool, None, None, AccessMode::RW, false),
+    s(
+        "single_side",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "carriage",
+        ValueType::Enum,
+        None,
+        en(CARRIAGE),
+        AccessMode::RE,
+        false,
+    ),
+];
+
+const BLENDER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Motor,
+    TraitId::Cycle,
+    TraitId::Program,
+    TraitId::DoorLid,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Safety,
+    TraitId::Audio,
+];
+
+const BLENDER_PROGRAMS: &[&str] = &["smoothie", "ice_crush", "soup", "custom"];
+const FORM_FACTOR_BLENDER: &[&str] = &["jar", "immersion"];
+
+static BLENDER_POINTS: &[CatalogPoint] = &[
+    v(
+        "form_factor",
+        ValueType::Enum,
+        None,
+        en(FORM_FACTOR_BLENDER),
+        AccessMode::R,
+        false,
+    ),
+    s(
+        "speed_level",
+        ValueType::U8,
+        None,
+        int(0, 10),
+        AccessMode::RW,
+        true,
+    ),
+    cmd("pulse", Some(CatalogRange::CommandVoid), false),
+    v(
+        "jar_present",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "lid_locked",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v("heated", ValueType::Bool, None, None, AccessMode::R, false),
+];
+
+const FOOD_PROCESSOR_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Motor,
+    TraitId::Cycle,
+    TraitId::DoorLid,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Safety,
+];
+
+const ATTACHMENT: &[&str] = &["unknown", "blade", "dough", "disc"];
+
+static FOOD_PROCESSOR_POINTS: &[CatalogPoint] = &[
+    s(
+        "speed_level",
+        ValueType::U8,
+        None,
+        int(0, 10),
+        AccessMode::RW,
+        true,
+    ),
+    cmd("pulse", Some(CatalogRange::CommandVoid), false),
+    v(
+        "bowl_present",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "lid_locked",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "attachment",
+        ValueType::Enum,
+        None,
+        en(ATTACHMENT),
+        AccessMode::R,
+        false,
+    ),
+];
+
+const STAND_MIXER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Motor,
+    TraitId::Cycle,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Safety,
+    TraitId::Lighting,
+];
+
+static STAND_MIXER_POINTS: &[CatalogPoint] = &[
+    s(
+        "speed_level",
+        ValueType::U8,
+        None,
+        int(0, 10),
+        AccessMode::RW,
+        true,
+    ),
+    v(
+        "bowl_present",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "head_down",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "mass_g",
+        ValueType::F32,
+        Some(Unit::Gram),
+        None,
+        AccessMode::RE,
+        false,
+    ),
+];
+
+const JUICER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Motor,
+    TraitId::Cycle,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Safety,
+];
+
+static JUICER_POINTS: &[CatalogPoint] = &[
+    s(
+        "speed_level",
+        ValueType::U8,
+        None,
+        int(0, 10),
+        AccessMode::RW,
+        false,
+    ),
+    cmd("reverse", Some(CatalogRange::CommandVoid), false),
+    v(
+        "pulp_full",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "jug_present",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+];
+
+const RICE_COOKER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Temperature,
+    TraitId::Cycle,
+    TraitId::Program,
+    TraitId::Heater,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::TimeSchedule,
+    TraitId::Audio,
+];
+
+const RICE_PROGRAMS: &[&str] = &[
+    "white",
+    "brown",
+    "sushi",
+    "porridge",
+    "steam",
+    "keep_warm",
+    "quick",
+    "custom",
+];
+const RICE_TEXTURE: &[&str] = &["soft", "normal", "firm"];
+
+static RICE_COOKER_POINTS: &[CatalogPoint] = &[
+    s(
+        "texture",
+        ValueType::Enum,
+        None,
+        en(RICE_TEXTURE),
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "bowl_present",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "keep_warm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    ),
+];
+
+const SLOW_COOKER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Temperature,
+    TraitId::Cycle,
+    TraitId::Heater,
+    TraitId::TimeSchedule,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Audio,
+];
+
+const SLOW_HEAT_LEVEL: &[&str] = &["low", "high", "warm"];
+
+static SLOW_COOKER_POINTS: &[CatalogPoint] = &[
+    s(
+        "heat_level",
+        ValueType::Enum,
+        None,
+        en(SLOW_HEAT_LEVEL),
+        AccessMode::RW,
+        true,
+    ),
+    s(
+        "cook_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 43200),
+        AccessMode::RW,
+        true,
+    ),
+];
+
+const BREAD_MAKER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Temperature,
+    TraitId::Cycle,
+    TraitId::Program,
+    TraitId::Heater,
+    TraitId::Motor,
+    TraitId::TimeSchedule,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Audio,
+];
+
+const BREAD_PROGRAMS: &[&str] = &[
+    "basic",
+    "whole_wheat",
+    "french",
+    "quick",
+    "dough",
+    "jam",
+    "bake_only",
+    "custom",
+];
+const BREAD_PHASES: &[&str] = &["knead", "rise", "punch_down", "bake", "keep_warm"];
+const CRUST: &[&str] = &["light", "medium", "dark"];
+const LOAF_SIZE: &[&str] = &["small", "medium", "large"];
+
+static BREAD_MAKER_POINTS: &[CatalogPoint] = &[
+    s(
+        "crust",
+        ValueType::Enum,
+        None,
+        en(CRUST),
+        AccessMode::RW,
+        false,
+    ),
+    s(
+        "loaf_size",
+        ValueType::Enum,
+        None,
+        en(LOAF_SIZE),
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "pan_present",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+];
+
+const DEHYDRATOR_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Temperature,
+    TraitId::Cycle,
+    TraitId::Heater,
+    TraitId::Fan,
+    TraitId::Humidity,
+    TraitId::TimeSchedule,
+    TraitId::Fault,
+    TraitId::Energy,
+];
+
+static DEHYDRATOR_POINTS: &[CatalogPoint] = &[s(
+    "cook_s",
+    ValueType::DurationS,
+    Some(Unit::Second),
+    int(0, 172800),
+    AccessMode::RW,
+    true,
+)];
+
+const VACUUM_SEALER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Cycle,
+    TraitId::Motor,
+    TraitId::Heater,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Safety,
+];
+
+const VACUUM_MODE: &[&str] = &["vacuum_seal", "seal_only", "pulse", "chamber"];
+const VACUUM_PHASES: &[&str] = &["pump", "seal", "vent", "complete"];
+const VACUUM_FORM: &[&str] = &["bar", "chamber"];
+
+static VACUUM_SEALER_POINTS: &[CatalogPoint] = &[
+    s(
+        "mode",
+        ValueType::Enum,
+        None,
+        en(VACUUM_MODE),
+        AccessMode::RW,
+        true,
+    ),
+    s("moist", ValueType::Bool, None, None, AccessMode::RW, false),
+    v(
+        "vacuum_kpa",
+        ValueType::F32,
+        Some(Unit::Kilopascal),
+        num(0.0, 101.0),
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "bag_detect",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "form_factor",
+        ValueType::Enum,
+        None,
+        en(VACUUM_FORM),
+        AccessMode::R,
+        false,
+    ),
+];
+
+const ICE_CREAM_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Temperature,
+    TraitId::Cycle,
+    TraitId::Program,
+    TraitId::Motor,
+    TraitId::Fault,
+    TraitId::Energy,
+];
+
+const ICE_CREAM_PROGRAMS: &[&str] = &["ice_cream", "gelato", "sorbet", "keep_cool"];
+
+static ICE_CREAM_MAKER_POINTS: &[CatalogPoint] = &[v(
+    "doneness",
+    ValueType::Percent,
+    Some(Unit::Percent),
+    num(0.0, 100.0),
+    AccessMode::RE,
+    false,
+)];
+
+const YOGURT_MAKER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Temperature,
+    TraitId::Cycle,
+    TraitId::Program,
+    TraitId::Heater,
+    TraitId::TimeSchedule,
+    TraitId::Fault,
+    TraitId::Energy,
+];
+
+const YOGURT_PROGRAMS: &[&str] = &["yogurt", "greek", "proof"];
+
+static YOGURT_MAKER_POINTS: &[CatalogPoint] = &[s(
+    "incubate_s",
+    ValueType::DurationS,
+    Some(Unit::Second),
+    int(3600, 86400),
+    AccessMode::RW,
+    true,
+)];
+
+const WAFFLE_MAKER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Temperature,
+    TraitId::Cycle,
+    TraitId::Heater,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Audio,
+];
+
+static WAFFLE_MAKER_POINTS: &[CatalogPoint] = &[
+    s(
+        "shade",
+        ValueType::U8,
+        None,
+        int(1, 7),
+        AccessMode::RW,
+        false,
+    ),
+    v("ready", ValueType::Bool, None, None, AccessMode::RE, false),
+];
+
+const PASTA_MAKER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Motor,
+    TraitId::Cycle,
+    TraitId::Program,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Safety,
+];
+
+const PASTA_PROGRAMS: &[&str] = &["mix", "extrude", "mix_extrude"];
+const PASTA_DIE: &[&str] = &["spaghetti", "fettuccine", "penne", "other"];
+
+static PASTA_MAKER_POINTS: &[CatalogPoint] = &[
+    s(
+        "die",
+        ValueType::Enum,
+        None,
+        en(PASTA_DIE),
+        AccessMode::RW,
+        false,
+    ),
+    v("jam", ValueType::Bool, None, None, AccessMode::RE, false),
+];
+
+const STEAM_COOKER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Temperature,
+    TraitId::Cycle,
+    TraitId::Heater,
+    TraitId::Water,
+    TraitId::TimeSchedule,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Safety,
+];
+
+static STEAM_COOKER_POINTS: &[CatalogPoint] = &[
+    s(
+        "cook_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(1, 7200),
+        AccessMode::RW,
+        true,
+    ),
+    v(
+        "water_empty",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        true,
+    ),
+];
+
+const GARBAGE_DISPOSAL_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Motor,
+    TraitId::Cycle,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Safety,
+    TraitId::Audio,
+];
+
+static GARBAGE_DISPOSAL_POINTS: &[CatalogPoint] = &[
+    s(
+        "run_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(1, 60),
+        AccessMode::RW,
+        false,
+    ),
+    v("jam", ValueType::Bool, None, None, AccessMode::RE, false),
+    v(
+        "reset_needed",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    cmd("reverse", Some(CatalogRange::CommandVoid), false),
+    cmd(
+        "run",
+        Some(CatalogRange::CommandTyped {
+            value_type: ValueType::DurationS,
+            min: Some(1.0),
+            max: Some(60.0),
+            optional: true,
+        }),
+        true,
+    ),
+];
+
+const TRASH_COMPACTOR_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Motor,
+    TraitId::Cycle,
+    TraitId::DoorLid,
+    TraitId::ChildLock,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Safety,
+];
+
+const RAM_STATE: &[&str] = &["up", "down", "moving", "jam"];
+
+static TRASH_COMPACTOR_POINTS: &[CatalogPoint] = &[
+    v(
+        "ram_state",
+        ValueType::Enum,
+        None,
+        en(RAM_STATE),
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "bin_full",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+];
+
+const BOILER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Temperature,
+    TraitId::Heater,
+    TraitId::Water,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::TimeSchedule,
+    TraitId::Safety,
+    TraitId::Maintenance,
+];
+
+static BOILER_POINTS: &[CatalogPoint] = &[
+    s(
+        "ch_enable",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        true,
+    ),
+    s(
+        "dhw_enable",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    ),
+    s(
+        "ch_setpoint_c",
+        ValueType::F32,
+        Some(Unit::Celsius),
+        num(30.0, 90.0),
+        AccessMode::RW,
+        true,
+    ),
+    s(
+        "dhw_setpoint_c",
+        ValueType::F32,
+        Some(Unit::Celsius),
+        num(35.0, 65.0),
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "flow_c",
+        ValueType::F32,
+        Some(Unit::Celsius),
+        None,
+        AccessMode::RE,
+        true,
+    ),
+    v(
+        "return_c",
+        ValueType::F32,
+        Some(Unit::Celsius),
+        None,
+        AccessMode::R,
+        false,
+    ),
+    v(
+        "pressure_bar",
+        ValueType::F32,
+        Some(Unit::Bar),
+        num(0.0, 4.0),
+        AccessMode::RE,
+        true,
+    ),
+    v(
+        "modulation_percent",
+        ValueType::Percent,
+        Some(Unit::Percent),
+        num(0.0, 100.0),
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "burner_on",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "pump_on",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "outdoor_c",
+        ValueType::F32,
+        Some(Unit::Celsius),
+        None,
+        AccessMode::R,
+        false,
+    ),
+    s(
+        "summer_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "flame_out",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "low_pressure",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+];
+
+const WATER_SOFTENER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Water,
+    TraitId::Cycle,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Maintenance,
+    TraitId::TimeSchedule,
+];
+
+const CAPACITY_UNIT: &[&str] = &["grain", "m3"];
+const SOFTENER_SALT_LEVEL: &[&str] = &["empty", "low", "ok", "unknown"];
+
+static WATER_SOFTENER_POINTS: &[CatalogPoint] = &[
+    v(
+        "capacity_remaining",
+        ValueType::F32,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "capacity_unit",
+        ValueType::Enum,
+        None,
+        en(CAPACITY_UNIT),
+        AccessMode::R,
+        false,
+    ),
+    v(
+        "salt_level",
+        ValueType::Enum,
+        None,
+        en(SOFTENER_SALT_LEVEL),
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "bypass",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    ),
+    cmd("regen_now", Some(CatalogRange::CommandVoid), false),
+    v(
+        "treated_l",
+        ValueType::F32,
+        Some(Unit::Liter),
+        num(0.0, 1_000_000.0),
+        AccessMode::R,
+        false,
+    ),
+];
+
+const WATER_FILTER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Water,
+    TraitId::Filter,
+    TraitId::Fault,
+    TraitId::Maintenance,
+    TraitId::Dispense,
+];
+
+static WATER_FILTER_POINTS: &[CatalogPoint] = &[
+    v(
+        "tds_in_ppm",
+        ValueType::U16,
+        Some(Unit::Ppm),
+        int(0, 2000),
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "tds_out_ppm",
+        ValueType::U16,
+        Some(Unit::Ppm),
+        int(0, 1000),
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "tank_full",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    cmd("flush", Some(CatalogRange::CommandVoid), false),
+];
+
+const HUMIDIFIER_TRAITS: &[TraitId] = &[
+    TraitId::Identity,
+    TraitId::Power,
+    TraitId::Connectivity,
+    TraitId::Humidity,
+    TraitId::Water,
+    TraitId::Fault,
+    TraitId::Energy,
+    TraitId::Maintenance,
+    TraitId::Safety,
+];
+
+const MIST_TYPE: &[&str] = &["cool", "warm", "steam", "evaporative"];
+const WICK_STATE: &[&str] = &["ok", "replace", "na"];
+
+static HUMIDIFIER_POINTS: &[CatalogPoint] = &[
+    s(
+        "output_level",
+        ValueType::U8,
+        None,
+        int(1, 10),
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "mist_type",
+        ValueType::Enum,
+        None,
+        en(MIST_TYPE),
+        AccessMode::R,
+        false,
+    ),
+    v(
+        "water_empty",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        true,
+    ),
+    v(
+        "wick_state",
+        ValueType::Enum,
+        None,
+        en(WICK_STATE),
+        AccessMode::RE,
+        false,
+    ),
+];
+
+/// Roadmap §4 Tier-B class set (31 ids). Thinner static tables; together with
+/// Tier-A they cover the full appliances catalog index.
+pub const TIER_B_CLASS_IDS: &[ApplianceClassId] = &[
+    ApplianceClassId::BeverageCooler,
+    ApplianceClassId::Kegerator,
+    ApplianceClassId::WarmingDrawer,
+    ApplianceClassId::PizzaOven,
+    ApplianceClassId::ElectricGrill,
+    ApplianceClassId::ElectricSmoker,
+    ApplianceClassId::EspressoMachine,
+    ApplianceClassId::DripCoffeeMaker,
+    ApplianceClassId::CoffeeGrinder,
+    ApplianceClassId::WaterDispenser,
+    ApplianceClassId::Toaster,
+    ApplianceClassId::Blender,
+    ApplianceClassId::FoodProcessor,
+    ApplianceClassId::StandMixer,
+    ApplianceClassId::Juicer,
+    ApplianceClassId::RiceCooker,
+    ApplianceClassId::SlowCooker,
+    ApplianceClassId::BreadMaker,
+    ApplianceClassId::Dehydrator,
+    ApplianceClassId::VacuumSealer,
+    ApplianceClassId::IceCreamMaker,
+    ApplianceClassId::YogurtMaker,
+    ApplianceClassId::WaffleMaker,
+    ApplianceClassId::PastaMaker,
+    ApplianceClassId::SteamCooker,
+    ApplianceClassId::GarbageDisposal,
+    ApplianceClassId::TrashCompactor,
+    ApplianceClassId::Boiler,
+    ApplianceClassId::WaterSoftener,
+    ApplianceClassId::WaterFilter,
+    ApplianceClassId::Humidifier,
+];
+
 /// Roadmap §4 Tier-A class set (25 ids). All have static tables.
 pub const TIER_A_CLASS_IDS: &[ApplianceClassId] = &[
     ApplianceClassId::Washer,
@@ -2001,8 +3402,8 @@ pub const TIER_A_CLASS_IDS: &[ApplianceClassId] = &[
     ApplianceClassId::WineCooler,
 ];
 
-/// Classes with a static `ClassTable` (full Tier-A set).
-pub const STATIC_CLASS_IDS: &[ApplianceClassId] = TIER_A_CLASS_IDS;
+/// Classes with a static `ClassTable` (Tier-A ∪ Tier-B = full catalog index).
+pub const STATIC_CLASS_IDS: &[ApplianceClassId] = ApplianceClassId::ALL;
 
 pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
     ClassTable {
@@ -2252,6 +3653,316 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         class_points: MULTI_COOKER_POINTS,
         program_tokens: MULTI_COOKER_PROGRAMS,
         cycle_phase_tokens: MULTI_COOKER_PHASES,
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::BeverageCooler,
+        typical_traits: BEVERAGE_COOLER_TRAITS,
+        optional_traits: &[],
+        class_points: BEVERAGE_COOLER_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: Some((1.0, 10.0)),
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::Kegerator,
+        typical_traits: KEGERATOR_TRAITS,
+        optional_traits: &[],
+        class_points: KEGERATOR_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: Some((1.0, 10.0)),
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::WarmingDrawer,
+        typical_traits: WARMING_DRAWER_TRAITS,
+        optional_traits: &[],
+        class_points: WARMING_DRAWER_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: Some((40.0, 90.0)),
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::PizzaOven,
+        typical_traits: PIZZA_OVEN_TRAITS,
+        optional_traits: &[],
+        class_points: PIZZA_OVEN_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: Some((200.0, 450.0)),
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::ElectricGrill,
+        typical_traits: ELECTRIC_GRILL_TRAITS,
+        optional_traits: &[],
+        class_points: ELECTRIC_GRILL_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: Some((100.0, 250.0)),
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::ElectricSmoker,
+        typical_traits: ELECTRIC_SMOKER_TRAITS,
+        optional_traits: &[],
+        class_points: ELECTRIC_SMOKER_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: Some((50.0, 150.0)),
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::EspressoMachine,
+        typical_traits: ESPRESSO_TRAITS,
+        optional_traits: &[],
+        class_points: ESPRESSO_MACHINE_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::DripCoffeeMaker,
+        typical_traits: DRIP_COFFEE_TRAITS,
+        optional_traits: &[],
+        class_points: DRIP_COFFEE_MAKER_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::CoffeeGrinder,
+        typical_traits: COFFEE_GRINDER_TRAITS,
+        optional_traits: &[],
+        class_points: COFFEE_GRINDER_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::WaterDispenser,
+        typical_traits: WATER_DISPENSER_TRAITS,
+        optional_traits: &[],
+        class_points: WATER_DISPENSER_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::Toaster,
+        typical_traits: TOASTER_TRAITS,
+        optional_traits: &[],
+        class_points: TOASTER_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::Blender,
+        typical_traits: BLENDER_TRAITS,
+        optional_traits: &[],
+        class_points: BLENDER_POINTS,
+        program_tokens: BLENDER_PROGRAMS,
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::FoodProcessor,
+        typical_traits: FOOD_PROCESSOR_TRAITS,
+        optional_traits: &[],
+        class_points: FOOD_PROCESSOR_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::StandMixer,
+        typical_traits: STAND_MIXER_TRAITS,
+        optional_traits: &[],
+        class_points: STAND_MIXER_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::Juicer,
+        typical_traits: JUICER_TRAITS,
+        optional_traits: &[],
+        class_points: JUICER_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::RiceCooker,
+        typical_traits: RICE_COOKER_TRAITS,
+        optional_traits: &[],
+        class_points: RICE_COOKER_POINTS,
+        program_tokens: RICE_PROGRAMS,
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::SlowCooker,
+        typical_traits: SLOW_COOKER_TRAITS,
+        optional_traits: &[],
+        class_points: SLOW_COOKER_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::BreadMaker,
+        typical_traits: BREAD_MAKER_TRAITS,
+        optional_traits: &[],
+        class_points: BREAD_MAKER_POINTS,
+        program_tokens: BREAD_PROGRAMS,
+        cycle_phase_tokens: BREAD_PHASES,
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::Dehydrator,
+        typical_traits: DEHYDRATOR_TRAITS,
+        optional_traits: &[],
+        class_points: DEHYDRATOR_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: Some((30.0, 75.0)),
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::VacuumSealer,
+        typical_traits: VACUUM_SEALER_TRAITS,
+        optional_traits: &[],
+        class_points: VACUUM_SEALER_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: VACUUM_PHASES,
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::IceCreamMaker,
+        typical_traits: ICE_CREAM_TRAITS,
+        optional_traits: &[],
+        class_points: ICE_CREAM_MAKER_POINTS,
+        program_tokens: ICE_CREAM_PROGRAMS,
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::YogurtMaker,
+        typical_traits: YOGURT_MAKER_TRAITS,
+        optional_traits: &[],
+        class_points: YOGURT_MAKER_POINTS,
+        program_tokens: YOGURT_PROGRAMS,
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: Some((35.0, 50.0)),
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::WaffleMaker,
+        typical_traits: WAFFLE_MAKER_TRAITS,
+        optional_traits: &[],
+        class_points: WAFFLE_MAKER_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: Some((150.0, 220.0)),
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::PastaMaker,
+        typical_traits: PASTA_MAKER_TRAITS,
+        optional_traits: &[],
+        class_points: PASTA_MAKER_POINTS,
+        program_tokens: PASTA_PROGRAMS,
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::SteamCooker,
+        typical_traits: STEAM_COOKER_TRAITS,
+        optional_traits: &[],
+        class_points: STEAM_COOKER_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::GarbageDisposal,
+        typical_traits: GARBAGE_DISPOSAL_TRAITS,
+        optional_traits: &[],
+        class_points: GARBAGE_DISPOSAL_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::TrashCompactor,
+        typical_traits: TRASH_COMPACTOR_TRAITS,
+        optional_traits: &[],
+        class_points: TRASH_COMPACTOR_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::Boiler,
+        typical_traits: BOILER_TRAITS,
+        optional_traits: &[],
+        class_points: BOILER_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::WaterSoftener,
+        typical_traits: WATER_SOFTENER_TRAITS,
+        optional_traits: &[],
+        class_points: WATER_SOFTENER_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::WaterFilter,
+        typical_traits: WATER_FILTER_TRAITS,
+        optional_traits: &[],
+        class_points: WATER_FILTER_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
+        typical_setpoint_c: None,
+        typical_zones: &[],
+    },
+    ClassTable {
+        class_id: ApplianceClassId::Humidifier,
+        typical_traits: HUMIDIFIER_TRAITS,
+        optional_traits: &[],
+        class_points: HUMIDIFIER_POINTS,
+        program_tokens: &[],
+        cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: &[],
     },

@@ -38,7 +38,7 @@ pub fn start() {
     console_error_panic_hook::set_once();
 }
 
-/// JSON array of spawnable Tier-A classes:
+/// JSON array of spawnable statically tabled classes (Tier-A ∪ Tier-B):
 /// `[{"id":"kettle","label":"Kettle","group":"Beverage"}, ...]`.
 #[wasm_bindgen]
 pub fn list_appliance_classes() -> String {

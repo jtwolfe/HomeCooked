@@ -10,7 +10,7 @@ use crate::spec::CatalogPoint;
 use crate::types::{ValueRange, ValueType};
 use crate::version::{CATALOG_VERSION, DEFAULT_CLASS_VERSION, DEFAULT_TRAIT_VERSION};
 
-pub use classes::{STATIC_CLASS_IDS, TIER_A_CLASS_IDS};
+pub use classes::{STATIC_CLASS_IDS, TIER_A_CLASS_IDS, TIER_B_CLASS_IDS};
 pub use traits::trait_table;
 
 /// Catalog Index groups from `docs/catalog/appliances.md`, in table order.
@@ -67,7 +67,7 @@ impl TraitTable {
     }
 }
 
-/// Static table for a class with a full encoding in this crate (Tier-A batches).
+/// Static table for a class with an encoding in this crate (Tier-A / Tier-B).
 #[derive(Debug, Clone, Copy)]
 pub struct ClassTable {
     pub class_id: ApplianceClassId,
@@ -342,11 +342,33 @@ mod tests {
     }
 
     #[test]
+    fn tier_b_ids_partition_catalog() {
+        assert_eq!(TIER_B_CLASS_IDS.len(), 31);
+        assert_eq!(
+            TIER_A_CLASS_IDS.len() + TIER_B_CLASS_IDS.len(),
+            ApplianceClassId::ALL.len()
+        );
+        let a: std::collections::BTreeSet<_> = TIER_A_CLASS_IDS.iter().copied().collect();
+        let b: std::collections::BTreeSet<_> = TIER_B_CLASS_IDS.iter().copied().collect();
+        assert!(a.is_disjoint(&b), "Tier-A and Tier-B overlap");
+        let all: std::collections::BTreeSet<_> = ApplianceClassId::ALL.iter().copied().collect();
+        assert_eq!(&a | &b, all);
+        let mut seen = std::collections::BTreeSet::new();
+        for id in TIER_B_CLASS_IDS {
+            assert!(seen.insert(*id), "duplicate Tier-B id {id}");
+        }
+    }
+
+    #[test]
     fn static_tables_for_encoded_classes() {
         assert_eq!(STATIC_CLASS_IDS.len(), static_class_tables().len());
-        assert_eq!(STATIC_CLASS_IDS, TIER_A_CLASS_IDS);
-        assert_eq!(STATIC_CLASS_IDS.len(), 25);
-        for id in TIER_A_CLASS_IDS {
+        assert_eq!(STATIC_CLASS_IDS, ApplianceClassId::ALL);
+        assert_eq!(STATIC_CLASS_IDS.len(), 56);
+        assert_eq!(
+            STATIC_CLASS_IDS.len(),
+            TIER_A_CLASS_IDS.len() + TIER_B_CLASS_IDS.len()
+        );
+        for id in STATIC_CLASS_IDS {
             let table = class_table(*id).expect("static table");
             assert_eq!(table.class_id, *id);
             assert!(

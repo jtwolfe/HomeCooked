@@ -39,7 +39,7 @@ is **0.1.0** (peers are rejected only on protocol **major** mismatch).
 | `homecooked-schema` | [`crates/homecooked-schema`](crates/homecooked-schema) | Catalog-backed serde types, capability model, static tables, write validation |
 | `homecooked-protocol` | [`crates/homecooked-protocol`](crates/homecooked-protocol) | Envelope framing, request/response kinds, discovery, JSON, errors |
 | `homecooked-core` | [`crates/homecooked-core`](crates/homecooked-core) | Device registry, capability-enforced read/write, request handling |
-| `homecooked-sim` | [`crates/homecooked-sim`](crates/homecooked-sim) | In-memory devices for static Tier-A class tables |
+| `homecooked-sim` | [`crates/homecooked-sim`](crates/homecooked-sim) | In-memory devices for static Tier-A ∪ Tier-B class tables |
 | `homecooked-wasm` | [`crates/homecooked-wasm`](crates/homecooked-wasm) | wasm-bindgen JSON API over the simulator |
 | `homecooked-io-map` | [`crates/homecooked-io-map`](crates/homecooked-io-map) | Chassis I/O map serde+validate |
 | `homecooked-interlock` | [`crates/homecooked-interlock`](crates/homecooked-interlock) | Declarative interlock rules |
@@ -50,13 +50,15 @@ is **0.1.0** (peers are rejected only on protocol **major** mismatch).
 | `homecooked-bridge` | [`crates/homecooked-bridge`](crates/homecooked-bridge) | Fabric bridges: Modbus + Matter + Zigbee + BACnet mock adapters ([bridges.md](docs/standard/bridges.md)) |
 | `homecooked-transport` | [`crates/homecooked-transport`](crates/homecooked-transport) | Lab TCP transport for protocol envelopes (length-prefixed JSON + optional PSK); sim-backed server + client ([overview.md](docs/standard/overview.md) §6) |
 | `homecooked-conformance` | [`crates/homecooked-conformance`](crates/homecooked-conformance) | Light Stream 7 conformance smoke (catalog↔schema↔sim↔protocol↔TCP) |
-| simulator-web | [`apps/simulator-web`](apps/simulator-web) | Static HTML/JS UI: Tier-A picker, procedure runner, thermal plant panel |
+| simulator-web | [`apps/simulator-web`](apps/simulator-web) | Static HTML/JS UI: full catalog picker (Tier-A ∪ Tier-B), procedure runner, thermal plant panel |
 
 `list_all_class_ids` covers the full class index in
 `docs/catalog/appliances.md`. Static capability tables (and therefore
-simulated devices) cover all **25 Tier-A** class ids listed in
-[`docs/ROADMAP.md`](docs/ROADMAP.md) §4 and `TIER_A_CLASS_IDS`
-(`crates/homecooked-schema/src/catalog/classes.rs`).
+simulated devices) cover all **56** catalog class ids: **25 Tier-A** plus
+**31 Tier-B** (`TIER_A_CLASS_IDS` ∪ `TIER_B_CLASS_IDS` =
+`STATIC_CLASS_IDS` = `ApplianceClassId::ALL` in
+`crates/homecooked-schema/src/catalog/classes.rs`). See
+[`docs/ROADMAP.md`](docs/ROADMAP.md) §4.
 
 ## Tests
 

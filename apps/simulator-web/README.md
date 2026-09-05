@@ -4,7 +4,7 @@ Minimal static UI that loads the `homecooked-wasm` package produced by
 `wasm-pack`. No bundler or framework.
 
 See [`docs/ROADMAP.md`](../../docs/ROADMAP.md) Stream 7 (WASM UI +
-conformance) and §4 (Tier-A class set).
+conformance) and §4 (Tier-A ∪ Tier-B class sets).
 
 ## Build WASM
 
@@ -40,11 +40,12 @@ Open <http://127.0.0.1:8080>.
 
 ## UI
 
-1. Pick a spawnable **Tier-A** appliance class from the grouped picker
+1. Pick a spawnable appliance class from the grouped picker
    (`<optgroup>`s match the catalog Index in
    [`docs/catalog/appliances.md`](../../docs/catalog/appliances.md):
    Laundry / Cold / Wash / Cooking / Ventilation / Beverage / Countertop /
-   Utility / Climate). All **25** `TIER_A_CLASS_IDS` are listed; class id
+   Utility / Climate). All **56** statically tabled classes
+   (`STATIC_CLASS_IDS` = Tier-A ∪ Tier-B) are listed; class id
    is shown next to the label.
 2. Create a device.
 3. Inspect identity (class id is highlighted in the device header), a few
@@ -110,7 +111,7 @@ With the page served as above, spawn at least:
 | `steam_oven` | Cooking | Same; steam / program points render |
 
 Automated coverage lives in `crates/homecooked-wasm` native tests:
-`list_appliance_classes` length is 25 and matches `TIER_A_CLASS_IDS`;
-`create_device` + `describe` + `get_state` succeed for every Tier-A id.
+`list_appliance_classes` length is 56 and matches `STATIC_CLASS_IDS`;
+`create_device` + `describe` + `get_state` succeed for every tabled id.
 
 After `wasm-pack build`, hard-refresh the browser. `app.js` cache-busts the WASM module URL via `pkg/package.json` so new exports (procedures, thermal) load after rebuilds.

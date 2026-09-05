@@ -20,7 +20,7 @@ pub use capability::{CapabilityModel, PointCapability, SafetyFlags, TraitCapabil
 pub use catalog::{
     catalog_group, catalog_point, class_table, list_all_class_ids, static_class_tables,
     trait_table, typical_capability, ClassTable, TraitTable, CATALOG_GROUP_ORDER, STATIC_CLASS_IDS,
-    TIER_A_CLASS_IDS,
+    TIER_A_CLASS_IDS, TIER_B_CLASS_IDS,
 };
 pub use error::{ErrorCode, ValidationError};
 pub use identity::DeviceIdentity;

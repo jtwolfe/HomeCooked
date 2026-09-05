@@ -19,11 +19,11 @@ What exists on `main` today:
 |------|--------|
 | Catalog docs | Appliance class index (~56 ids), traits, variables/settings in `docs/catalog/` |
 | Standard docs | Overview, thermal-plant, procedures, bridges, control-system sketches; washer/dryer I/O example |
-| `homecooked-schema` | Serde types, capability model, write validation; **25** Tier-A static class tables |
+| `homecooked-schema` | Serde types, capability model, write validation; **56** static class tables (25 Tier-A + 31 Tier-B) |
 | `homecooked-protocol` | Envelope, request/response kinds, discovery, JSON, errors (v0.1.0) |
 | `homecooked-core` | Device registry, capability-enforced read/write |
-| `homecooked-sim` | In-memory devices for the 25 Tier-A static classes |
-| `homecooked-wasm` + `apps/simulator-web` | wasm-bindgen JSON API; simulator-web grouped Tier-A picker (25 classes) + procedure runner + thermal plant panel |
+| `homecooked-sim` | In-memory devices for all 56 statically tabled classes (Tier-A ∪ Tier-B) |
+| `homecooked-wasm` + `apps/simulator-web` | wasm-bindgen JSON API; simulator-web grouped full-catalog picker (56 classes) + procedure runner + thermal plant panel |
 | `homecooked-io-map` | Chassis I/O map serde + validate (washer + dryer fragments) |
 | `homecooked-interlock` | Declarative interlock rules (washer heater/spin; dryer heater/motor) |
 | `homecooked-hal` | Firmware HAL sketch + host `MockHal` |
@@ -32,20 +32,21 @@ What exists on `main` today:
 | `homecooked-thermal` | First executable thermal plant slice (types, registry, offer/accept, tick) |
 | `homecooked-bridge` | Bridge slice: Modbus + Matter + Zigbee + BACnet mock maps |
 | `homecooked-transport` | Lab TCP: length-prefixed JSON envelopes; optional PSK pairing; sim-backed server + client smoke |
-| `homecooked-conformance` | Light Stream 7 smoke: Tier-A / cotton / kettle procedure / thermal / Modbus / Matter / Zigbee / BACnet / TCP / TCP PSK |
+| `homecooked-conformance` | Light Stream 7 smoke: Tier-A / Tier-B / cotton / kettle procedure / thermal / Modbus / Matter / Zigbee / BACnet / TCP / TCP PSK |
 | CI | rustfmt, clippy (`-D warnings`), `cargo test --workspace`, wasm-pack |
 
-**25 Tier-A classes are fully tabled** (see §4).
+**25 Tier-A + 31 Tier-B classes are statically tabled** (all 56 catalog ids;
+see §4). Tier-B tables are thinner (typical traits + a few class points).
 
-`list_all_class_ids` already covers the full appliances index; most classes are
-ids-only (no static tables / sim yet). Thermal has `homecooked-thermal` (plant
-slice; catalog/sim ports still open). Bridges have `homecooked-bridge`
-(Modbus + Matter + Zigbee + BACnet mock; real serial/TCP Modbus, CHIP SDK,
-zigbee2mqtt, real BACnet stack still open); control-system has HAL + controller-sim + io-map/interlock crates
-(TCP lab smoke + optional PSK in `homecooked-transport`; TLS/OAuth still out of scope); procedures has `homecooked-procedure`.
+Thermal has `homecooked-thermal` (plant slice; catalog/sim ports still open).
+Bridges have `homecooked-bridge` (Modbus + Matter + Zigbee + BACnet mock; real
+serial/TCP Modbus, CHIP SDK, zigbee2mqtt, real BACnet stack still open);
+control-system has HAL + controller-sim + io-map/interlock crates (TCP lab
+smoke + optional PSK in `homecooked-transport`; TLS/OAuth still out of scope);
+procedures has `homecooked-procedure`.
 
 Rough completeness: docs + thin protocol/sim spine ≈ **~30%** of the 75%
-target below. Remaining work is depth (tables, I/O map, interlocks, HAL/sim
+target below. Remaining work is depth (optional table points, I/O map, interlocks, HAL/sim
 transport, one bridge, UI/conformance), not greenfield product definition.
 
 ---
@@ -71,7 +72,7 @@ transport, one bridge, UI/conformance), not greenfield product definition.
   claims). Local hardwired interlocks remain device responsibility.
 - **Production PCB / MCU / relay BOM** — hardware stays directional.
 - **Cloud OAuth**, global device CA, or cloud identity product work.
-- Full Tier-B table depth for every remaining catalog id.
+- Deeper Tier-B table depth (more optional points / programs) where devices need it.
 - Shipping a commercial appliance or certified Matter/Modbus product.
 
 ---
@@ -104,8 +105,10 @@ multiple small PRs.
 
 **Milestones**
 
-1. Expand static class tables (and sim devices) for all **Tier-A** ids (§4).
-2. Keep Tier-B as catalog ids with thinner or absent tables until later.
+1. ~~Expand static class tables (and sim devices) for all **Tier-A** ids (§4).~~
+   **Done.**
+2. ~~Keep Tier-B as catalog ids with thinner or absent tables until later.~~
+   **Done (thin tables):** all 31 Tier-B ids have static `ClassTable`s + sim.
 3. Document which points are required vs optional per class consistently with
    `docs/catalog/`.
 
@@ -114,7 +117,7 @@ multiple small PRs.
 - Each Tier-A class has a static `ClassTable`, typical capability, and a sim
   device that can describe / read / write within advertised ranges.
 - Tests assert table presence and basic write validation for Tier-A.
-- Tier-B ids remain in `list_all_class_ids` without blocking 75%.
+- Tier-B ids have thin static tables + sim; deeper optional points can follow.
 
 ### Stream 3 — Procedure crate + sim
 
@@ -227,8 +230,8 @@ multiple small PRs.
 1. Simulator-web UX sufficient to pick a Tier-A class, inspect capabilities,
    and exercise reads/writes.
    **Done (picker slice)** — `list_appliance_classes` / `create_device` cover
-   all 25 `TIER_A_CLASS_IDS` (same set as `STATIC_CLASS_IDS`). simulator-web
-   shows the full Tier-A picker grouped with `<optgroup>` from the catalog
+   all 56 statically tabled classes (`STATIC_CLASS_IDS` = Tier-A ∪ Tier-B).
+   simulator-web shows the full catalog picker grouped with `<optgroup>` from the catalog
    Index (Laundry / Cold / Wash / Cooking / Ventilation / Beverage /
    Countertop / Utility / Climate). Class id + a few key telemetry chips
    (power / temperature / cycle when present) are shown in the device
@@ -301,11 +304,48 @@ devices:
 
 Count: **25** Tier-A ids, all with static tables + sim.
 
-### Tier-B
+### Tier-B (thin static tables + sim) — done
 
-All remaining ids in the appliances catalog index (today: 56 total − 25
-Tier-A ≈ **31** Tier-B). Ids exist in schema/`list_all_class_ids`; thinner or
-absent static tables are OK until after the 75% bar.
+All remaining ids in the appliances catalog index (**31** = 56 − 25 Tier-A).
+Each has a thinner `ClassTable` (typical traits + catalog class points) and
+sim spawn via `typical_capability`. `STATIC_CLASS_IDS` = Tier-A ∪ Tier-B =
+`ApplianceClassId::ALL`.
+
+| Id | Notes |
+|----|--------|
+| `beverage_cooler` | Cold cabinet; setpoint 1–10 °C |
+| `kegerator` | Cold + dispense; optional CO₂ / keg level |
+| `warming_drawer` | Hold heat; level or °C |
+| `pizza_oven` | High-temp; stone/dome telemetry |
+| `electric_grill` | Contact grill plates |
+| `electric_smoker` | Cabinet smoke + temp |
+| `espresso_machine` | Brew/steam setpoints; shot commands |
+| `drip_coffee_maker` | Batch brew + keep-warm |
+| `coffee_grinder` | Burr dose / grind level |
+| `water_dispenser` | Hot/cold dispense |
+| `toaster` | Shade + carriage |
+| `blender` | Speed + lid/jar interlocks |
+| `food_processor` | Speed + bowl/lid |
+| `stand_mixer` | Speed + head-down interlock |
+| `juicer` | Speed / reverse |
+| `rice_cooker` | Programs + keep-warm |
+| `slow_cooker` | Heat level + cook_s |
+| `bread_maker` | Programs + crust/loaf |
+| `dehydrator` | Temp + cook_s |
+| `vacuum_sealer` | Vacuum/seal modes |
+| `ice_cream_maker` | Churn programs |
+| `yogurt_maker` | Incubation |
+| `waffle_maker` | Shade / ready |
+| `pasta_maker` | Mix/extrude |
+| `steam_cooker` | Cook time + water empty |
+| `garbage_disposal` | Timed run pulse |
+| `trash_compactor` | Compact cycle |
+| `boiler` | CH/DHW plant |
+| `water_softener` | Regen / salt |
+| `water_filter` | TDS / flush |
+| `humidifier` | Output + water empty |
+
+Count: **31** Tier-B ids, all with thin static tables + sim.
 
 ---
 

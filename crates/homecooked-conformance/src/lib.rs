@@ -18,6 +18,7 @@ use homecooked_procedure::{run, DeviceBindings, Procedure, KETTLE_HEAT_80_JSON};
 use homecooked_protocol::{Envelope, Payload, PingBody, WriteOp};
 use homecooked_schema::{
     typical_capability, ApplianceClassId, QualifiedPointId, Value, TIER_A_CLASS_IDS,
+    TIER_B_CLASS_IDS,
 };
 use homecooked_sim::Simulator;
 use homecooked_thermal::{
@@ -92,6 +93,62 @@ pub fn tier_a_catalog_sim_describe() -> ScenarioResult {
             )
         })?;
 
+        let describe = Envelope::request(
+            Some(id.as_str().into()),
+            Payload::Describe(homecooked_protocol::DescribeRequest { points: vec![] }),
+        );
+        let resp = sim.handle(describe);
+        match resp.payload {
+            Payload::DescribeOk(body) => {
+                if body.capability.class_id != class_id {
+                    return Err(err(
+                        NAME,
+                        format!(
+                            "describe class_id for {}: got {}",
+                            class_id.as_str(),
+                            body.capability.class_id.as_str()
+                        ),
+                    ));
+                }
+            }
+            other => {
+                return Err(err(
+                    NAME,
+                    format!(
+                        "describe for {} expected DescribeOk, got {other:?}",
+                        class_id.as_str()
+                    ),
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Tier-B classes: typical_capability + sim spawn (thinner tables).
+pub fn tier_b_catalog_sim_describe() -> ScenarioResult {
+    const NAME: &str = "tier_b_catalog_sim_describe";
+    if TIER_B_CLASS_IDS.len() != 31 {
+        return Err(err(
+            NAME,
+            format!("expected 31 Tier-B ids, got {}", TIER_B_CLASS_IDS.len()),
+        ));
+    }
+
+    let mut sim = Simulator::new();
+    for &class_id in TIER_B_CLASS_IDS {
+        let _cap = typical_capability(class_id).ok_or_else(|| {
+            err(
+                NAME,
+                format!("typical_capability missing for {}", class_id.as_str()),
+            )
+        })?;
+        let id = sim.spawn(class_id).map_err(|e| {
+            err(
+                NAME,
+                format!("sim spawn failed for {}: {e}", class_id.as_str()),
+            )
+        })?;
         let describe = Envelope::request(
             Some(id.as_str().into()),
             Payload::Describe(homecooked_protocol::DescribeRequest { points: vec![] }),
@@ -752,6 +809,7 @@ pub fn tcp_psk_good_secret_describe_ping() -> ScenarioResult {
 pub fn all_scenarios() -> &'static [(&'static str, ScenarioFn)] {
     &[
         ("tier_a_catalog_sim_describe", tier_a_catalog_sim_describe),
+        ("tier_b_catalog_sim_describe", tier_b_catalog_sim_describe),
         ("washer_cotton_controller", washer_cotton_controller),
         ("procedure_kettle_happy_path", procedure_kettle_happy_path),
         ("thermal_fridge_dhw_demo", thermal_fridge_dhw_demo),

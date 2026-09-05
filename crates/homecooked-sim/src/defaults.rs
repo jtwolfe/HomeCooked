@@ -80,18 +80,28 @@ impl SeedCtx {
             ApplianceClassId::Freezer => (-18.0, -18.0, "on"),
             ApplianceClassId::FridgeFreezer => (4.0, 4.0, "on"),
             ApplianceClassId::WineCooler => (12.0, 12.0, "on"),
+            ApplianceClassId::BeverageCooler | ApplianceClassId::Kegerator => (5.0, 5.0, "on"),
             ApplianceClassId::Oven
             | ApplianceClassId::SteamOven
             | ApplianceClassId::ToasterOven
             | ApplianceClassId::Range => (20.0, 180.0, "on"),
             ApplianceClassId::AirFryer => (20.0, 180.0, "on"),
+            ApplianceClassId::WarmingDrawer => (20.0, 60.0, "on"),
+            ApplianceClassId::PizzaOven => (20.0, 350.0, "on"),
+            ApplianceClassId::ElectricGrill => (20.0, 180.0, "on"),
+            ApplianceClassId::ElectricSmoker => (20.0, 100.0, "on"),
             ApplianceClassId::Microwave => (20.0, 20.0, "standby"),
             ApplianceClassId::InductionHob | ApplianceClassId::Cooktop => (20.0, 20.0, "on"),
             ApplianceClassId::WaterHeater => (60.0, 60.0, "on"),
             ApplianceClassId::Hvac => (21.0, 21.0, "on"),
             ApplianceClassId::SousVide => (20.0, 55.0, "standby"),
-            ApplianceClassId::CoffeeMachine => (90.0, 92.0, "standby"),
+            ApplianceClassId::CoffeeMachine | ApplianceClassId::EspressoMachine => {
+                (90.0, 92.0, "standby")
+            }
             ApplianceClassId::MultiCooker => (20.0, 80.0, "on"),
+            ApplianceClassId::Dehydrator => (20.0, 55.0, "on"),
+            ApplianceClassId::YogurtMaker => (20.0, 42.0, "on"),
+            ApplianceClassId::WaffleMaker => (20.0, 190.0, "on"),
             _ => (20.0, 40.0, "on"),
         };
         Self {
@@ -110,13 +120,21 @@ fn clamp_to_typical(class_id: ApplianceClassId, setpoint: f32) -> f32 {
         ApplianceClassId::Freezer => setpoint.clamp(-24.0, -12.0),
         ApplianceClassId::FridgeFreezer => setpoint.clamp(-24.0, 7.0),
         ApplianceClassId::WineCooler => setpoint.clamp(5.0, 20.0),
+        ApplianceClassId::BeverageCooler | ApplianceClassId::Kegerator => setpoint.clamp(1.0, 10.0),
         ApplianceClassId::Oven
         | ApplianceClassId::SteamOven
         | ApplianceClassId::ToasterOven
         | ApplianceClassId::Range => setpoint.clamp(50.0, 250.0),
         ApplianceClassId::AirFryer => setpoint.clamp(80.0, 200.0),
+        ApplianceClassId::WarmingDrawer => setpoint.clamp(40.0, 90.0),
+        ApplianceClassId::PizzaOven => setpoint.clamp(200.0, 450.0),
+        ApplianceClassId::ElectricGrill => setpoint.clamp(100.0, 250.0),
+        ApplianceClassId::ElectricSmoker => setpoint.clamp(50.0, 150.0),
         ApplianceClassId::WaterHeater => setpoint.clamp(40.0, 70.0),
         ApplianceClassId::SousVide => setpoint.clamp(20.0, 95.0),
+        ApplianceClassId::Dehydrator => setpoint.clamp(30.0, 75.0),
+        ApplianceClassId::YogurtMaker => setpoint.clamp(35.0, 50.0),
+        ApplianceClassId::WaffleMaker => setpoint.clamp(150.0, 220.0),
         _ => setpoint,
     }
 }
@@ -164,6 +182,14 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
         "space_c" => Value::F32(21.0),
         "hvac_mode" => Value::Enum("auto".into()),
         "combo_mode" => Value::Enum("wash_and_dry".into()),
+        "ch_enable" => Value::Bool(true),
+        "ch_setpoint_c" => Value::F32(60.0),
+        "flow_c" => Value::F32(55.0),
+        "pressure_bar" => Value::F32(1.5),
+        "brew_setpoint_c" => Value::F32(93.0),
+        "heat_level" => Value::Enum("low".into()),
+        "water_empty" => Value::Bool(false),
+        "incubate_s" => Value::DurationS(28800),
         "power_state" => Value::Enum(ctx.power_state.to_string()),
         "cycle_state" => Value::Enum("idle".into()),
         "cycle_phase" => Value::String("idle".into()),
