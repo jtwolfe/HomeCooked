@@ -212,6 +212,8 @@ textile load.
 - Gas dryers may expose an extra `gas_valve` safety bit; still class `dryer`.
 - Never model “smart rack dryers” without a drum as `dryer` if they have no
   tumbling motor — use a vendor class or `dehydrator` if they are cabinets.
+- Optional `thermal_port_*` class points advertise an exhaust / heat-reject
+  source into the plant (not a parallel thermal class; see thermal-plant).
 
 ### `washer_dryer`
 

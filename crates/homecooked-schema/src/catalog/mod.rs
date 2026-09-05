@@ -193,13 +193,14 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
     {
         return true;
     }
-    // Stream 5: device-facing thermal-port surface on Tier-A water_heater / fridge / hvac / dishwasher.
+    // Stream 5: device-facing thermal-port surface on Tier-A water_heater / fridge / hvac / dishwasher / dryer.
     matches!(
         table.class_id,
         ApplianceClassId::WaterHeater
             | ApplianceClassId::Fridge
             | ApplianceClassId::Hvac
             | ApplianceClassId::Dishwasher
+            | ApplianceClassId::Dryer
     ) && point.id.starts_with("thermal_port_")
 }
 
@@ -430,7 +431,7 @@ mod tests {
     }
 
     #[test]
-    fn water_heater_fridge_hvac_and_dishwasher_thermal_port_points() {
+    fn water_heater_fridge_hvac_dishwasher_and_dryer_thermal_port_points() {
         let wh = typical_capability(ApplianceClassId::WaterHeater).unwrap();
         assert!(wh
             .class_points
@@ -497,6 +498,29 @@ mod tests {
             .validate_write(
                 "class.dishwasher.thermal_port_direction",
                 &Value::Enum("source".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+
+        let dryer = typical_capability(ApplianceClassId::Dryer).unwrap();
+        assert!(dryer
+            .class_points
+            .iter()
+            .any(|p| p.id == "class.dryer.thermal_port_attached_reservoir_id"));
+        assert!(dryer
+            .class_points
+            .iter()
+            .any(|p| p.id == "class.dryer.thermal_port_id"));
+        dryer
+            .validate_write(
+                "class.dryer.thermal_port_attached_reservoir_id",
+                &Value::String("air-buffer".into()),
+            )
+            .unwrap();
+        let err = dryer
+            .validate_write(
+                "class.dryer.thermal_port_direction",
+                &Value::Enum("sink".into()),
             )
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);

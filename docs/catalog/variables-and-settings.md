@@ -690,6 +690,11 @@ remote, maintenance, audio, safety.
 | `drain_tank` | enum | — | `ok` `full` `missing` `na` | r/e | opt | Condenser |
 | `dryness_percent` | percent | percent | 0–100 | r/e | opt | Estimate |
 | `vent_blocked` | bool | — | | r/e | opt | |
+| `thermal_port_id` | string | — | local port id | r | opt | Device heat port (e.g. `exhaust`); see thermal-plant |
+| `thermal_port_direction` | enum | — | `source` `sink` `bidirectional` | r | opt | Seed `source` (exhaust / heat reject) |
+| `thermal_port_media` | enum | — | `water` `air` `glycol` `refrigerant_proxy` `unknown` | r | opt | Seed `air` |
+| `thermal_port_max_power_w` | f32 | watt | | r | opt | Seed 2000 (demo; ~1.5–2.5 kW reject band) |
+| `thermal_port_attached_reservoir_id` | string | — | reservoir id or empty | r/w | opt | Attach/detach plant reservoir |
 
 ---
 
