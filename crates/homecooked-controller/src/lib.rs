@@ -13,9 +13,9 @@
 //! # Protocol / TCP
 //!
 //! This crate exposes a direct [`Controller`] API for tests and host tools.
-//! Advertising as a HomeCooked washer over the wire protocol (and TCP
-//! transport) is a deliberate follow-up — Stream 4 milestone 3 in
-//! `docs/ROADMAP.md`.
+//! Advertising this controller as a HomeCooked washer over the wire
+//! protocol is a deliberate follow-up. Lab TCP for protocol envelopes
+//! lives in `homecooked-transport` (Stream 4 milestone 3 smoke).
 //!
 //! # Example
 //!

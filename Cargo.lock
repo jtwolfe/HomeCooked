@@ -175,6 +175,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "homecooked-transport"
+version = "0.1.0"
+dependencies = [
+ "homecooked-core",
+ "homecooked-protocol",
+ "homecooked-schema",
+ "homecooked-sim",
+]
+
+[[package]]
 name = "homecooked-wasm"
 version = "0.1.0"
 dependencies = [

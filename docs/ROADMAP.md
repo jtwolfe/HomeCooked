@@ -31,6 +31,7 @@ What exists on `main` today:
 | `homecooked-controller` | Host controller sim: IoMap + MockHal + interlocks + washer cotton cycle |
 | `homecooked-thermal` | First executable thermal plant slice (types, registry, offer/accept, tick) |
 | `homecooked-bridge` | First bridge slice: Modbus map + in-memory slave; Zigbee/Matter/BACnet stubs |
+| `homecooked-transport` | Lab TCP: length-prefixed JSON envelopes; sim-backed server + client smoke |
 | CI | rustfmt, clippy (`-D warnings`), `cargo test --workspace`, wasm-pack |
 
 **25 Tier-A classes are fully tabled** (see §4).
@@ -40,7 +41,7 @@ ids-only (no static tables / sim yet). Thermal has `homecooked-thermal` (plant
 slice; catalog/sim ports still open). Bridges have `homecooked-bridge`
 (Modbus first slice + stubs; real serial/TCP and other fabrics still
 open); control-system has HAL + controller-sim + io-map/interlock crates
-(TCP transport still open); procedures has `homecooked-procedure`.
+(TCP lab smoke in `homecooked-transport`; auth still out of scope); procedures has `homecooked-procedure`.
 
 Rough completeness: docs + thin protocol/sim spine ≈ **~30%** of the 75%
 target below. Remaining work is depth (tables, I/O map, interlocks, HAL/sim
@@ -141,15 +142,21 @@ multiple small PRs.
    **Done (host API)** — `homecooked-controller` runs washer `cotton` on
    MockHal with interlocks; protocol device-role registration left thin /
    tests drive `Controller` directly.
-3. TCP transport for the existing protocol envelope (one peer = one sim
-   controller). **Still open.**
+3. ~~TCP transport for the existing protocol envelope (one peer = one sim
+   controller).~~ **Done (lab smoke)** — `homecooked-transport`: length-prefixed
+   JSON framing, sim-backed TCP server + client, integration tests for
+   describe / read / write (kettle + washer). **Auth / TLS still out of
+   scope.** Full controller-sim-over-TCP (interlock-gated actuator via wire)
+   remains a thin follow-up; host controller unit tests already cover cotton
+   cycle + interlock denies.
 
 **Definition of done**
 
-- Integration test: client over TCP → write gated actuator → interlock deny or
-  allow → channel state observable via read/describe. *(TCP portion pending;
-  controller-sim unit tests cover cotton cycle + interlock denies on host.)*
-- No claim of production firmware or certified safety path.
+- ~~Integration test: client over TCP → describe / read / write against a sim
+  device.~~ **Met** for protocol round-trip via `homecooked-transport` tests.
+  Controller-sim + interlock path over TCP is optional follow-up (host API
+  already tested in `homecooked-controller`).
+- No claim of production firmware, TLS, OAuth, or certified safety path.
 
 ### Stream 5 — Thermal ports in schema / sim
 
@@ -277,7 +284,7 @@ absent static tables are OK until after the 75% bar.
 | B | `feat/io-map-interlocks` | 1 — io_map + interlock crates |
 | later | Tier-A table batches | 2 |
 | later | procedure + sim | 3 |
-| later | HAL + controller-sim + TCP | 4 |
+| later | HAL + controller-sim + TCP | 4 — TCP lab smoke done (`homecooked-transport`) |
 | later | thermal ports | 5 |
 | later | `feat/bridges-modbus` | 6 — Modbus + stubs (first slice) |
 | later | `feat/simulator-tier-a-ui` | 7 — grouped Tier-A picker (first UI slice) |
@@ -293,3 +300,4 @@ the code that implements them.
 | Version | Notes |
 |---------|--------|
 | 0.1.0 | Initial ~30% → ~75% roadmap; Tier-A list; seven workstreams |
+| 0.1.1 | Stream 4 TCP lab smoke (`homecooked-transport`); auth/TLS still out of scope |

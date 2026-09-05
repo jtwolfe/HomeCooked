@@ -1,0 +1,19 @@
+[package]
+name = "homecooked-transport"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description = "TCP transport for HomeCooked protocol envelopes (lab / host path)"
+readme = "README.md"
+
+[dependencies]
+homecooked-core = { path = "../homecooked-core" }
+homecooked-protocol = { path = "../homecooked-protocol" }
+homecooked-schema = { path = "../homecooked-schema" }
+homecooked-sim = { path = "../homecooked-sim" }
+
+[[example]]
+name = "homecooked-tcp-demo"
+path = "examples/tcp_demo.rs"

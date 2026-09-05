@@ -31,9 +31,10 @@ interlocks still apply. A small plant model raises water level when the
 inlet is open, drains on pump, mirrors door lock feedback, and tracks drum
 rpm — enough for sensor-driven transitions in tests.
 
-**Not in this crate:** TCP transport, real GPIO, dryer cycle (follow-up),
-full HomeCooked protocol device-role registration (drive `Controller`
-directly from tests for now).
+**Not in this crate:** real GPIO, dryer cycle (follow-up), full HomeCooked
+protocol device-role registration (drive `Controller` directly from tests).
+Lab TCP for protocol envelopes is in `homecooked-transport` (auth/TLS out of
+scope); wiring this controller onto that transport is optional follow-up.
 
 ## Tests
 
@@ -45,4 +46,4 @@ cargo test -p homecooked-controller cotton_cycle_reaches_done -- --nocapture
 ## Roadmap
 
 Stream 4 in [`docs/ROADMAP.md`](../../docs/ROADMAP.md): HAL sketch (done) →
-**controller-sim (this crate)** → TCP transport (later).
+**controller-sim (this crate)** → TCP lab smoke (`homecooked-transport`).
