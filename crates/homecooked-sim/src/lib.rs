@@ -1582,6 +1582,151 @@ mod tests {
     }
 
     #[test]
+    fn humidifier_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let hum = sim.spawn(ApplianceClassId::Humidifier).unwrap();
+
+        assert_eq!(
+            sim.read_value(&hum, "class.humidifier.output_level")
+                .unwrap(),
+            Value::U8(3)
+        );
+        assert_eq!(
+            sim.read_value(&hum, "class.humidifier.mist_type").unwrap(),
+            Value::Enum("cool".into())
+        );
+        assert_eq!(
+            sim.read_value(&hum, "class.humidifier.water_empty")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hum, "class.humidifier.wick_state").unwrap(),
+            Value::Enum("ok".into())
+        );
+        assert_eq!(
+            sim.read_value(&hum, "class.humidifier.warm_mist").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hum, "class.humidifier.auto_humidity")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hum, "class.humidifier.mineral_filter")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hum, "class.humidifier.uv_clean").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hum, "class.humidifier.scale_alert")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hum, "class.humidifier.tank_removed")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hum, "class.humidifier.misting").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hum, "class.humidifier.night_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hum, "trait.humidity.setpoint_rh").unwrap(),
+            Value::Percent(45.0)
+        );
+        assert_eq!(
+            sim.read_value(&hum, "trait.humidity.current_rh").unwrap(),
+            Value::Percent(40.0)
+        );
+
+        sim.write(&hum, "class.humidifier.output_level", Value::U8(7))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hum, "class.humidifier.output_level")
+                .unwrap(),
+            Value::U8(7)
+        );
+        sim.write(&hum, "class.humidifier.warm_mist", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hum, "class.humidifier.warm_mist").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&hum, "class.humidifier.auto_humidity", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hum, "class.humidifier.auto_humidity")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&hum, "class.humidifier.uv_clean", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hum, "class.humidifier.uv_clean").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&hum, "class.humidifier.night_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hum, "class.humidifier.night_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&hum, "trait.humidity.setpoint_rh", Value::Percent(55.0))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hum, "trait.humidity.setpoint_rh").unwrap(),
+            Value::Percent(55.0)
+        );
+
+        let err = sim
+            .write(
+                &hum,
+                "class.humidifier.mist_type",
+                Value::Enum("warm".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&hum, "class.humidifier.water_empty", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &hum,
+                "class.humidifier.wick_state",
+                Value::Enum("replace".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&hum, "class.humidifier.mineral_filter", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&hum, "class.humidifier.scale_alert", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&hum, "class.humidifier.tank_removed", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&hum, "class.humidifier.misting", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {
