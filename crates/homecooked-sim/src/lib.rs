@@ -3251,6 +3251,165 @@ mod tests {
     }
 
     #[test]
+    fn water_dispenser_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let disp = sim.spawn(ApplianceClassId::WaterDispenser).unwrap();
+
+        assert_eq!(
+            sim.read_value(&disp, "class.water_dispenser.hot_setpoint_c")
+                .unwrap(),
+            Value::F32(90.0)
+        );
+        assert_eq!(
+            sim.read_value(&disp, "class.water_dispenser.cold_setpoint_c")
+                .unwrap(),
+            Value::F32(8.0)
+        );
+        assert_eq!(
+            sim.read_value(&disp, "class.water_dispenser.bottle_empty")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&disp, "class.water_dispenser.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&disp, "class.water_dispenser.eco_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&disp, "class.water_dispenser.heater_on")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&disp, "class.water_dispenser.cooler_on")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&disp, "class.water_dispenser.high_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&disp, "class.water_dispenser.low_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&disp, "class.water_dispenser.water_tank_empty")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&disp, "trait.filter.life_percent").unwrap(),
+            Value::Percent(85.0)
+        );
+        assert_eq!(
+            sim.read_value(&disp, "trait.child_lock.child_lock")
+                .unwrap(),
+            Value::Bool(false)
+        );
+
+        sim.write(
+            &disp,
+            "class.water_dispenser.hot_setpoint_c",
+            Value::F32(95.0),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&disp, "class.water_dispenser.hot_setpoint_c")
+                .unwrap(),
+            Value::F32(95.0)
+        );
+        sim.write(
+            &disp,
+            "class.water_dispenser.cold_setpoint_c",
+            Value::F32(6.0),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&disp, "class.water_dispenser.cold_setpoint_c")
+                .unwrap(),
+            Value::F32(6.0)
+        );
+        sim.write(
+            &disp,
+            "class.water_dispenser.sabbath_mode",
+            Value::Bool(true),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&disp, "class.water_dispenser.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&disp, "class.water_dispenser.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&disp, "class.water_dispenser.eco_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&disp, "trait.child_lock.child_lock", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&disp, "trait.child_lock.child_lock")
+                .unwrap(),
+            Value::Bool(true)
+        );
+
+        let err = sim
+            .write(
+                &disp,
+                "class.water_dispenser.bottle_empty",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&disp, "class.water_dispenser.heater_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&disp, "class.water_dispenser.cooler_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &disp,
+                "class.water_dispenser.high_temp_alarm",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &disp,
+                "class.water_dispenser.low_temp_alarm",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &disp,
+                "class.water_dispenser.water_tank_empty",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&disp, "trait.filter.life_percent", Value::Percent(50.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {

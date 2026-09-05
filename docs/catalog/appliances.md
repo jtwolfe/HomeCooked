@@ -985,6 +985,11 @@ filter life, overtemp.
 
 **Notes:** Fridge door dispensers use trait `dispense` on the fridge, not this
 class. Child lock on hot water is expected.
+- Catalog depth: optional class points include `hot_setpoint_c`,
+  `cold_setpoint_c`, `bottle_empty`, sabbath, eco, `heater_on`, `cooler_on`,
+  `high_temp_alarm`, `low_temp_alarm`, and `water_tank_empty`; filter life via
+  `trait.filter.life_percent` and hot lock via `trait.child_lock.child_lock`
+  (see variables-and-settings).
 
 ---
 
