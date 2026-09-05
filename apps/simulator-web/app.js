@@ -18,6 +18,18 @@ const dtInput = document.getElementById("dt-ms");
 const tickBtn = document.getElementById("tick-btn");
 const autoTick = document.getElementById("auto-tick");
 const writeError = document.getElementById("write-error");
+const procedureSelect = document.getElementById("procedure-select");
+const loadProcedureBtn = document.getElementById("load-procedure-btn");
+const parseProcedureBtn = document.getElementById("parse-procedure-btn");
+const runProcedureBtn = document.getElementById("run-procedure-btn");
+const procedureJson = document.getElementById("procedure-json");
+const procedureError = document.getElementById("procedure-error");
+const procedureSummary = document.getElementById("procedure-summary");
+const procedureResult = document.getElementById("procedure-result");
+const procedureStatus = document.getElementById("procedure-status");
+const procedureFail = document.getElementById("procedure-fail");
+const procedureBindings = document.getElementById("procedure-bindings");
+const procedureSteps = document.getElementById("procedure-steps");
 
 let wasm = null;
 let selectedId = null;
@@ -48,6 +60,18 @@ function showWriteError(err) {
   const bits = [info.code, info.point_id, info.message, info.expected].filter(Boolean);
   writeError.hidden = bits.length === 0;
   writeError.textContent = bits.join(" · ");
+}
+
+function showProcedureError(err) {
+  const info = parseErr(err);
+  const bits = [info.code, info.point_id, info.message, info.expected].filter(Boolean);
+  procedureError.hidden = bits.length === 0;
+  procedureError.textContent = bits.join(" · ") || String(err);
+}
+
+function clearProcedureError() {
+  procedureError.hidden = true;
+  procedureError.textContent = "";
 }
 
 function displayValue(tagged) {
@@ -364,6 +388,8 @@ async function boot() {
 
   const classes = JSON.parse(wasm.list_appliance_classes());
   fillClassSelect(classes);
+  fillProcedureSelect(listExampleProcedures());
+  await loadSelectedProcedure();
 
   appEl.hidden = false;
   setStatus("Simulator ready");
@@ -387,4 +413,158 @@ dtInput.addEventListener("change", () => {
   if (autoTick.checked) syncAutoTick();
 });
 
+loadProcedureBtn.addEventListener("click", () => loadSelectedProcedure());
+procedureSelect.addEventListener("change", () => loadSelectedProcedure());
+parseProcedureBtn.addEventListener("click", () => parseCurrentProcedure());
+runProcedureBtn.addEventListener("click", () => runCurrentProcedure());
+
 boot();
+
+function listExampleProcedures() {
+  try {
+    return JSON.parse(wasm.list_example_procedures());
+  } catch {
+    return [
+      { id: "kettle_heat_80", name: "Heat kettle to 80C", class_hints: ["kettle"] },
+      {
+        id: "reheat_dominos_microwave",
+        name: "Reheat 2 Domino's supreme slices (microwave)",
+        class_hints: ["microwave"],
+      },
+    ];
+  }
+}
+
+function fillProcedureSelect(examples) {
+  procedureSelect.innerHTML = "";
+  for (const ex of examples) {
+    const opt = document.createElement("option");
+    opt.value = ex.id;
+    const hints = (ex.class_hints || []).join(", ");
+    opt.textContent = hints ? `${ex.name} (${hints})` : ex.name;
+    procedureSelect.appendChild(opt);
+  }
+}
+
+async function fetchProcedureAsset(id) {
+  const res = await fetch(`./procedures/${id}.json`);
+  if (!res.ok) {
+    throw new Error(`could not fetch ./procedures/${id}.json (${res.status})`);
+  }
+  return res.text();
+}
+
+async function loadSelectedProcedure() {
+  const id = procedureSelect.value;
+  if (!id) return;
+  clearProcedureError();
+  procedureResult.hidden = true;
+  try {
+    let json;
+    try {
+      json = wasm.get_example_procedure(id);
+    } catch {
+      json = await fetchProcedureAsset(id);
+    }
+    procedureJson.value = JSON.stringify(JSON.parse(json), null, 2);
+    setStatus(`Loaded ${id}`);
+    parseCurrentProcedure();
+  } catch (err) {
+    showProcedureError(err);
+    setStatus("Could not load procedure", true);
+  }
+}
+
+function parseCurrentProcedure() {
+  clearProcedureError();
+  procedureResult.hidden = true;
+  const raw = procedureJson.value.trim();
+  if (!raw) {
+    showProcedureError({ message: "Paste or load a procedure JSON document first." });
+    return null;
+  }
+  try {
+    const summary = JSON.parse(wasm.parse_procedure(raw));
+    const hints = (summary.class_hints || []).join(", ") || "no class hints";
+    const roles = (summary.devices || [])
+      .map((d) => (d.optional ? `${d.role}?` : d.role))
+      .join(", ");
+    procedureSummary.hidden = false;
+    procedureSummary.textContent = `${summary.name} · ${summary.step_count} steps · ${hints}${
+      roles ? ` · roles ${roles}` : ""
+    }`;
+    return summary;
+  } catch (err) {
+    procedureSummary.hidden = true;
+    showProcedureError(err);
+    setStatus("Procedure parse failed", true);
+    return null;
+  }
+}
+
+function renderProcedureResult(result) {
+  procedureResult.hidden = false;
+  const ok = result.status === "completed";
+  procedureStatus.textContent = ok ? "Completed" : "Failed";
+  procedureStatus.classList.toggle("ok", ok);
+  procedureStatus.classList.toggle("fail", !ok);
+
+  if (!ok && result.fail_reason) {
+    const bits = [
+      result.failed_step_id ? `step ${result.failed_step_id}` : null,
+      result.fail_reason.kind,
+      result.fail_reason.code,
+      result.fail_reason.message,
+    ].filter(Boolean);
+    procedureFail.textContent = bits.join(" · ");
+  } else {
+    procedureFail.textContent = "";
+  }
+
+  procedureBindings.innerHTML = "";
+  const bindings = result.bindings || [];
+  procedureBindings.hidden = bindings.length === 0;
+  for (const bind of bindings) {
+    const li = document.createElement("li");
+    li.textContent = `${bind.role} → ${bind.device_id} (${bind.class_id}${
+      bind.spawned ? ", spawned" : ""
+    })`;
+    procedureBindings.appendChild(li);
+  }
+
+  procedureSteps.innerHTML = "";
+  for (const step of result.outcomes || []) {
+    const li = document.createElement("li");
+    li.className = step.ok ? "ok" : "fail";
+    const value =
+      step.read_value != null ? ` · ${displayValue(step.read_value)}` : "";
+    const msg = step.message ? ` — ${step.message}` : "";
+    li.innerHTML = `<span class="step-flag">${step.ok ? "ok" : "fail"}</span><span class="step-id">${
+      step.step_id
+    }</span><span class="step-meta">${step.action}${value}${msg}</span>`;
+    procedureSteps.appendChild(li);
+  }
+}
+
+async function runCurrentProcedure() {
+  clearProcedureError();
+  const raw = procedureJson.value.trim();
+  if (!raw) {
+    showProcedureError({ message: "Paste or load a procedure JSON document first." });
+    return;
+  }
+  try {
+    const result = JSON.parse(wasm.run_procedure(raw));
+    renderProcedureResult(result);
+    await refreshDevices();
+    const firstBound = result.bindings && result.bindings[0] && result.bindings[0].device_id;
+    if (firstBound) {
+      await selectDevice(firstBound);
+    }
+    setStatus(result.status === "completed" ? "Procedure completed" : "Procedure failed", result.status !== "completed");
+  } catch (err) {
+    procedureResult.hidden = true;
+    showProcedureError(err);
+    setStatus("Procedure run failed", true);
+  }
+}

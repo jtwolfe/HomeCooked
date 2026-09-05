@@ -4,50 +4,27 @@ use homecooked_schema::{typical_capability, ApplianceClassId, ErrorCode};
 use homecooked_sim::Simulator;
 
 use crate::{
-    run, DeviceBindings, FailReason, Procedure, RunStatus, StepAction,
+    run, DeviceBindings, FailReason, Procedure, RunStatus, StepAction, KETTLE_HEAT_80_JSON,
     REHEAT_DOMINOS_MICROWAVE_JSON,
 };
-
-const KETTLE_HEAT_JSON: &str = r#"
-{
-  "id": "kettle_heat_80",
-  "name": "Heat kettle to 80C",
-  "catalog_version": "0.1.0",
-  "steps": [
-    {
-      "id": "setpoint",
-      "action": "write",
-      "target": { "role": "kettle", "point": "trait.temperature.setpoint_c" },
-      "value": { "type": "f32", "value": 80.0 }
-    },
-    {
-      "id": "start",
-      "action": "command",
-      "target": { "role": "kettle", "point": "trait.cycle.start" },
-      "value": { "type": "void" }
-    },
-    {
-      "id": "wait_heat",
-      "action": "wait",
-      "target": { "role": "kettle" },
-      "timeout_s": 20,
-      "guards": [
-        { "point": "trait.temperature.current_c", "gte": { "type": "f32", "value": 75.0 } }
-      ]
-    },
-    {
-      "id": "assert_temp",
-      "op": "guard",
-      "target": { "role": "kettle" },
-      "guard": { "point": "trait.temperature.current_c", "gte": { "type": "f32", "value": 75.0 } }
-    }
-  ]
-}
-"#;
 
 fn kettle_bindings(sim: &mut Simulator) -> DeviceBindings {
     let id = sim.spawn(ApplianceClassId::Kettle).unwrap();
     DeviceBindings::new().bind("kettle", id.as_str())
+}
+
+#[test]
+fn bundled_example_constants_parse() {
+    let kettle = Procedure::load_json(crate::KETTLE_HEAT_80_JSON).unwrap();
+    assert_eq!(kettle.id, "kettle_heat_80");
+    assert_eq!(kettle.devices.len(), 1);
+    assert_eq!(kettle.steps.len(), 4);
+
+    let listed: Vec<&str> = crate::BUNDLED_EXAMPLE_PROCEDURES
+        .iter()
+        .map(|(id, _)| *id)
+        .collect();
+    assert_eq!(listed, ["kettle_heat_80", "reheat_dominos_microwave"]);
 }
 
 #[test]
@@ -71,7 +48,7 @@ fn parse_dominos_microwave_fixture() {
 
 #[test]
 fn parse_inline_kettle_and_alias_fields() {
-    let doc = Procedure::load_json(KETTLE_HEAT_JSON).unwrap();
+    let doc = Procedure::load_json(KETTLE_HEAT_80_JSON).unwrap();
     assert_eq!(doc.steps[3].action, StepAction::Assert);
     assert_eq!(doc.steps[3].guards().len(), 1);
 }
@@ -171,7 +148,7 @@ fn capability_validate_rejects_out_of_range_write() {
 
 #[test]
 fn kettle_happy_path_against_sim() {
-    let doc = Procedure::load_json(KETTLE_HEAT_JSON).unwrap();
+    let doc = Procedure::load_json(KETTLE_HEAT_80_JSON).unwrap();
     let mut sim = Simulator::new();
     let bindings = kettle_bindings(&mut sim);
     let result = run(&doc, &mut sim, &bindings);

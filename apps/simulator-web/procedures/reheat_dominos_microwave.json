@@ -1,0 +1,50 @@
+{
+  "id": "reheat_dominos_microwave",
+  "name": "Reheat 2 Domino's supreme slices (microwave)",
+  "description": "Single-device v1 of the procedures.md Domino's + cold grated cheese sketch. Microwave reheat only; crisp/fridge roles are documented for later multi-device binding.",
+  "catalog_version": "0.1.0",
+  "protocol_version": "0.1.0",
+  "devices": [
+    { "role": "microwave", "class_id": "microwave" },
+    { "role": "crisp", "class_id": ["oven", "air_fryer"] },
+    { "role": "fridge", "class_id": "fridge", "optional": true }
+  ],
+  "steps": [
+    {
+      "id": "mw_power",
+      "action": "write",
+      "target": { "role": "microwave", "point": "class.microwave.power_level_percent" },
+      "value": { "type": "percent", "value": 70.0 },
+      "timeout_s": 5
+    },
+    {
+      "id": "mw_cook_time",
+      "action": "write",
+      "target": { "role": "microwave", "point": "class.microwave.cook_s" },
+      "value": { "type": "duration_s", "value": 45 },
+      "timeout_s": 5
+    },
+    {
+      "id": "mw_start",
+      "op": "command",
+      "target": { "role": "microwave", "point": "trait.cycle.start" },
+      "value": { "type": "void" },
+      "timeout_s": 5
+    },
+    {
+      "id": "mw_wait",
+      "action": "wait",
+      "target": { "role": "microwave" },
+      "timeout_s": 90,
+      "guards": [
+        { "point": "trait.cycle.elapsed_s", "gte": { "type": "duration_s", "value": 45 } }
+      ]
+    },
+    {
+      "id": "mw_stop",
+      "action": "command",
+      "target": { "role": "microwave", "point": "trait.cycle.cancel" },
+      "timeout_s": 5
+    }
+  ]
+}

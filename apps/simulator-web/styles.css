@@ -107,6 +107,12 @@ code {
   font-size: 0.92em;
 }
 
+#app {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
 .layout {
   display: grid;
   grid-template-columns: minmax(16rem, 20rem) 1fr;
@@ -153,11 +159,21 @@ button {
 
 select,
 input[type="number"],
-input[type="text"] {
+input[type="text"],
+textarea {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 0.45rem 0.55rem;
   background: #fff;
+}
+
+textarea {
+  width: 100%;
+  min-height: 14rem;
+  resize: vertical;
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+  line-height: 1.45;
 }
 
 button {
@@ -387,6 +403,139 @@ button.cmd {
   font-size: 0.75rem;
 }
 
+.procedure-panel {
+  width: 100%;
+}
+
+.procedure-lede {
+  margin: 0.35rem 0 0;
+  line-height: 1.45;
+}
+
+.procedure-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: flex-end;
+  margin: 0.4rem 0 0.2rem;
+}
+
+.procedure-toolbar .grow {
+  flex: 1 1 16rem;
+  min-width: 12rem;
+}
+
+.procedure-toolbar .field {
+  margin: 0;
+}
+
+.procedure-summary {
+  margin: 0.35rem 0 0.7rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid #f3d5b0;
+  border-radius: 10px;
+  background: #fff7ed;
+  font-size: 0.88rem;
+}
+
+.procedure-result-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: baseline;
+  margin: 0.4rem 0 0.6rem;
+}
+
+.procedure-status {
+  margin: 0;
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.procedure-status.ok {
+  background: #ecfccb;
+  color: var(--ok);
+}
+
+.procedure-status.fail {
+  background: var(--err-bg);
+  color: var(--err);
+}
+
+.procedure-bindings {
+  list-style: none;
+  margin: 0 0 0.7rem;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.procedure-bindings li {
+  font-size: 0.75rem;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+}
+
+.step-outcomes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.step-outcomes li {
+  display: grid;
+  grid-template-columns: auto minmax(6rem, 10rem) 1fr;
+  gap: 0.55rem;
+  align-items: baseline;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.step-outcomes li.ok {
+  border-color: #d9e4b5;
+}
+
+.step-outcomes li.fail {
+  border-color: #fecaca;
+  background: #fffafa;
+}
+
+.step-flag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ok);
+}
+
+.step-outcomes li.fail .step-flag {
+  color: var(--err);
+}
+
+.step-id {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.8rem;
+}
+
+.step-meta {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
 @media (max-width: 840px) {
   .layout {
     grid-template-columns: 1fr;
@@ -403,5 +552,13 @@ button.cmd {
 
   .row .controls {
     justify-content: flex-start;
+  }
+
+  .step-outcomes li {
+    grid-template-columns: auto 1fr;
+  }
+
+  .step-meta {
+    grid-column: 1 / -1;
   }
 }

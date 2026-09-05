@@ -23,7 +23,7 @@ What exists on `main` today:
 | `homecooked-protocol` | Envelope, request/response kinds, discovery, JSON, errors (v0.1.0) |
 | `homecooked-core` | Device registry, capability-enforced read/write |
 | `homecooked-sim` | In-memory devices for the 25 Tier-A static classes |
-| `homecooked-wasm` + `apps/simulator-web` | wasm-bindgen JSON API; simulator-web grouped Tier-A picker (25 classes) |
+| `homecooked-wasm` + `apps/simulator-web` | wasm-bindgen JSON API; simulator-web grouped Tier-A picker (25 classes) + procedure runner panel |
 | `homecooked-io-map` | Chassis I/O map serde + validate |
 | `homecooked-interlock` | Declarative interlock rules (washer heater/spin) |
 | `homecooked-hal` | Firmware HAL sketch + host `MockHal` |
@@ -214,8 +214,11 @@ multiple small PRs.
    Index (Laundry / Cold / Wash / Cooking / Ventilation / Beverage /
    Countertop / Utility / Climate). Class id + a few key telemetry chips
    (power / temperature / cycle when present) are shown in the device
-   header. **Still open:** procedure UI, thermal-port UI, and richer
-   conformance-oriented screens.
+   header. **Procedure UI slice is done** — `list_example_procedures` /
+   `get_example_procedure` / `parse_procedure` / `run_procedure` expose the
+   sequential runner; simulator-web has a picker + paste/run panel with
+   step outcomes (kettle happy-path + Domino’s microwave fixture).
+   **Still open:** thermal-port UI and richer conformance-oriented screens.
 2. Conformance suite: catalog id hygiene, capability advertisement rules,
    protocol major-version rejection, representative write denials.
    **Partial (smoke)** — `homecooked-conformance` runs six named end-to-end
@@ -229,8 +232,8 @@ multiple small PRs.
 **Definition of done**
 
 - wasm-pack build remains in CI; UI documented in `apps/simulator-web`.
-  *(Picker + list/spawn coverage is in; smoke suite is in; deeper matrices /
-  procedure/thermal UI still open.)*
+  *(Picker + procedure runner panel + list/spawn coverage is in; smoke suite
+  is in; deeper matrices / thermal-port UI still open.)*
 - Conformance failures are actionable (named assertions, not a single opaque
   binary).
   *(Smoke suite reports named scenario failures; deeper matrices still open.)*
@@ -294,7 +297,7 @@ absent static tables are OK until after the 75% bar.
 | later | thermal ports | 5 |
 | later | `feat/bridges-modbus` | 6 — Modbus + stubs (first slice) |
 | later | `feat/simulator-tier-a-ui` | 7 — grouped Tier-A picker (first UI slice) |
-| later | WASM UI + conformance suite | 7 — smoke suite done (`homecooked-conformance`); deeper matrices / richer UI remaining |
+| later | WASM UI + conformance suite | 7 — picker + procedure UI done; smoke suite done (`homecooked-conformance`); deeper matrices / thermal-port UI remaining |
 
 One concern per PR when practical. Catalog/standard docs land before or with
 the code that implements them.
@@ -308,3 +311,4 @@ the code that implements them.
 | 0.1.0 | Initial ~30% → ~75% roadmap; Tier-A list; seven workstreams |
 | 0.1.1 | Stream 4 TCP lab smoke (`homecooked-transport`); auth/TLS still out of scope |
 | 0.1.2 | Stream 7 conformance smoke crate (`homecooked-conformance`) |
+| 0.1.3 | Stream 7 procedure UI slice (`homecooked-wasm` + simulator-web runner panel) |
