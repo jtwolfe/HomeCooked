@@ -245,14 +245,19 @@ a stacked pair that is sold and addressed as one endpoint.
 **Typical controllable settings:**
 
 - Everything on `washer`
-- Dry after wash (bool), dryness target, max dry time
-- Combined programs (`wash_and_dry`, `wash_only`, `dry_only`)
+- Dry after wash (`dry_after_wash`), dryness target, max dry time (`max_dry_s`)
+- Combined programs / `combo_mode` (`wash_and_dry`, `wash_only`, `dry_only`)
+- Sabbath / eco, anti-crease, delay start (`trait.time_schedule.delay_start_s` /
+  class `timer_s`)
 
 **Typical readable state:**
 
 - Washer state plus dryer phase when drying
 - Combined remaining time for wash+dry
-- Lint filter and drain-tank state (often more constrained than a standalone dryer)
+- Lint filter / `lint_full` and drain-tank state (often more constrained than a
+  standalone dryer); `dryness_percent`, `vent_blocked`
+- Door ajar / locked, detergent / overflow / water-temp alarms, dryer
+  `high_temp_alarm`
 
 **Notes:**
 
@@ -262,6 +267,14 @@ a stacked pair that is sold and addressed as one endpoint.
 - Drying capacity is usually smaller than wash capacity; devices should reject
   `dry_after_wash` when load exceeds advertised dry mass.
 - Water used for condenser drying is still `water` trait telemetry.
+- Catalog depth: composition is `WASHER_POINTS` + `DRYER_BASE` +
+  `WASHER_DRYER_EXTRA`. Washer deepen ids (sabbath/eco/door/alarms/detergent/
+  timer) are inherited once from the washer slice; dryer-only
+  `high_temp_alarm` / `lint_full` live on `WASHER_DRYER_EXTRA` — do **not**
+  merge `DRYER_DEPTH` (would duplicate laundry ids). Typical also advertises
+  dryer thin-table `anti_crease` / `dryness_percent` / `vent_blocked` /
+  `drain_tank`, combo `dry_after_wash` / `max_dry_s`, and
+  `trait.time_schedule.delay_start_s` (see variables-and-settings).
 
 ---
 
