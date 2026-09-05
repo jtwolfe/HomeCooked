@@ -38,6 +38,11 @@ fn parse_dominos_microwave_fixture() {
     assert_eq!(doc.id, "reheat_dominos_microwave");
     assert_eq!(doc.name, "Reheat 2 Domino's supreme slices (microwave)");
     assert_eq!(doc.devices.len(), 3);
+    assert!(
+        doc.devices[1].optional,
+        "crisp is optional in microwave-only v1"
+    );
+    assert!(doc.devices[2].optional, "fridge is optional");
     assert_eq!(doc.steps.len(), 5);
     assert_eq!(doc.steps[2].action, StepAction::Command);
     assert_eq!(doc.steps[2].id, "mw_start");

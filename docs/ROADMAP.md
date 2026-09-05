@@ -1,6 +1,6 @@
 # HomeCooked roadmap — ~75% project completeness
 
-Version **0.1.0**. Planning doc for a long flesh-out of the catalog, control
+Version **0.1.14**. Planning doc for a long flesh-out of the catalog, control
 stack, and simulator. It does **not** freeze APIs; crate and YAML shapes may
 evolve with the code that implements each stream.
 
@@ -11,45 +11,42 @@ Related: [`../README.md`](../README.md), [`catalog/`](./catalog/),
 
 ---
 
-## 1. Current state (~30%)
+## 1. Current state (~55% toward the 75% target)
 
-What exists on `main` today:
+What exists on `main` today (Done highlights called out):
 
 | Area | Status |
 |------|--------|
-| Catalog docs | Appliance class index (~56 ids), traits, variables/settings in `docs/catalog/` |
+| Catalog docs | Appliance class index (**56** ids), traits, variables/settings in `docs/catalog/` |
 | Standard docs | Overview, thermal-plant, procedures, bridges, control-system sketches; washer/dryer I/O example |
-| `homecooked-schema` | Serde types, capability model, write validation; **56** static class tables (25 Tier-A + 31 Tier-B) |
+| `homecooked-schema` | Serde types, capability model, write validation; **56** static class tables (**25 Tier-A + 31 Tier-B**) — **Done** |
 | `homecooked-protocol` | Envelope, request/response kinds, discovery, JSON, errors (v0.1.0) |
 | `homecooked-core` | Device registry, capability-enforced read/write |
-| `homecooked-sim` | In-memory devices for all 56 statically tabled classes (Tier-A ∪ Tier-B) |
-| `homecooked-wasm` + `apps/simulator-web` | wasm-bindgen JSON API; simulator-web grouped full-catalog picker (56 classes) + procedure runner + thermal plant panel |
+| `homecooked-sim` | In-memory devices for all 56 statically tabled classes; microwave cook ticks advance `elapsed_s` |
+| `homecooked-wasm` + `apps/simulator-web` | wasm-bindgen JSON API; full-catalog picker (56) + procedure runner (kettle + Domino's `run_procedure` E2E) + thermal panel; **WASM fetch+blob load** (module cache defeat) — **Done** |
 | `homecooked-io-map` | Chassis I/O map serde + validate (washer + dryer fragments) |
 | `homecooked-interlock` | Declarative interlock rules (washer heater/spin; dryer heater/motor) |
 | `homecooked-hal` | Firmware HAL sketch + host `MockHal` |
-| `homecooked-procedure` | Procedure documents + sequential runner |
-| `homecooked-controller` | Host controller sim: IoMap + MockHal + interlocks + washer cotton / dryer cycles |
+| `homecooked-procedure` | Procedure documents + sequential runner; Domino's microwave fixture completes against sim |
+| `homecooked-controller` | Host controller sim: IoMap + MockHal + interlocks + washer cotton / **dryer cycle** (Idle→Dry→Cool→Done) — **Done** |
 | `homecooked-thermal` | First executable thermal plant slice (types, registry, offer/accept, tick) |
-| `homecooked-bridge` | Bridge slice: Modbus + Matter + Zigbee + BACnet mock maps |
-| `homecooked-transport` | Lab TCP: length-prefixed JSON envelopes; optional PSK pairing; sim-backed server + client smoke |
-| `homecooked-hub` | Optional lab aggregator: multi-device Simulator behind one TCP port (not required for devices) |
-| `homecooked-conformance` | Light Stream 7 smoke: Tier-A / Tier-B / cotton / kettle procedure / thermal / Modbus / Matter / Zigbee / BACnet / TCP / TCP PSK / hub lab set |
+| `homecooked-bridge` | **Modbus + Matter + Zigbee + BACnet mocks** (no real serial/TCP/CHIP/z2m/BACnet stacks) — **Done** |
+| `homecooked-transport` | Lab TCP JSON envelopes; **optional PSK pairing**; sim-backed server + client smoke — **Done** |
+| `homecooked-hub` | Optional multi-device lab TCP aggregator (**not required for devices**) — **Done** |
+| `homecooked-conformance` | Stream 7 smoke: Tier-A / Tier-B / cotton / kettle procedure / thermal / Modbus / Matter / Zigbee / BACnet / TCP / TCP PSK / hub lab set |
 | CI | rustfmt, clippy (`-D warnings`), `cargo test --workspace`, wasm-pack |
 
-**25 Tier-A + 31 Tier-B classes are statically tabled** (all 56 catalog ids;
-see §4). Tier-B tables are thinner (typical traits + a few class points).
+**Done (thin / lab depth):** Tier-A+B **56** static tables + sim; dryer controller cycle; bridge family mocks;
+lab TCP + PSK; optional hub; simulator-web blob-load; Domino's microwave Run via
+`run_procedure`.
 
-Thermal has `homecooked-thermal` (plant slice; catalog/sim ports still open).
-Bridges have `homecooked-bridge` (Modbus + Matter + Zigbee + BACnet mock; real
-serial/TCP Modbus, CHIP SDK, zigbee2mqtt, real BACnet stack still open);
-control-system has HAL + controller-sim + io-map/interlock crates (TCP lab
-smoke + optional PSK in `homecooked-transport`; optional multi-device hub in
-`homecooked-hub` — not required for devices; TLS/OAuth still out of scope);
-procedures has `homecooked-procedure`.
+**Still open toward 75%:** catalog/sim thermal ports; real bridge SDKs; deeper
+conformance matrices; richer UI; controller-sim-over-TCP; deeper Tier-B optional
+points.
 
-Rough completeness: docs + thin protocol/sim spine ≈ **~30%** of the 75%
-target below. Remaining work is depth (optional table points, I/O map, interlocks, HAL/sim
-transport, one bridge, UI/conformance), not greenfield product definition.
+Rough completeness: foundation + Tier-A/B tables + procedure/HAL/TCP/hub + bridge
+mocks + UI/smoke ≈ **~55%** of the 75% target below (was ~30% at roadmap start).
+Remaining work is depth, not greenfield product definition.
 
 ---
 
@@ -125,17 +122,20 @@ multiple small PRs.
 
 **Milestones**
 
-1. Crate for procedure / recipe documents as ordered HomeCooked steps
-   (aligned with `docs/standard/procedures.md`). First slice:
+1. ~~Crate for procedure / recipe documents as ordered HomeCooked steps
+   (aligned with `docs/standard/procedures.md`).~~ **Done** —
    `homecooked-procedure` (serde + validate + sequential runner).
-2. Simulator can load and run a small library (e.g. washer `cotton` outline
-   at the *client* procedure level, not micro-stepping HV).
-3. Failures surface as protocol / capability errors, never as interlock bypass.
+2. ~~Simulator can load and run a small library.~~ **Done** — bundled
+   `kettle_heat_80` + `reheat_dominos_microwave`; wasm `run_procedure` E2E
+   auto-spawns and completes both (microwave wait uses sim `elapsed_s` ticks).
+3. ~~Failures surface as protocol / capability errors, never as interlock bypass.~~
+   **Done** under tests (out-of-range write, guard fail, wait timeout).
 
 **Definition of done**
 
-- Round-trip load of a procedure document; sim executes happy-path and a
-  denied/aborted path under tests.
+- ~~Round-trip load of a procedure document; sim executes happy-path and a
+  denied/aborted path under tests.~~ **Met** (`homecooked-procedure` +
+  `homecooked-wasm` `run_procedure` API).
 
 ### Stream 4 — HAL sketch + controller-sim + TCP transport
 
@@ -246,12 +246,15 @@ multiple small PRs.
    header. **Procedure UI slice is done** — `list_example_procedures` /
    `get_example_procedure` / `parse_procedure` / `run_procedure` expose the
    sequential runner; simulator-web has a picker + paste/run panel with
-   step outcomes (kettle happy-path + Domino’s microwave fixture).
+   step outcomes (kettle happy-path + Domino’s microwave fixture;
+   both covered by wasm `run_procedure` E2E tests).
    **Thermal-port UI slice is done** — `create_thermal_demo` /
    `thermal_state` / `thermal_negotiate_demo` / `thermal_tick` /
    `thermal_demo_transfer` expose the fridge→DHW plant; simulator-web has a
    Load demo / Negotiate / Tick / Transfer panel showing reservoirs, ports,
    and last transfer results.
+   **WASM module load:** simulator-web loads bindgen via **fetch + blob URL**
+   (cache defeat after rebuilds) — **Done**.
    **Still open:** richer conformance-oriented screens.
 2. Conformance suite: catalog id hygiene, capability advertisement rules,
    protocol major-version rejection, representative write denials.
@@ -370,7 +373,11 @@ Count: **31** Tier-B ids, all with thin static tables + sim.
 | later | `feat/bridges-modbus` | 6 — Modbus + stubs (first slice) |
 | later | `feat/matter-mock-bridge` | 6 — Matter mock fabric + kettle map |
 | later | `feat/simulator-tier-a-ui` | 7 — grouped Tier-A picker (first UI slice) |
-| later | WASM UI + conformance suite | 7 — picker + procedure UI + thermal plant UI done; smoke suite done (`homecooked-conformance`); deeper matrices remaining |
+| later | WASM UI + conformance suite | 7 — picker + procedure UI (incl. Domino's `run_procedure` E2E) + thermal UI + blob-load done; smoke suite done; deeper matrices remaining |
+| later | Tier-B thin tables | 2 — **Done** (31 Tier-B → 56 total static + sim) |
+| later | lab hub + PSK | 4 — **Done** (`homecooked-hub`, transport PSK) |
+| later | bridge mocks (Matter/Zigbee/BACnet) | 6 — **Done** (thin mocks; real SDKs still open) |
+| later | dryer controller cycle | 4 — **Done** |
 
 One concern per PR when practical. Catalog/standard docs land before or with
 the code that implements them.
@@ -386,10 +393,13 @@ the code that implements them.
 | 0.1.2 | Stream 7 conformance smoke crate (`homecooked-conformance`) |
 | 0.1.3 | Stream 7 procedure UI slice (`homecooked-wasm` + simulator-web runner panel) |
 | 0.1.4 | Stream 6 Matter mock bridge (`homecooked-bridge` kettle map; no CHIP SDK) |
-| 0.1.5 | Stream 6 Zigbee mock bridge + microwave sim cook-time advance |
-| 0.1.6 | Stream 6 BACnet mock bridge (`homecooked-bridge` kettle map; no BACnet stack) |
-| 0.1.7 | Stream 4 dryer cotton cycle (`homecooked-controller` + dryer io_map/interlocks) |
 | 0.1.5 | Stream 7 thermal plant UI (`homecooked-wasm` + simulator-web thermal panel) |
-| 0.1.8 | Stream 4 lab TCP PSK pairing (`homecooked-transport`); TLS/OAuth still out of scope |
-| 0.1.9 | Optional lab hub (`homecooked-hub`): multi-device TCP aggregator; devices do not require it |
-| 0.1.10 | Stream 7 conformance: optional lab hub smoke (`hub_lab_set_discover_describe`) |
+| 0.1.6 | Stream 6 Zigbee mock bridge + microwave sim cook-time advance |
+| 0.1.7 | Stream 6 BACnet mock bridge (`homecooked-bridge` kettle map; no BACnet stack) |
+| 0.1.8 | Stream 4 dryer cycle (`homecooked-controller` + dryer io_map/interlocks) |
+| 0.1.9 | Stream 4 lab TCP PSK pairing (`homecooked-transport`); TLS/OAuth still out of scope |
+| 0.1.10 | Optional lab hub (`homecooked-hub`): multi-device TCP aggregator; devices do not require it |
+| 0.1.11 | Stream 7 conformance: optional lab hub smoke (`hub_lab_set_discover_describe`) |
+| 0.1.12 | Stream 2 Tier-B thin ClassTables (31) → full catalog **56** static + sim |
+| 0.1.13 | Stream 7 simulator-web WASM load via fetch+blob (module cache defeat) |
+| 0.1.14 | Stream 3/7 Domino's microwave `run_procedure` E2E; roadmap Done-state refresh |
