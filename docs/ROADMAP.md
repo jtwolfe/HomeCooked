@@ -1,6 +1,6 @@
 # HomeCooked roadmap — ~75% project completeness
 
-Version **0.1.98**. Planning doc for a long flesh-out of the catalog, control
+Version **0.1.99**. Planning doc for a long flesh-out of the catalog, control
 stack, and simulator. It does **not** freeze APIs; crate and YAML shapes may
 evolve with the code that implements each stream.
 
@@ -72,17 +72,18 @@ mocks + write-denial matrix + **optional-depth deepen series** on
 `dehumidifier` / `range_hood` / `steam_oven` / `cooktop` / `humidifier` /
 `freezer` / `fridge_freezer` / `beverage_cooler` / `kegerator` / `warming_drawer` / `pizza_oven` / `electric_grill` / `electric_smoker` / `espresso_machine` / `drip_coffee_maker` / `coffee_grinder` / `water_dispenser` / `toaster` / `blender` / `food_processor` / `stand_mixer` / `juicer` / `rice_cooker` / `slow_cooker` / `bread_maker` / `dehydrator` / `vacuum_sealer` / `ice_cream_maker` / `yogurt_maker` / `waffle_maker` / `pasta_maker` / `steam_cooker` / `garbage_disposal` / `trash_compactor` / `boiler` / `water_softener` / `water_filter` / `washer` / `dryer` / `washer_dryer` / `fridge` / `dishwasher` / `microwave` / `oven` / `range` / `induction_hob` / `air_fryer` / `kettle` / `coffee_machine` / `water_heater` / `hvac` ≈ **~75% of the §2 in-scope bar, met in spirit** for
 lab/software depth (was ~30% at roadmap start; ~72% at the v0.1.35 refresh; still
-~75% after the deepen wave — all 31 Tier-B have optional-depth passes; all listed undepened Tier-A classes now have optional-depth passes (`washer` + `dryer` + `washer_dryer` + `fridge` + `dishwasher` + `microwave` + `oven` + `range` + `induction_hob` + `air_fryer` + `kettle` + `coffee_machine` + `water_heater` + `hvac`); honest caveats still apply for real bridges, TLS, typical_capability, etc.).
+~75% after the deepen wave — all 31 Tier-B have optional-depth passes; all listed undepened Tier-A classes now have optional-depth passes (`washer` + `dryer` + `washer_dryer` + `fridge` + `dishwasher` + `microwave` + `oven` + `range` + `induction_hob` + `air_fryer` + `kettle` + `coffee_machine` + `water_heater` + `hvac`); honest caveats still apply for real bridges, TLS, etc.).
 Recent grind: schema thermal vocab + `ClassTable.thermal_ports` + heat-port UI
 (#54–#55, #59); washer cotton-over-TCP (#60) + **dryer cycle TCP** (#62);
 thin **`thermal_offer`** (#65); catalog optional-depth PRs **#56–#57, #63–#64,
 #66–#73** + `beverage_cooler` / `kegerator` / `warming_drawer` / `pizza_oven` / `electric_grill` / `electric_smoker` / `espresso_machine` / `drip_coffee_maker` / `coffee_grinder` / `water_dispenser` / `toaster` / `blender` / `food_processor` / `stand_mixer` / `juicer` / `rice_cooker` / `slow_cooker` / `bread_maker` / `dehydrator` / `vacuum_sealer` / `ice_cream_maker` / `yogurt_maker` / `waffle_maker` / `pasta_maker` / `steam_cooker` / `garbage_disposal` / `trash_compactor` / `boiler` / `water_softener` / `water_filter` / `washer` / `dryer` / `washer_dryer` / `fridge` / `dishwasher` / `microwave` / `oven` / `range` / `induction_hob` / `air_fryer` / `kettle` / `coffee_machine` / `water_heater` / `hvac` (the fifty-six classes above; undepened Tier-A deepen series: `washer` + `dryer` + `washer_dryer` + `fridge` + `dishwasher` + `microwave` + `oven` + `range` + `induction_hob` + `air_fryer` + `kettle` + `coffee_machine` + `water_heater` + `hvac`). Calling the target **substantially
 achieved** remains honest — not that every §2 bullet is production-complete or
-that real bridge SDKs / TLS / typical_capability are done. This is **not** IEC certification,
+that real bridge SDKs / TLS are done. This is **not** IEC certification,
 production firmware, or a shipping commercial appliance. Remaining work is depth
 beyond the lab bar (real bridge SDK, full plant runtime schema promotion, TLS,
-richer procedure⇄thermal dialogue beyond offer+immediate-accept,
-typical_capability over wire).
+richer procedure⇄thermal dialogue beyond offer+immediate-accept; washer/dryer
+lab typical_capability-over-wire landed — full HAL binding for every typical
+point still not required).
 
 ---
 
@@ -209,8 +210,9 @@ production firmware:
   TCP landed; washer **CottonOptions** over the wire (adjacent `wash_temp_c` /
   `spin_rpm` before void start) landed; dryer **DryOptions** (adjacent
   `dryness` / `heat_level` before void start) landed; **cancel / pause /
-  resume** over TCP landed; typical_capability remains optional follow-up
-  (still thin / beyond).
+  resume** over TCP landed; **typical_capability over the wire** for washer+dryer
+  lab endpoints landed (advertise catalog typical + lab HAL/`sim_tick`;
+  store/default for unbound typical points — full HAL binding not required).
 
 ---
 
@@ -287,8 +289,9 @@ multiple small PRs.
    dryer Idle→Heat/Dry→Cool→Done on MockHal with class interlocks
    (`washer_rules` / `dryer_rules`); thin lab device-role via
    `ControllerEndpoint` / `DryerControllerEndpoint` (TCP interlock smoke);
-   fuller typical_capability still follow-up
-   (washer CottonOptions + dryer DryOptions + cancel/pause/resume landed).
+   typical_capability over lab TCP landed
+   (washer CottonOptions + dryer DryOptions + cancel/pause/resume + catalog
+   typical Describe/store-default).
 3. ~~TCP transport for the existing protocol envelope (one peer = one sim
    controller).~~ **Done (lab smoke)** — `homecooked-transport`: length-prefixed
    JSON framing, sim-backed TCP server + client, integration tests for
@@ -303,7 +306,8 @@ multiple small PRs.
    Washer cotton + dryer cycle start + `cycle_state`/`cycle_phase` (+ lab tick)
    over TCP landed; washer CottonOptions + dryer DryOptions (adjacent catalog
    setpoints) over TCP landed; cancel/pause/resume over TCP landed;
-   typical_capability remains optional follow-up.
+   catalog **typical_capability** over TCP landed (merged with lab HAL /
+   sim_tick; store/default for unbound points).
 
 4. ~~Optional multi-device lab hub~~ **Done (thin)** — `homecooked-hub`
    wraps `Simulator` / `DeviceHub`, reuses `homecooked-transport` TCP + optional
@@ -318,7 +322,7 @@ multiple small PRs.
   ~~Controller-sim + interlock path over TCP~~ **Met (lab smoke)** —
   `homecooked-controller` `tcp_interlock` + conformance
   `controller_tcp_washer_interlock` / `controller_tcp_dryer_interlock` /
-  `controller_tcp_washer_cotton` / `controller_tcp_washer_cotton_options` / `controller_tcp_dryer_cycle` / `controller_tcp_dryer_dry_options` / `controller_tcp_washer_cycle_pause_cancel` / `controller_tcp_dryer_cycle_pause_cancel`.
+  `controller_tcp_washer_cotton` / `controller_tcp_washer_cotton_options` / `controller_tcp_dryer_cycle` / `controller_tcp_dryer_dry_options` / `controller_tcp_washer_cycle_pause_cancel` / `controller_tcp_dryer_cycle_pause_cancel` / `controller_tcp_washer_typical_capability` / `controller_tcp_dryer_typical_capability`.
 - No claim of production firmware, TLS, OAuth, or certified safety path.
   Lab PSK is a shared-secret handshake only (cleartext over cleartext TCP).
 
@@ -675,3 +679,4 @@ the code that implements them.
 | 0.1.96 | Stream 4: washer **CottonOptions** over lab TCP (adjacent `class.washer.wash_temp_c` / `spin_rpm` writes before void `trait.cycle.start`); conformance `controller_tcp_washer_cotton_options`; DryOptions / cancel / pause / typical_capability remain follow-up |
 | 0.1.97 | Stream 4: dryer **DryOptions** over lab TCP (adjacent `class.dryer.dryness` / `heat_level` writes before void `trait.cycle.start`; map onto host humidity / temp targets); conformance `controller_tcp_dryer_dry_options`; cancel / pause / typical_capability remain follow-up |
 | 0.1.98 | Stream 4: washer + dryer **cycle cancel / pause / resume** over lab TCP (`trait.cycle.cancel` / `pause` / `resume`; host `Paused`/`Canceling` → drain/cool → `idle`); conformance `controller_tcp_washer_cycle_pause_cancel` / `controller_tcp_dryer_cycle_pause_cancel`; typical_capability remains follow-up |
+| 0.1.99 | Stream 4: washer + dryer **typical_capability over lab TCP** (Describe = catalog typical ∪ lab HAL/`sim_tick`/cycle pause-phase/DryOptions; unbound typical points store/default); conformance `controller_tcp_washer_typical_capability` / `controller_tcp_dryer_typical_capability` |

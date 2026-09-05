@@ -72,5 +72,10 @@ Also covered by `cargo test --workspace` (CI).
    cancel → `canceling` → `idle`; cancel while idle → `invalid_request`
 12e. **controller_tcp_dryer_cycle_pause_cancel** — same pause/resume/cancel
    path on dryer (cool then unlock → `idle`)
+12f. **controller_tcp_washer_typical_capability** — Describe includes catalog
+   typical washer points + lab `sim_tick`/HAL; read/write newly advertised
+   typical points (store/default)
+12g. **controller_tcp_dryer_typical_capability** — same for dryer (plus
+   dryness/heat_level lab extras)
 13. **hub_lab_set_discover_describe** — optional `LabHub` lab set over TCP:
    Discover ≥3 devices, describe kettle (`homecooked-hub`)

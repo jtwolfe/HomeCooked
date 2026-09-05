@@ -862,3 +862,165 @@ fn tcp_dryer_cycle_pause_and_cancel() {
         .unwrap();
     assert_eq!(done.values[0].value, Some(Value::Enum("idle".into())));
 }
+
+#[test]
+fn tcp_washer_typical_capability_over_wire() {
+    use homecooked_schema::typical_capability;
+
+    let ep = ControllerEndpoint::washer_lab().unwrap();
+    let (addr, _shared, _server) = spawn_handler_server("127.0.0.1:0", ep).unwrap();
+    thread::sleep(Duration::from_millis(20));
+
+    let mut client = TcpClient::connect(addr).unwrap();
+    let desc = client.describe(WASHER_CTRL_DEVICE_ID, vec![]).unwrap();
+    let typical = typical_capability(homecooked_schema::ApplianceClassId::Washer).unwrap();
+
+    // Catalog typical subset present on the wire.
+    for point in [
+        "trait.program.program",
+        "trait.program.available_programs",
+        "class.washer.door_locked",
+        "class.washer.wash_temp_c",
+        "trait.power.power_state",
+        "trait.cycle.start",
+        "trait.cycle.cancel",
+    ] {
+        assert!(
+            desc.capability.point(point).is_some(),
+            "describe missing typical {point}"
+        );
+        assert!(typical.point(point).is_some());
+    }
+    // Lab extras retained.
+    for point in [
+        "class.washer.sim_tick",
+        "class.washer.heater_enable",
+        "trait.cycle.pause",
+        "trait.cycle.cycle_phase",
+    ] {
+        assert!(
+            desc.capability.point(point).is_some(),
+            "describe missing lab {point}"
+        );
+    }
+
+    // Read defaults + write/store a newly advertised typical point.
+    let got = client
+        .read(
+            WASHER_CTRL_DEVICE_ID,
+            vec![
+                qid("trait.program.program"),
+                qid("class.washer.sabbath_mode"),
+            ],
+        )
+        .unwrap();
+    assert_eq!(got.values[0].value, Some(Value::Enum("cotton".into())));
+    assert_eq!(got.values[1].value, Some(Value::Bool(false)));
+
+    client
+        .write(
+            WASHER_CTRL_DEVICE_ID,
+            vec![
+                WriteOp {
+                    id: qid("trait.program.program"),
+                    value: Value::Enum("eco".into()),
+                },
+                WriteOp {
+                    id: qid("class.washer.sabbath_mode"),
+                    value: Value::Bool(true),
+                },
+            ],
+        )
+        .unwrap();
+
+    let again = client
+        .read(
+            WASHER_CTRL_DEVICE_ID,
+            vec![
+                qid("trait.program.program"),
+                qid("class.washer.sabbath_mode"),
+            ],
+        )
+        .unwrap();
+    assert_eq!(again.values[0].value, Some(Value::Enum("eco".into())));
+    assert_eq!(again.values[1].value, Some(Value::Bool(true)));
+}
+
+#[test]
+fn tcp_dryer_typical_capability_over_wire() {
+    use homecooked_controller::{DryerControllerEndpoint, DRYER_CTRL_DEVICE_ID};
+    use homecooked_schema::typical_capability;
+
+    let ep = DryerControllerEndpoint::dryer_lab().unwrap();
+    let (addr, _shared, _server) = spawn_handler_server("127.0.0.1:0", ep).unwrap();
+    thread::sleep(Duration::from_millis(20));
+
+    let mut client = TcpClient::connect(addr).unwrap();
+    let desc = client.describe(DRYER_CTRL_DEVICE_ID, vec![]).unwrap();
+    let typical = typical_capability(homecooked_schema::ApplianceClassId::Dryer).unwrap();
+
+    for point in [
+        "trait.program.program",
+        "class.dryer.lint_filter",
+        "class.dryer.door_locked",
+        "trait.power.power_state",
+        "trait.cycle.start",
+        "trait.cycle.cancel",
+    ] {
+        assert!(
+            desc.capability.point(point).is_some(),
+            "describe missing typical {point}"
+        );
+        assert!(typical.point(point).is_some());
+    }
+    for point in [
+        "class.dryer.sim_tick",
+        "class.dryer.heater_enable",
+        "class.dryer.dryness",
+        "class.dryer.heat_level",
+        "trait.cycle.pause",
+        "trait.cycle.cycle_phase",
+    ] {
+        assert!(
+            desc.capability.point(point).is_some(),
+            "describe missing lab {point}"
+        );
+    }
+
+    let got = client
+        .read(
+            DRYER_CTRL_DEVICE_ID,
+            vec![
+                qid("trait.program.program"),
+                qid("class.dryer.sabbath_mode"),
+            ],
+        )
+        .unwrap();
+    assert_eq!(got.values[0].value, Some(Value::Enum("cotton".into())));
+    assert_eq!(got.values[1].value, Some(Value::Bool(false)));
+
+    client
+        .write(
+            DRYER_CTRL_DEVICE_ID,
+            vec![
+                WriteOp {
+                    id: qid("trait.program.program"),
+                    value: Value::Enum("eco".into()),
+                },
+                WriteOp {
+                    id: qid("class.dryer.anti_crease"),
+                    value: Value::Bool(true),
+                },
+            ],
+        )
+        .unwrap();
+
+    let again = client
+        .read(
+            DRYER_CTRL_DEVICE_ID,
+            vec![qid("trait.program.program"), qid("class.dryer.anti_crease")],
+        )
+        .unwrap();
+    assert_eq!(again.values[0].value, Some(Value::Enum("eco".into())));
+    assert_eq!(again.values[1].value, Some(Value::Bool(true)));
+}
