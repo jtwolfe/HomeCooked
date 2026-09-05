@@ -1047,13 +1047,17 @@ Immersion circulator or dedicated sous-vide bath.
 `heater`, `fan` (pump), `fault`, `energy`, `time_schedule`, `safety`, `audio`.
 
 **Typical controllable settings:** water setpoint (typically 20–95 °C, 0.1 °C
-resolution), duration, start/stop, delay, alarm offset.
+resolution), cook duration (`cook_s`), delayed start, alarm offset, start/stop.
 
-**Typical readable state:** water temp, heating, circulating, remaining, low
-water, cover (optional).
+**Typical readable state:** water temp, heating, circulating, timer remaining,
+target done, low water / water level ok, lid closed, overtemp alarm, cycle
+remaining.
 
 **Notes:** Low-water must cut heat. A sous-vide *program* on an oven or
 multi-cooker is not this class.
+- Catalog depth: optional class points include water level / lid / timer /
+  target-done / overtemp / delayed start / alarm offset (see
+  variables-and-settings); typical also advertises `trait.cycle.remaining_s`.
 
 ### `bread_maker`
 

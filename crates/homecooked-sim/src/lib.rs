@@ -448,6 +448,106 @@ mod tests {
     }
 
     #[test]
+    fn sous_vide_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let sv = sim.spawn(ApplianceClassId::SousVide).unwrap();
+
+        assert_eq!(
+            sim.read_value(&sv, "class.sous_vide.low_water").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&sv, "class.sous_vide.water_level_ok")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(
+            sim.read_value(&sv, "class.sous_vide.lid_closed").unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(
+            sim.read_value(&sv, "class.sous_vide.circulating").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&sv, "class.sous_vide.target_done").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&sv, "class.sous_vide.overtemp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&sv, "class.sous_vide.timer_remaining_s")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&sv, "class.sous_vide.cook_s").unwrap(),
+            Value::DurationS(600)
+        );
+        assert_eq!(
+            sim.read_value(&sv, "class.sous_vide.delayed_start_s")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&sv, "class.sous_vide.alarm_offset_c")
+                .unwrap(),
+            Value::F32(0.0)
+        );
+        assert_eq!(
+            sim.read_value(&sv, "trait.cycle.remaining_s").unwrap(),
+            Value::DurationS(0)
+        );
+
+        sim.write(&sv, "class.sous_vide.cook_s", Value::DurationS(3600))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&sv, "class.sous_vide.cook_s").unwrap(),
+            Value::DurationS(3600)
+        );
+        sim.write(
+            &sv,
+            "class.sous_vide.delayed_start_s",
+            Value::DurationS(900),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&sv, "class.sous_vide.delayed_start_s")
+                .unwrap(),
+            Value::DurationS(900)
+        );
+        sim.write(&sv, "class.sous_vide.alarm_offset_c", Value::F32(0.5))
+            .unwrap();
+        assert!(
+            (f32_val(
+                &sim.read_value(&sv, "class.sous_vide.alarm_offset_c")
+                    .unwrap()
+            ) - 0.5)
+                .abs()
+                < f32::EPSILON
+        );
+        let err = sim
+            .write(&sv, "class.sous_vide.water_level_ok", Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&sv, "class.sous_vide.overtemp_alarm", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&sv, "class.sous_vide.target_done", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&sv, "trait.cycle.remaining_s", Value::DurationS(120))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {

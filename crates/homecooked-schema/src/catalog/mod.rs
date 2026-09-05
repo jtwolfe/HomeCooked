@@ -203,6 +203,13 @@ fn extra_typical_trait_point(table: &ClassTable, trait_id: TraitId, point: &Cata
             return true;
         }
     }
+    // Sous-vide: cycle remaining is typical cook-timer telemetry.
+    if table.class_id == ApplianceClassId::SousVide
+        && trait_id == TraitId::Cycle
+        && point.id == "remaining_s"
+    {
+        return true;
+    }
     false
 }
 
@@ -243,6 +250,21 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "harvest_fail"
                 | "scale_alert"
                 | "delayed_start_s"
+        );
+    }
+    // Stream 7 catalog depth: sous-vide optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::SousVide {
+        return matches!(
+            point.id,
+            "circulating"
+                | "cook_s"
+                | "water_level_ok"
+                | "lid_closed"
+                | "timer_remaining_s"
+                | "target_done"
+                | "overtemp_alarm"
+                | "delayed_start_s"
+                | "alarm_offset_c"
         );
     }
     // Stream 5: device-facing thermal-port surface on Tier-A water_heater / fridge / hvac / dishwasher / dryer.
@@ -671,6 +693,54 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         cap.validate_write("trait.humidity.setpoint_rh", &Value::Percent(60.0))
             .unwrap();
+    }
+
+    #[test]
+    fn sous_vide_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::SousVide).unwrap();
+        for id in [
+            "class.sous_vide.low_water",
+            "class.sous_vide.circulating",
+            "class.sous_vide.cook_s",
+            "class.sous_vide.water_level_ok",
+            "class.sous_vide.lid_closed",
+            "class.sous_vide.timer_remaining_s",
+            "class.sous_vide.target_done",
+            "class.sous_vide.overtemp_alarm",
+            "class.sous_vide.delayed_start_s",
+            "class.sous_vide.alarm_offset_c",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical sous_vide"
+            );
+        }
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Cycle)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.cycle.remaining_s"));
+        cap.validate_write("class.sous_vide.cook_s", &Value::DurationS(3600))
+            .unwrap();
+        cap.validate_write("class.sous_vide.delayed_start_s", &Value::DurationS(600))
+            .unwrap();
+        cap.validate_write("class.sous_vide.alarm_offset_c", &Value::F32(1.0))
+            .unwrap();
+        let err = cap
+            .validate_write("class.sous_vide.water_level_ok", &Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.sous_vide.overtemp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("trait.cycle.remaining_s", &Value::DurationS(100))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
     }
 
     #[test]

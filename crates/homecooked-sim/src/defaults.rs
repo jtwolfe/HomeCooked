@@ -211,6 +211,14 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
         "remaining_s" | "elapsed_s" => Value::DurationS(0),
         "wash_temp_c" => Value::F32(40.0),
         "bottle_count" => Value::U16(24),
+        "water_level_ok" => match ctx.identity.class_id {
+            ApplianceClassId::SousVide => Value::Bool(true),
+            _ => Value::Bool(false),
+        },
+        "lid_closed" => match ctx.identity.class_id {
+            ApplianceClassId::SousVide => Value::Bool(true),
+            _ => Value::Bool(false),
+        },
         "water_temp_c" => match ctx.identity.class_id {
             ApplianceClassId::IceMaker => Value::F32(12.0),
             _ => Value::F32(numeric_default(point)),
