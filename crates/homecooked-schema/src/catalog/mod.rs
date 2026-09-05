@@ -387,6 +387,26 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "charcoal_filter_life_percent"
         );
     }
+    // Stream 7 catalog depth: cooktop optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::Cooktop {
+        return matches!(
+            point.id,
+            "boost"
+                | "timer_s"
+                | "bridge"
+                | "flame_out"
+                | "ignition_fail"
+                | "power_limit_w"
+                | "keep_warm"
+                | "hotspot_alert"
+                | "timer_active"
+                | "paused"
+                | "surface_c"
+                | "element_fault"
+                | "pan_detect"
+                | "flame_on"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -1282,6 +1302,99 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.steam_oven.door_locked_clean", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn cooktop_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::Cooktop).unwrap();
+        for id in [
+            "class.cooktop.level",
+            "class.cooktop.residual_heat",
+            "class.cooktop.boost",
+            "class.cooktop.timer_s",
+            "class.cooktop.bridge",
+            "class.cooktop.flame_out",
+            "class.cooktop.ignition_fail",
+            "class.cooktop.power_limit_w",
+            "class.cooktop.keep_warm",
+            "class.cooktop.hotspot_alert",
+            "class.cooktop.timer_active",
+            "class.cooktop.paused",
+            "class.cooktop.surface_c",
+            "class.cooktop.element_fault",
+            "class.cooktop.pan_detect",
+            "class.cooktop.flame_on",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical cooktop"
+            );
+        }
+        let keep_warm = cap
+            .class_points
+            .iter()
+            .find(|p| p.id == "class.cooktop.keep_warm")
+            .unwrap();
+        assert_eq!(
+            keep_warm.zones.as_ref().unwrap(),
+            &["hob_1", "hob_2", "hob_3", "hob_4"].map(str::to_string)
+        );
+        let paused = cap
+            .class_points
+            .iter()
+            .find(|p| p.id == "class.cooktop.paused")
+            .unwrap();
+        assert!(paused.zones.is_none());
+        cap.validate_write("class.cooktop.boost#hob_1", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.cooktop.timer_s#hob_2", &Value::DurationS(600))
+            .unwrap();
+        cap.validate_write("class.cooktop.bridge#hob_1", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.cooktop.power_limit_w", &Value::U32(7200))
+            .unwrap();
+        cap.validate_write("class.cooktop.keep_warm#hob_1", &Value::Bool(true))
+            .unwrap();
+        let err = cap
+            .validate_write("class.cooktop.hotspot_alert#hob_1", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.cooktop.timer_active#hob_1", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.cooktop.paused", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.cooktop.surface_c#hob_1", &Value::F32(120.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.cooktop.element_fault#hob_1", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.cooktop.pan_detect#hob_1", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.cooktop.flame_on#hob_1", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.cooktop.flame_out", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.cooktop.ignition_fail", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.cooktop.residual_heat#hob_1", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }

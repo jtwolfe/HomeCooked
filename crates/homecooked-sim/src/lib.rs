@@ -1389,6 +1389,199 @@ mod tests {
     }
 
     #[test]
+    fn cooktop_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let cooktop = sim.spawn(ApplianceClassId::Cooktop).unwrap();
+
+        assert_eq!(
+            sim.read_value(&cooktop, "class.cooktop.level#hob_1")
+                .unwrap(),
+            Value::U8(0)
+        );
+        assert_eq!(
+            sim.read_value(&cooktop, "class.cooktop.residual_heat#hob_1")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&cooktop, "class.cooktop.boost#hob_1")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&cooktop, "class.cooktop.timer_s#hob_1")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&cooktop, "class.cooktop.bridge#hob_1")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&cooktop, "class.cooktop.flame_out").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&cooktop, "class.cooktop.ignition_fail")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&cooktop, "class.cooktop.power_limit_w")
+                .unwrap(),
+            Value::U32(7200)
+        );
+        assert_eq!(
+            sim.read_value(&cooktop, "class.cooktop.keep_warm#hob_1")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&cooktop, "class.cooktop.hotspot_alert#hob_1")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&cooktop, "class.cooktop.timer_active#hob_1")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&cooktop, "class.cooktop.paused").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&cooktop, "class.cooktop.surface_c#hob_1")
+                .unwrap(),
+            Value::F32(20.0)
+        );
+        assert_eq!(
+            sim.read_value(&cooktop, "class.cooktop.element_fault#hob_1")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&cooktop, "class.cooktop.pan_detect#hob_1")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&cooktop, "class.cooktop.flame_on#hob_1")
+                .unwrap(),
+            Value::Bool(false)
+        );
+
+        sim.write(&cooktop, "class.cooktop.boost#hob_1", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&cooktop, "class.cooktop.boost#hob_1")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(
+            &cooktop,
+            "class.cooktop.timer_s#hob_2",
+            Value::DurationS(900),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&cooktop, "class.cooktop.timer_s#hob_2")
+                .unwrap(),
+            Value::DurationS(900)
+        );
+        sim.write(&cooktop, "class.cooktop.bridge#hob_1", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&cooktop, "class.cooktop.bridge#hob_1")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&cooktop, "class.cooktop.power_limit_w", Value::U32(4800))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&cooktop, "class.cooktop.power_limit_w")
+                .unwrap(),
+            Value::U32(4800)
+        );
+        sim.write(&cooktop, "class.cooktop.keep_warm#hob_3", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&cooktop, "class.cooktop.keep_warm#hob_3")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&cooktop, "class.cooktop.level#hob_1", Value::U8(5))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&cooktop, "class.cooktop.level#hob_1")
+                .unwrap(),
+            Value::U8(5)
+        );
+
+        let err = sim
+            .write(
+                &cooktop,
+                "class.cooktop.hotspot_alert#hob_1",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &cooktop,
+                "class.cooktop.timer_active#hob_1",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&cooktop, "class.cooktop.paused", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&cooktop, "class.cooktop.surface_c#hob_1", Value::F32(180.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &cooktop,
+                "class.cooktop.element_fault#hob_1",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &cooktop,
+                "class.cooktop.pan_detect#hob_1",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&cooktop, "class.cooktop.flame_on#hob_1", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&cooktop, "class.cooktop.flame_out", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&cooktop, "class.cooktop.ignition_fail", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &cooktop,
+                "class.cooktop.residual_heat#hob_1",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {

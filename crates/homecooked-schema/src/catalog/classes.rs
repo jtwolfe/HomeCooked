@@ -941,6 +941,70 @@ const COOKTOP_POINTS: &[CatalogPoint] = &[
         AccessMode::RW,
         false,
     ),
+    CatalogPoint::setting(
+        "keep_warm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    )
+    .zoned(),
+    CatalogPoint::variable(
+        "hotspot_alert",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    )
+    .zoned(),
+    CatalogPoint::variable(
+        "timer_active",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    )
+    .zoned(),
+    v("paused", ValueType::Bool, None, None, AccessMode::RE, false),
+    CatalogPoint::variable(
+        "surface_c",
+        ValueType::F32,
+        Some(Unit::Celsius),
+        num(0.0, 400.0),
+        AccessMode::RE,
+        false,
+    )
+    .zoned(),
+    CatalogPoint::variable(
+        "element_fault",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    )
+    .zoned(),
+    CatalogPoint::variable(
+        "pan_detect",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    )
+    .zoned(),
+    CatalogPoint::variable(
+        "flame_on",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    )
+    .zoned(),
     cmd("pause_all", Some(CatalogRange::CommandVoid), false),
     cmd("resume_all", Some(CatalogRange::CommandVoid), false),
 ];
@@ -1007,7 +1071,7 @@ const INDUCTION_HOB_EXTRA: &[CatalogPoint] = &[
     ),
 ];
 
-const INDUCTION_HOB_MERGED: [CatalogPoint; 17] = concat2(COOKTOP_POINTS, INDUCTION_HOB_EXTRA);
+const INDUCTION_HOB_MERGED: [CatalogPoint; 25] = concat2(COOKTOP_POINTS, INDUCTION_HOB_EXTRA);
 const INDUCTION_HOB_POINTS: &[CatalogPoint] = &INDUCTION_HOB_MERGED;
 
 const KETTLE_TRAITS: &[TraitId] = &[
@@ -2131,7 +2195,7 @@ const RANGE_SURFACE_POINTS: &[CatalogPoint] = &[v(
     true,
 )];
 
-const RANGE_MERGED: [CatalogPoint; 18] = concat3(COOKTOP_POINTS, OVEN_POINTS, RANGE_SURFACE_POINTS);
+const RANGE_MERGED: [CatalogPoint; 26] = concat3(COOKTOP_POINTS, OVEN_POINTS, RANGE_SURFACE_POINTS);
 const RANGE_POINTS: &[CatalogPoint] = &RANGE_MERGED;
 
 const COFFEE_TRAITS: &[TraitId] = &[
