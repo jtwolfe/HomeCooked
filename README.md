@@ -36,7 +36,7 @@ is **0.1.0** (peers are rejected only on protocol **major** mismatch).
 
 | Crate / app | Path | Role |
 |-------------|------|------|
-| `homecooked-schema` | [`crates/homecooked-schema`](crates/homecooked-schema) | Catalog-backed serde types, capability model, static tables, write validation |
+| `homecooked-schema` | [`crates/homecooked-schema`](crates/homecooked-schema) | Catalog-backed serde types, capability model, static tables, write validation; **catalog JSON export** for tooling |
 | `homecooked-protocol` | [`crates/homecooked-protocol`](crates/homecooked-protocol) | Envelope framing, request/response kinds, discovery, JSON, errors |
 | `homecooked-core` | [`crates/homecooked-core`](crates/homecooked-core) | Device registry, capability-enforced read/write, request handling |
 | `homecooked-sim` | [`crates/homecooked-sim`](crates/homecooked-sim) | In-memory devices for static Tier-A ∪ Tier-B class tables |
@@ -60,6 +60,25 @@ simulated devices) cover all **56** catalog class ids: **25 Tier-A** plus
 `STATIC_CLASS_IDS` = `ApplianceClassId::ALL` in
 `crates/homecooked-schema/src/catalog/classes.rs`). See
 [`docs/ROADMAP.md`](docs/ROADMAP.md) §4.
+
+
+
+## Catalog JSON export (tooling)
+
+Machine-readable dump of all **56** class ids and their typical capability
+points (traits + required class points). This is a small auditable JSON
+document for generators / validators — **not** a full OpenAPI server.
+
+```bash
+cargo run -p homecooked-schema --example export_catalog
+cargo run -p homecooked-schema --example export_catalog -- /tmp/homecooked-catalog.json
+cargo test -p homecooked-schema export_is_valid_json
+```
+
+Document shape: `format` = `homecooked.catalog_export`, `classes[].class_id`,
+`classes[].group`, `classes[].typical` (same serde shape as the capability
+model). See `homecooked_schema::catalog_export` /
+`export_catalog_json`.
 
 ## Tests
 
