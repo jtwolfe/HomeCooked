@@ -598,6 +598,22 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "timer_s"
         );
     }
+    // Stream 7 catalog depth: coffee_grinder optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::CoffeeGrinder {
+        return matches!(
+            point.id,
+            "grind_s"
+                | "dose_g"
+                | "hopper_present"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "motor_on"
+                | "hopper_empty"
+                | "bean_level_percent"
+                | "timer_s"
+                | "single_dose"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -2306,6 +2322,59 @@ mod tests {
             .validate_write(
                 "class.drip_coffee_maker.descaling_needed",
                 &Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn coffee_grinder_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::CoffeeGrinder).unwrap();
+        for id in [
+            "class.coffee_grinder.grind_s",
+            "class.coffee_grinder.dose_g",
+            "class.coffee_grinder.hopper_present",
+            "class.coffee_grinder.sabbath_mode",
+            "class.coffee_grinder.eco_mode",
+            "class.coffee_grinder.motor_on",
+            "class.coffee_grinder.hopper_empty",
+            "class.coffee_grinder.bean_level_percent",
+            "class.coffee_grinder.timer_s",
+            "class.coffee_grinder.single_dose",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical coffee_grinder"
+            );
+        }
+        cap.validate_write("class.coffee_grinder.grind_s", &Value::DurationS(10))
+            .unwrap();
+        cap.validate_write("class.coffee_grinder.dose_g", &Value::F32(18.0))
+            .unwrap();
+        cap.validate_write("class.coffee_grinder.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.coffee_grinder.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.coffee_grinder.timer_s", &Value::DurationS(120))
+            .unwrap();
+        cap.validate_write("class.coffee_grinder.single_dose", &Value::Bool(true))
+            .unwrap();
+        let err = cap
+            .validate_write("class.coffee_grinder.hopper_present", &Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.coffee_grinder.motor_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.coffee_grinder.hopper_empty", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write(
+                "class.coffee_grinder.bean_level_percent",
+                &Value::Percent(50.0),
             )
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);

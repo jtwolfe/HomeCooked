@@ -945,6 +945,10 @@ stall.
 
 **Notes:** Built-in grinders on `coffee_machine` use trait-level grind
 settings, not this class.
+- Catalog depth: optional class points include `grind_s`, `dose_g`,
+  `hopper_present`, sabbath, eco, `motor_on`, `hopper_empty`,
+  `bean_level_percent`, `timer_s`, and `single_dose` (see
+  variables-and-settings).
 
 ### `kettle`
 

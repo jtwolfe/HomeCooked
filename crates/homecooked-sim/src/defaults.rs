@@ -205,6 +205,26 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             ApplianceClassId::DripCoffeeMaker => Value::Bool(true),
             _ => Value::Bool(false),
         },
+        "grind_s" => match ctx.identity.class_id {
+            ApplianceClassId::CoffeeGrinder => Value::DurationS(8),
+            _ => Value::DurationS(int_min(point, 0) as u32),
+        },
+        "dose_g" => match ctx.identity.class_id {
+            ApplianceClassId::CoffeeGrinder => Value::F32(18.0),
+            _ => Value::F32(numeric_default(point)),
+        },
+        "grind_level" => match ctx.identity.class_id {
+            ApplianceClassId::CoffeeGrinder => Value::U8(20),
+            _ => Value::U8(int_min(point, 0) as u8),
+        },
+        "hopper_present" => match ctx.identity.class_id {
+            ApplianceClassId::CoffeeGrinder => Value::Bool(true),
+            _ => Value::Bool(false),
+        },
+        "bean_level_percent" => match ctx.identity.class_id {
+            ApplianceClassId::CoffeeGrinder => Value::Percent(70.0),
+            _ => Value::Percent(0.0),
+        },
         "boiler_c" => Value::F32(20.0),
         "heat_level" => Value::Enum("low".into()),
         "water_empty" => Value::Bool(false),
