@@ -489,7 +489,8 @@ impl WasmApi {
     /// Auto-bind / spawn devices by role, then run the procedure against the sim.
     ///
     /// When a thermal plant is loaded, temporarily wraps sim+plant in
-    /// [`SimulatorBackend`] so `thermal_wait` steps can read reservoir temps.
+    /// [`SimulatorBackend`] so `thermal_wait` / `thermal_offer` steps can use
+    /// the plant.
     pub fn run_procedure(&mut self, json: &str) -> Result<String, ApiError> {
         let doc = Procedure::load_json(json)?;
         let (bindings, binding_out) = self.bind_procedure_devices(&doc)?;
@@ -1241,7 +1242,7 @@ mod tests {
     ) {
         let items: Vec<ExampleProcedureInfo> =
             serde_json::from_str(&WasmApi::list_example_procedures()).unwrap();
-        assert_eq!(items.len(), 8);
+        assert_eq!(items.len(), 9);
         assert_eq!(items[0].id, "kettle_heat_80");
         assert_eq!(items[0].name, "Heat kettle to 80C");
         assert!(items[0].class_hints.iter().any(|c| c == "kettle"));
@@ -1264,6 +1265,9 @@ mod tests {
         assert_eq!(items[7].id, "wait_dhw_reservoir");
         assert_eq!(items[7].name, "Wait until DHW reservoir is warm");
         assert!(items[7].class_hints.is_empty());
+        assert_eq!(items[8].id, "offer_fridge_dhw");
+        assert_eq!(items[8].name, "Offer fridge condenser heat to DHW preheat");
+        assert!(items[8].class_hints.is_empty());
     }
 
     #[test]
@@ -1322,6 +1326,12 @@ mod tests {
         let summary: ProcedureSummary =
             serde_json::from_str(&WasmApi::parse_procedure(&wait_dhw).unwrap()).unwrap();
         assert_eq!(summary.id, "wait_dhw_reservoir");
+
+        let offer = WasmApi::get_example_procedure("offer_fridge_dhw").unwrap();
+        let summary: ProcedureSummary =
+            serde_json::from_str(&WasmApi::parse_procedure(&offer).unwrap()).unwrap();
+        assert_eq!(summary.id, "offer_fridge_dhw");
+        assert_eq!(summary.step_count, 1);
         assert_eq!(summary.step_count, 1);
         assert!(summary.devices.is_empty());
 
@@ -1674,5 +1684,23 @@ mod tests {
         assert_eq!(out.status, "completed", "thermal_wait failed: {raw}");
         assert_eq!(out.outcomes.len(), 1);
         assert!(out.outcomes[0].ok);
+    }
+
+    #[test]
+    fn run_procedure_thermal_offer_fridge_dhw() {
+        let mut api = WasmApi::new();
+        api.create_thermal_demo().unwrap();
+        let json = WasmApi::get_example_procedure("offer_fridge_dhw").unwrap();
+        let raw = api.run_procedure(&json).unwrap();
+        let out: ProcedureRunOut = serde_json::from_str(&raw).unwrap();
+        assert_eq!(out.status, "completed", "thermal_offer failed: {raw}");
+        assert_eq!(out.outcomes.len(), 1);
+        assert!(out.outcomes[0].ok);
+        let accepted = out.outcomes[0]
+            .read_value
+            .as_ref()
+            .and_then(|v| v.as_i64())
+            .unwrap();
+        assert_eq!(accepted, 120);
     }
 }

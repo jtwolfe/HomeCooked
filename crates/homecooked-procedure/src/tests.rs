@@ -10,7 +10,7 @@ use homecooked_thermal::{
 use crate::{
     run, run_with_config, DeviceBindings, FailReason, Procedure, RunConfig, RunStatus,
     SimulatorBackend, StepAction, ThermalCmp, AIR_FRYER_COOK_200_JSON, COFFEE_BREW_ESPRESSO_JSON,
-    DISHWASHER_DHW_PREHEAT_JSON, KETTLE_HEAT_80_JSON, OVEN_BAKE_180_JSON,
+    DISHWASHER_DHW_PREHEAT_JSON, KETTLE_HEAT_80_JSON, OFFER_FRIDGE_DHW_JSON, OVEN_BAKE_180_JSON,
     REHEAT_DOMINOS_MICROWAVE_JSON, WAIT_DHW_RESERVOIR_JSON, WASH_THEN_DRY_JSON,
 };
 
@@ -69,6 +69,7 @@ fn bundled_example_constants_parse() {
             "coffee_brew_espresso",
             "air_fryer_cook_200",
             "wait_dhw_reservoir",
+            "offer_fridge_dhw",
         ]
     );
 }
@@ -839,4 +840,195 @@ fn thermal_wait_times_out_if_plant_idle() {
             reason: FailReason::Timeout,
         }
     );
+}
+
+#[test]
+fn parse_offer_fridge_dhw_fixture() {
+    let doc = Procedure::load_json(OFFER_FRIDGE_DHW_JSON).unwrap();
+    assert_eq!(doc.id, "offer_fridge_dhw");
+    assert!(doc.devices.is_empty());
+    assert_eq!(doc.steps.len(), 1);
+    assert_eq!(doc.steps[0].action, StepAction::ThermalOffer);
+    let from = doc.steps[0].from_port.as_ref().unwrap();
+    assert_eq!(from.device_id, "fridge-kitchen");
+    assert_eq!(from.port_id, "condenser");
+    let to = doc.steps[0].to_port.as_ref().unwrap();
+    assert_eq!(to.device_id, "water-heater-plant");
+    assert_eq!(to.port_id, "preheat");
+    assert!(doc.steps[0].to_reservoir_id.is_none());
+    let band = doc.steps[0].power_w.unwrap();
+    assert_eq!(band.min, 80);
+    assert_eq!(band.max, 120);
+    assert_eq!(doc.steps[0].duration_s, Some(3600));
+    assert_eq!(doc.steps[0].priority, Some(1));
+}
+
+#[test]
+fn thermal_offer_alias_offer_transfer_parses() {
+    let raw = r#"{
+      "id": "alias",
+      "name": "alias",
+      "steps": [{
+        "id": "o",
+        "op": "offer_transfer",
+        "from_port": { "device_id": "fridge-kitchen", "port_id": "condenser" },
+        "to_reservoir_id": "dhw-tank",
+        "power_w": { "min": 80, "max": 120 }
+      }]
+    }"#;
+    let doc = Procedure::load_json(raw).unwrap();
+    assert_eq!(doc.steps[0].action, StepAction::ThermalOffer);
+    assert_eq!(doc.steps[0].to_reservoir_id.as_deref(), Some("dhw-tank"));
+}
+
+#[test]
+fn thermal_offer_validation_requires_fields() {
+    let missing = r#"{
+      "id": "bad",
+      "name": "bad",
+      "steps": [{ "id": "o", "action": "thermal_offer" }]
+    }"#;
+    let err = Procedure::from_json_str(missing)
+        .unwrap()
+        .validate()
+        .unwrap_err()
+        .to_string();
+    assert!(err.contains("from_port"), "{err}");
+
+    let both = r#"{
+      "id": "bad",
+      "name": "bad",
+      "steps": [{
+        "id": "o",
+        "action": "thermal_offer",
+        "from_port": { "device_id": "fridge-kitchen", "port_id": "condenser" },
+        "to_port": { "device_id": "water-heater-plant", "port_id": "preheat" },
+        "to_reservoir_id": "dhw-tank",
+        "power_w": { "min": 80, "max": 120 }
+      }]
+    }"#;
+    let err = Procedure::from_json_str(both)
+        .unwrap()
+        .validate()
+        .unwrap_err()
+        .to_string();
+    assert!(err.contains("exactly one"), "{err}");
+}
+
+#[test]
+fn thermal_offer_fails_without_plant_backend() {
+    let doc = Procedure::load_json(OFFER_FRIDGE_DHW_JSON).unwrap();
+    let mut sim = Simulator::new();
+    let result = run(&doc, &mut sim, &DeviceBindings::new());
+    assert!(!result.is_completed());
+    match result.fail_reason() {
+        Some(FailReason::Backend { code, .. }) => {
+            assert_eq!(*code, ErrorCode::UnsupportedOperation);
+        }
+        other => panic!("expected backend unsupported, got {other:?}"),
+    }
+}
+
+#[test]
+fn thermal_offer_accepts_and_applies_duration_on_demo_plant() {
+    let doc = Procedure::load_json(OFFER_FRIDGE_DHW_JSON).unwrap();
+    let plant = ThermalPlant::fridge_condenser_dhw_demo().unwrap();
+    let start = plant.get_reservoir("dhw-tank").unwrap().temp_c.unwrap();
+    assert!((start - 35.0).abs() < 1e-3, "start={start}");
+
+    let mut backend = SimulatorBackend::with_plant(Simulator::new(), plant);
+    let result = run(&doc, &mut backend, &DeviceBindings::new());
+    assert!(
+        result.is_completed(),
+        "expected completed, got {:?}",
+        result.status
+    );
+    assert_eq!(result.outcomes.len(), 1);
+    assert!(result.outcomes[0].ok);
+    let accepted = result.outcomes[0]
+        .read_value
+        .as_ref()
+        .and_then(|v| v.as_i64())
+        .unwrap();
+    assert_eq!(accepted, 120);
+
+    let end = backend
+        .plant()
+        .unwrap()
+        .get_reservoir("dhw-tank")
+        .unwrap()
+        .temp_c
+        .unwrap();
+    assert!(
+        (end - 36.2).abs() < 1e-3,
+        "end={end} (expected ~36.2 after 3600s at 120 W)"
+    );
+}
+
+#[test]
+fn thermal_offer_declines_bad_port() {
+    let raw = r#"{
+      "id": "bad_offer",
+      "name": "bad",
+      "steps": [{
+        "id": "o",
+        "action": "thermal_offer",
+        "from_port": { "device_id": "no-such-device", "port_id": "condenser" },
+        "to_port": { "device_id": "water-heater-plant", "port_id": "preheat" },
+        "power_w": { "min": 80, "max": 120 }
+      }]
+    }"#;
+    let doc = Procedure::load_json(raw).unwrap();
+    let plant = ThermalPlant::fridge_condenser_dhw_demo().unwrap();
+    let mut backend = SimulatorBackend::with_plant(Simulator::new(), plant);
+    let result = run(&doc, &mut backend, &DeviceBindings::new());
+    assert!(!result.is_completed());
+    match result.fail_reason() {
+        Some(FailReason::Backend { code, message }) => {
+            assert_eq!(*code, ErrorCode::InvalidRequest);
+            assert!(
+                message.contains("declined") || message.to_lowercase().contains("unknown"),
+                "{message}"
+            );
+        }
+        other => panic!("expected decline/backend fail, got {other:?}"),
+    }
+}
+
+#[test]
+fn thermal_offer_then_thermal_wait_after_duration_apply() {
+    // Offer with duration applies heat; a follow-up thermal_wait should pass immediately.
+    let raw = r#"{
+      "id": "offer_then_wait",
+      "name": "offer then wait",
+      "steps": [
+        {
+          "id": "offer",
+          "action": "thermal_offer",
+          "from_port": { "device_id": "fridge-kitchen", "port_id": "condenser" },
+          "to_port": { "device_id": "water-heater-plant", "port_id": "preheat" },
+          "power_w": { "min": 80, "max": 120 },
+          "duration_s": 3600,
+          "priority": 1
+        },
+        {
+          "id": "wait",
+          "action": "thermal_wait",
+          "reservoir_id": "dhw-tank",
+          "cmp": "gte",
+          "temp_c": 36.0,
+          "timeout_s": 5
+        }
+      ]
+    }"#;
+    let doc = Procedure::load_json(raw).unwrap();
+    let plant = ThermalPlant::fridge_condenser_dhw_demo().unwrap();
+    let mut backend = SimulatorBackend::with_plant(Simulator::new(), plant);
+    let result = run(&doc, &mut backend, &DeviceBindings::new());
+    assert!(
+        result.is_completed(),
+        "expected completed, got {:?}",
+        result.status
+    );
+    assert_eq!(result.outcomes.len(), 2);
 }

@@ -48,6 +48,10 @@ A **procedure** is an ordered list of **steps**. Each step is one of:
 - **thermal_wait** (thin) — wait until a plant reservoir `temp_c` meets a numeric
   comparison (`cmp` / `temp_c` / `reservoir_id` / `timeout_s`); requires a runner
   backend with an attached thermal plant (see [`thermal-plant.md`](./thermal-plant.md) §8)
+- **thermal_offer** (thin) — submit a heat-transfer offer aligned with
+  `TransferOffer` (`from_port`, `to_port` | `to_reservoir_id`, `power_w`,
+  `duration_s?`, `priority?`) and immediately negotiate (accept at max or
+  decline); see thermal-plant §8.3
 - **parallel** (optional) — run a set of steps concurrently across devices
 
 Informative shape:
@@ -65,7 +69,7 @@ Procedure {
 
 Step {
   id:            Id
-  op:            read | write | command | wait | guard | thermal_wait | parallel
+  op:            read | write | command | wait | guard | thermal_wait | thermal_offer | parallel
   target:        DeviceRef | none
   point:         QualifiedId?         // for read/write/command
   value:         Value?
@@ -75,6 +79,13 @@ Step {
   reservoir_id:  string?
   cmp:           eq | ne | gt | gte | lt | lte?
   temp_c:        number?              // °C threshold
+  // thermal_offer fields (when op = thermal_offer | offer_transfer):
+  from_port:     { device_id, port_id }?
+  to_port:       { device_id, port_id }?   // xor to_reservoir_id
+  to_reservoir_id: string?
+  power_w:       { min, max }?            // PowerBandW
+  duration_s:    u32?                     // TransferOffer duration; applied as one tick after accept
+  priority:      u8?                      // default 1
 }
 ```
 
@@ -229,7 +240,7 @@ AI-generated protocols:
 
 ## 6. Relation to named programs
 
-Bundled oven example `oven_bake_180` writes `trait.program.program = bake` then a cavity setpoint before `start`. Bundled coffee example `coffee_brew_espresso` powers on, selects `espresso`, then waits on `class.coffee_machine.boiler_c`. Bundled air fryer example `air_fryer_cook_200` selects `fries`, sets cavity setpoint 200 °C, then waits on `trait.temperature.current_c`. Bundled `wait_dhw_reservoir` is a thin `thermal_wait` on plant reservoir `dhw-tank` (requires `SimulatorBackend` + `ThermalPlant`; see thermal-plant §8).
+Bundled oven example `oven_bake_180` writes `trait.program.program = bake` then a cavity setpoint before `start`. Bundled coffee example `coffee_brew_espresso` powers on, selects `espresso`, then waits on `class.coffee_machine.boiler_c`. Bundled air fryer example `air_fryer_cook_200` selects `fries`, sets cavity setpoint 200 °C, then waits on `trait.temperature.current_c`. Bundled `wait_dhw_reservoir` is a thin `thermal_wait` on plant reservoir `dhw-tank` (requires `SimulatorBackend` + `ThermalPlant`; see thermal-plant §8). Bundled `offer_fridge_dhw` is a thin `thermal_offer` (fridge condenser → DHW preheat, `duration_s` apply; see thermal-plant §8.3).
 
 A procedure step may **select** a named program (`trait.program.program = eco`)
 and then `start`, or it may drive fine-grained setpoints when the device
@@ -256,3 +267,4 @@ exposes them and the recipe needs them (pizza crisp finish).
 | 0.1.2 | Bundled `coffee_brew_espresso` example (program espresso + sim boiler heat wait) |
 | 0.1.3 | Thin `thermal_wait` / `wait_reservoir` step + `wait_dhw_reservoir` fixture (procedure⇄thermal bridge) |
 | 0.1.4 | Bundled `air_fryer_cook_200` example (program fries + setpoint + sim heat wait) |
+| 0.1.5 | Thin `thermal_offer` / `offer_transfer` step + `offer_fridge_dhw` fixture (offer + immediate accept) |
