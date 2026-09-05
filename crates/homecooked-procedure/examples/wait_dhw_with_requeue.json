@@ -1,7 +1,7 @@
 {
   "id": "wait_dhw_with_requeue",
   "name": "Wait for DHW while re-queuing fridge→DHW transfer",
-  "description": "Continuous procedure⇄thermal re-queue: thermal_wait with requeue_offer=true re-submits the inline TransferOffer (fridge condenser → water-heater preheat) and negotiates before each wait poll tick so heat keeps flowing until dhw-tank temp_c meets the threshold. Plant accepts remain one-shot per step; duration_s is omitted so each poll's thermal_tick dt drives applied energy. Requires SimulatorBackend + ThermalPlant (fridge_condenser_dhw_demo). Contrast wait_dhw_reservoir (tick-only, no re-queue) and offer_fridge_dhw (single duration tick).",
+  "description": "Continuous procedure⇄thermal re-queue: thermal_wait with requeue_offer=true re-submits the inline TransferOffer (fridge condenser → water-heater preheat) and negotiates before each wait poll tick so heat keeps flowing until dhw-tank temp_c meets the threshold. Plant accepts remain one-shot per step; duration_s is omitted so each poll's thermal_tick dt drives applied energy. Requires SimulatorBackend + ThermalPlant (fridge_condenser_dhw_demo). Contrast wait_dhw_reservoir (tick-only, no re-queue) and offer_fridge_dhw (single duration tick). Dedicated thin wasm UI: simulator-web Thermal procedures + run_thermal_procedure.",
   "catalog_version": "0.1.0",
   "protocol_version": "0.1.0",
   "devices": [],

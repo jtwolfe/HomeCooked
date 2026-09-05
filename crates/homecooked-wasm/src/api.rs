@@ -173,6 +173,10 @@ pub struct ExampleProcedureInfo {
     pub description: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub class_hints: Vec<String>,
+    /// True when the document has `thermal_wait` / `thermal_offer` steps
+    /// (needs an attached plant — see [`WasmApi::run_thermal_procedure`]).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub thermal: bool,
 }
 
 /// Summary returned by [`WasmApi::parse_procedure`].
@@ -187,6 +191,9 @@ pub struct ProcedureSummary {
     pub step_count: usize,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub devices: Vec<ProcedureDeviceSummary>,
+    /// True when any step is `thermal_wait` / `thermal_offer`.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub thermal: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -444,11 +451,13 @@ impl WasmApi {
             .iter()
             .filter_map(|(id, json)| {
                 let doc = Procedure::load_json(json).ok()?;
+                let thermal = procedure_uses_thermal(&doc);
                 Some(ExampleProcedureInfo {
                     id: (*id).to_string(),
                     name: doc.name,
                     description: doc.description,
                     class_hints: class_hints_of(&doc.devices),
+                    thermal,
                 })
             })
             .collect();
@@ -482,6 +491,7 @@ impl WasmApi {
                     optional: d.optional,
                 })
                 .collect(),
+            thermal: procedure_uses_thermal(&doc),
         };
         serde_json::to_string(&summary).map_err(|e| ApiError::internal(e.to_string()))
     }
@@ -507,6 +517,28 @@ impl WasmApi {
         };
         let out = ProcedureRunOut::from_run(result, binding_out);
         serde_json::to_string(&out).map_err(|e| ApiError::internal(e.to_string()))
+    }
+
+    /// Attach the fridge→DHW demo plant (reset), optionally prime a one-shot
+    /// transfer for tick-only `thermal_wait` fixtures, then `run_procedure`.
+    ///
+    /// Rejects non-thermal bundled examples. Prefer this from the simulator-web
+    /// **Thermal procedures** one-click buttons; compose of existing APIs.
+    pub fn run_thermal_procedure(&mut self, id: &str) -> Result<String, ApiError> {
+        let json = Self::get_example_procedure(id)?;
+        let doc = Procedure::load_json(&json)?;
+        if !procedure_uses_thermal(&doc) {
+            return Err(ApiError::invalid_request(format!(
+                "{id:?} is not a thermal procedure fixture (no thermal_wait/thermal_offer steps)"
+            )));
+        }
+        self.create_thermal_demo()?;
+        // Pure thermal_wait without requeue cannot heat itself — prime demo
+        // transfer so one-click UI completes (same as prior manual Transfer).
+        if thermal_wait_needs_prime(&doc) {
+            self.thermal_demo_transfer(3_600.0)?;
+        }
+        self.run_procedure(&json)
     }
 
     /// Create/reset the fridge condenser → DHW water_heater demo plant.
@@ -828,6 +860,30 @@ fn demo_fridge_offer() -> Result<TransferOffer, ApiError> {
         None,
         1,
     ))
+}
+
+fn procedure_uses_thermal(procedure: &Procedure) -> bool {
+    procedure
+        .steps
+        .iter()
+        .any(|s| matches!(s.action, StepAction::ThermalWait | StepAction::ThermalOffer))
+}
+
+/// `wait_dhw_reservoir`-style: thermal_wait without requeue and no offer step.
+fn thermal_wait_needs_prime(procedure: &Procedure) -> bool {
+    let has_offer = procedure
+        .steps
+        .iter()
+        .any(|s| s.action == StepAction::ThermalOffer);
+    let has_requeue = procedure
+        .steps
+        .iter()
+        .any(|s| s.action == StepAction::ThermalWait && s.requeue_offer);
+    let has_wait = procedure
+        .steps
+        .iter()
+        .any(|s| s.action == StepAction::ThermalWait);
+    has_wait && !has_offer && !has_requeue
 }
 
 fn collect_role_refs(procedure: &Procedure) -> Vec<DeviceRef> {
@@ -1265,18 +1321,24 @@ mod tests {
         assert_eq!(items[7].id, "wait_dhw_reservoir");
         assert_eq!(items[7].name, "Wait until DHW reservoir is warm");
         assert!(items[7].class_hints.is_empty());
+        assert!(items[7].thermal);
         assert_eq!(items[8].id, "offer_fridge_dhw");
         assert_eq!(items[8].name, "Offer fridge condenser heat to DHW preheat");
         assert!(items[8].class_hints.is_empty());
+        assert!(items[8].thermal);
         assert_eq!(items[9].id, "offer_fridge_dhw_soft");
         assert_eq!(items[9].name, "Soft-decline / fallback fridge→DHW offer");
         assert!(items[9].class_hints.is_empty());
+        assert!(items[9].thermal);
         assert_eq!(items[10].id, "wait_dhw_with_requeue");
         assert_eq!(
             items[10].name,
             "Wait for DHW while re-queuing fridge→DHW transfer"
         );
         assert!(items[10].class_hints.is_empty());
+        assert!(items[10].thermal);
+        assert!(!items[0].thermal);
+        assert_eq!(items.iter().filter(|i| i.thermal).count(), 4);
     }
 
     #[test]
@@ -1742,5 +1804,69 @@ mod tests {
             .and_then(|v| v.as_f64())
             .unwrap();
         assert!(got >= 36.0, "got={got}");
+    }
+
+    #[test]
+    fn run_thermal_procedure_soft_decline_attaches_plant() {
+        let mut api = WasmApi::new();
+        assert!(
+            !serde_json::from_str::<serde_json::Value>(&api.thermal_state().unwrap()).unwrap()
+                ["loaded"]
+                .as_bool()
+                .unwrap()
+        );
+        let raw = api.run_thermal_procedure("offer_fridge_dhw_soft").unwrap();
+        let out: ProcedureRunOut = serde_json::from_str(&raw).unwrap();
+        assert_eq!(out.status, "completed", "soft offer failed: {raw}");
+        assert_eq!(out.outcomes.len(), 1);
+        assert!(out.outcomes[0].ok);
+        assert_eq!(out.outcomes[0].action, StepAction::ThermalOffer);
+        let accepted = out.outcomes[0]
+            .read_value
+            .as_ref()
+            .and_then(|v| v.as_i64())
+            .unwrap();
+        assert_eq!(accepted, 120);
+        let msg = out.outcomes[0].message.as_deref().unwrap_or("");
+        assert!(
+            msg.contains("fallback") || msg.contains("accepted"),
+            "msg={msg}"
+        );
+        let state: serde_json::Value = serde_json::from_str(&api.thermal_state().unwrap()).unwrap();
+        assert_eq!(state["loaded"], true);
+    }
+
+    #[test]
+    fn run_thermal_procedure_requeue_one_click() {
+        let mut api = WasmApi::new();
+        let raw = api.run_thermal_procedure("wait_dhw_with_requeue").unwrap();
+        let out: ProcedureRunOut = serde_json::from_str(&raw).unwrap();
+        assert_eq!(out.status, "completed", "requeue one-click failed: {raw}");
+        assert_eq!(out.outcomes[0].action, StepAction::ThermalWait);
+        let got = out.outcomes[0]
+            .read_value
+            .as_ref()
+            .and_then(|v| v.as_f64())
+            .unwrap();
+        assert!(got >= 36.0, "got={got}");
+        let msg = out.outcomes[0].message.as_deref().unwrap_or("");
+        assert!(msg.contains("requeue_offer"), "msg={msg}");
+    }
+
+    #[test]
+    fn run_thermal_procedure_wait_dhw_primes_transfer() {
+        let mut api = WasmApi::new();
+        let raw = api.run_thermal_procedure("wait_dhw_reservoir").unwrap();
+        let out: ProcedureRunOut = serde_json::from_str(&raw).unwrap();
+        assert_eq!(out.status, "completed", "primed wait failed: {raw}");
+        assert!(out.outcomes[0].ok);
+    }
+
+    #[test]
+    fn run_thermal_procedure_rejects_non_thermal() {
+        let mut api = WasmApi::new();
+        let err = api.run_thermal_procedure("kettle_heat_80").unwrap_err();
+        assert_eq!(err.code, ErrorCode::InvalidRequest);
+        assert!(err.message.contains("not a thermal"));
     }
 }

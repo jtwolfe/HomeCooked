@@ -236,7 +236,7 @@ cargo test -p homecooked-conformance procedure_thermal_wait_dhw
 **Continuous re-queue** across wait polls lives under §8.4. **Still deferred:**
 promoting full plant **runtime** into schema (vocabulary types +
 `ClassTable.HeatPortSpec` live in `homecooked-schema`; `ThermalPlant` / transfer
-dialogue remain crate-local); wasm/UI wiring beyond bundled list/`run_procedure`
+dialogue remain crate-local); thin dedicated wasm/UI (Thermal procedures + `run_thermal_procedure`) landed; fuller multi-round / Counter beyond that
 for thermal steps (dual-path orchestrator UI remains). Soft decline + thin
 fallback retry live under §8.3.
 
@@ -329,3 +329,4 @@ plant Counter replies; promoting full plant runtime into schema.
 | 0.1.0+ | `ClassTable.thermal_ports` advertises static `HeatPortSpec` for the five thermal-port classes (match sim seeds); catalog `thermal_port_*` points remain the device RW surface; plant runtime still crate-local. |
 | 0.1.0+ | Soft decline (`on_decline: fail|continue`) + thin `fallback_power_w` retry; plant negotiate declines when max < offer min; fixture `offer_fridge_dhw_soft` + conformance `procedure_thermal_offer_soft_decline`. Continuous re-queue / dedicated wasm UI still deferred. |
 | 0.1.0+ | Continuous re-queue: `thermal_wait` + `requeue_offer` + inline transfer fields re-negotiate each poll; fixture `wait_dhw_with_requeue` + conformance `procedure_thermal_wait_requeue`. Dedicated wasm UI / plant Counter / schema plant runtime still deferred. |
+| 0.1.0+ | Dedicated thin procedure⇄thermal **wasm/simulator-web UI**: Thermal procedures subsection + picker badges + `run_thermal_procedure` (attach plant + run) + step outcome badges (accept/soft/requeue/temp). Plant Counter / schema plant runtime / full conformance console still deferred. |

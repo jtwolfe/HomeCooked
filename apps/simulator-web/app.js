@@ -36,6 +36,8 @@ const procedureStatus = document.getElementById("procedure-status");
 const procedureFail = document.getElementById("procedure-fail");
 const procedureBindings = document.getElementById("procedure-bindings");
 const procedureSteps = document.getElementById("procedure-steps");
+const thermalProcedureButtons = document.getElementById("thermal-procedure-buttons");
+const thermalProcedureHint = document.getElementById("thermal-procedure-hint");
 const thermalLoadBtn = document.getElementById("thermal-load-btn");
 const thermalNegotiateBtn = document.getElementById("thermal-negotiate-btn");
 const thermalTickBtn = document.getElementById("thermal-tick-btn");
@@ -554,6 +556,7 @@ async function boot() {
     "get_example_procedure",
     "parse_procedure",
     "run_procedure",
+    "run_thermal_procedure",
     "create_thermal_demo",
     "thermal_state",
     "thermal_negotiate_demo",
@@ -575,7 +578,9 @@ async function boot() {
 
   const classes = JSON.parse(wasm.list_appliance_classes());
   fillClassSelect(classes);
-  fillProcedureSelect(listExampleProcedures());
+  const examples = listExampleProcedures();
+  fillProcedureSelect(examples);
+  fillThermalProcedureButtons(examples);
   await loadSelectedProcedure();
 
   appEl.hidden = false;
@@ -660,6 +665,25 @@ function listExampleProcedures() {
         id: "wait_dhw_reservoir",
         name: "Wait until DHW reservoir is warm",
         class_hints: [],
+        thermal: true,
+      },
+      {
+        id: "offer_fridge_dhw",
+        name: "Offer fridge condenser heat to DHW preheat",
+        class_hints: [],
+        thermal: true,
+      },
+      {
+        id: "offer_fridge_dhw_soft",
+        name: "Soft-decline / fallback fridge→DHW offer",
+        class_hints: [],
+        thermal: true,
+      },
+      {
+        id: "wait_dhw_with_requeue",
+        name: "Wait for DHW while re-queuing fridge→DHW transfer",
+        class_hints: [],
+        thermal: true,
       },
     ];
   }
@@ -671,8 +695,46 @@ function fillProcedureSelect(examples) {
     const opt = document.createElement("option");
     opt.value = ex.id;
     const hints = (ex.class_hints || []).join(", ");
-    opt.textContent = hints ? `${ex.name} (${hints})` : ex.name;
+    const thermal = ex.thermal ? "[thermal] " : "";
+    const base = hints ? `${ex.name} (${hints})` : ex.name;
+    opt.textContent = `${thermal}${base}`;
+    if (ex.thermal) opt.dataset.thermal = "1";
     procedureSelect.appendChild(opt);
+  }
+}
+
+const THERMAL_PROCEDURE_LABELS = {
+  wait_dhw_reservoir: "Wait DHW (prime + wait)",
+  offer_fridge_dhw: "Offer fridge→DHW",
+  offer_fridge_dhw_soft: "Soft decline + fallback",
+  wait_dhw_with_requeue: "Wait + requeue",
+};
+
+function fillThermalProcedureButtons(examples) {
+  if (!thermalProcedureButtons) return;
+  thermalProcedureButtons.innerHTML = "";
+  const thermal = (examples || []).filter((ex) => ex.thermal);
+  if (!thermal.length) {
+    if (thermalProcedureHint) {
+      thermalProcedureHint.hidden = false;
+      thermalProcedureHint.textContent =
+        "No thermal fixtures in list_example_procedures (rebuild wasm?).";
+    }
+    return;
+  }
+  if (thermalProcedureHint) {
+    thermalProcedureHint.hidden = true;
+    thermalProcedureHint.textContent = "";
+  }
+  for (const ex of thermal) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "secondary thermal-proc-btn";
+    btn.dataset.id = ex.id;
+    btn.textContent = THERMAL_PROCEDURE_LABELS[ex.id] || ex.name;
+    btn.title = ex.description || ex.name;
+    btn.addEventListener("click", () => runThermalProcedureById(ex.id));
+    thermalProcedureButtons.appendChild(btn);
   }
 }
 
@@ -720,9 +782,10 @@ function parseCurrentProcedure() {
       .map((d) => (d.optional ? `${d.role}?` : d.role))
       .join(", ");
     procedureSummary.hidden = false;
+    const thermalBit = summary.thermal ? " · thermal (needs plant)" : "";
     procedureSummary.textContent = `${summary.name} · ${summary.step_count} steps · ${hints}${
       roles ? ` · roles ${roles}` : ""
-    }`;
+    }${thermalBit}`;
     return summary;
   } catch (err) {
     procedureSummary.hidden = true;
@@ -766,13 +829,97 @@ function renderProcedureResult(result) {
   for (const step of result.outcomes || []) {
     const li = document.createElement("li");
     li.className = step.ok ? "ok" : "fail";
+    const badges = thermalStepBadges(step);
+    const badgeHtml = badges
+      .map((b) => `<span class="step-badge ${b.cls}">${b.label}</span>`)
+      .join("");
     const value =
       step.read_value != null ? ` · ${displayValue(step.read_value)}` : "";
     const msg = step.message ? ` — ${step.message}` : "";
     li.innerHTML = `<span class="step-flag">${step.ok ? "ok" : "fail"}</span><span class="step-id">${
       step.step_id
-    }</span><span class="step-meta">${step.action}${value}${msg}</span>`;
+    }</span>${badgeHtml}<span class="step-meta">${step.action}${value}${msg}</span>`;
     procedureSteps.appendChild(li);
+  }
+}
+
+/** Surface accept power / soft decline / requeue / final temp from run_procedure fields. */
+function thermalStepBadges(step) {
+  const action = step.action;
+  const msg = step.message || "";
+  const badges = [];
+  if (action !== "thermal_offer" && action !== "thermal_wait") return badges;
+  if (action === "thermal_offer") {
+    if (msg.includes("after fallback") || msg.includes("fallback")) {
+      badges.push({ label: "fallback accept", cls: "badge-fallback" });
+    }
+    if (msg.includes("continuing")) {
+      badges.push({ label: "soft decline → continue", cls: "badge-soft" });
+    } else if (msg.includes("declined") && !step.ok) {
+      badges.push({ label: "declined", cls: "badge-decline" });
+    }
+    if (step.read_value != null) {
+      badges.push({
+        label: `accept ${displayValue(step.read_value)} W`,
+        cls: "badge-accept",
+      });
+    }
+  }
+  if (action === "thermal_wait") {
+    if (msg.includes("requeue_offer")) {
+      badges.push({ label: "requeue polls", cls: "badge-requeue" });
+    }
+    if (step.read_value != null) {
+      badges.push({
+        label: `temp ${displayValue(step.read_value)} °C`,
+        cls: "badge-temp",
+      });
+    }
+  }
+  return badges;
+}
+
+async function runThermalProcedureById(id) {
+  clearProcedureError();
+  if (!id) return;
+  try {
+    // Keep editor in sync with the fixture being run.
+    let json;
+    try {
+      json = wasm.get_example_procedure(id);
+    } catch {
+      json = await fetchProcedureAsset(id);
+    }
+    procedureJson.value = JSON.stringify(JSON.parse(json), null, 2);
+    if (procedureSelect.querySelector(`option[value="${id}"]`)) {
+      procedureSelect.value = id;
+    }
+    parseCurrentProcedure();
+
+    const result = JSON.parse(wasm.run_thermal_procedure(id));
+    renderProcedureResult(result);
+    // Refresh thermal plant panel if loaded.
+    try {
+      const state = JSON.parse(wasm.thermal_state());
+      renderThermalState(state, state.last_transfers || []);
+    } catch {
+      /* plant panel optional */
+    }
+    await refreshDevices();
+    const firstBound = result.bindings && result.bindings[0] && result.bindings[0].device_id;
+    if (firstBound) {
+      await selectDevice(firstBound);
+    }
+    setStatus(
+      result.status === "completed"
+        ? `Thermal procedure ${id} completed`
+        : `Thermal procedure ${id} failed`,
+      result.status !== "completed",
+    );
+  } catch (err) {
+    procedureResult.hidden = true;
+    showProcedureError(err);
+    setStatus(`Thermal procedure ${id} failed`, true);
   }
 }
 

@@ -699,3 +699,64 @@ button.cmd {
 #orch-result {
   margin-top: 0.55rem;
 }
+
+.thermal-procedures-block {
+  margin: 0.75rem 0 0.85rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px dashed #f0c48a;
+  border-radius: 12px;
+  background: #fffaf3;
+}
+
+.thermal-procedure-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.45rem;
+}
+
+.thermal-proc-btn {
+  font-size: 0.82rem;
+}
+
+.step-badge {
+  display: inline-block;
+  margin: 0 0.25rem 0 0;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.step-badge.badge-accept {
+  background: #ecfccb;
+  color: #3f6212;
+}
+
+.step-badge.badge-fallback {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.step-badge.badge-soft {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.step-badge.badge-decline {
+  background: var(--err-bg);
+  color: var(--err);
+}
+
+.step-badge.badge-requeue {
+  background: #cffafe;
+  color: #155e75;
+}
+
+.step-badge.badge-temp {
+  background: #fce7f3;
+  color: #9d174d;
+}

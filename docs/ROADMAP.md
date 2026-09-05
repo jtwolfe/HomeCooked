@@ -1,6 +1,6 @@
 # HomeCooked roadmap — ~75% project completeness
 
-Version **0.1.101**. Planning doc for a long flesh-out of the catalog, control
+Version **0.1.102**. Planning doc for a long flesh-out of the catalog, control
 stack, and simulator. It does **not** freeze APIs; crate and YAML shapes may
 evolve with the code that implements each stream.
 
@@ -23,7 +23,7 @@ What exists on `main` today (Done highlights called out):
 | `homecooked-protocol` | Envelope, request/response kinds, discovery, JSON, errors (v0.1.0); **invalid Envelope JSON table tests** |
 | `homecooked-core` | Device registry, capability-enforced read/write |
 | `homecooked-sim` | In-memory devices for all 56 statically tabled classes; microwave cook ticks advance `elapsed_s`; water_heater/fridge/hvac/dishwasher/dryer thermal-port seeds + RW attach |
-| `homecooked-wasm` + `apps/simulator-web` | wasm-bindgen JSON API; full-catalog picker (56) + procedure runner (kettle + Domino's + wash-then-dry + oven bake + coffee brew + air fryer cook `run_procedure` E2E) + thermal panel + device `thermal_port_*` UI (auto when `thermal_port_id` present; `water_heater`/`fridge`/`hvac`/`dishwasher`/`dryer`) + read-only **Catalog heat ports** from `list_heat_port_specs` / `ClassTable.thermal_ports`; **WASM fetch+blob load** (module cache defeat) — **Done** |
+| `homecooked-wasm` + `apps/simulator-web` | wasm-bindgen JSON API; full-catalog picker (56) + procedure runner (kettle + Domino's + wash-then-dry + oven bake + coffee brew + air fryer cook `run_procedure` E2E) + **Thermal procedures** one-click (`run_thermal_procedure` + outcome badges) + thermal panel + device `thermal_port_*` UI (auto when `thermal_port_id` present; `water_heater`/`fridge`/`hvac`/`dishwasher`/`dryer`) + read-only **Catalog heat ports** from `list_heat_port_specs` / `ClassTable.thermal_ports`; **WASM fetch+blob load** (module cache defeat) — **Done** |
 | `homecooked-io-map` | Chassis I/O map serde + validate (washer + dryer fragments) |
 | `homecooked-interlock` | Declarative interlock rules (washer heater/spin; dryer heater/motor) |
 | `homecooked-hal` | Firmware HAL sketch + host `MockHal` |
@@ -56,9 +56,9 @@ catalog `thermal_port_*` on `water_heater` / `fridge` / `hvac` / `dishwasher` /
 crate-local); **real bridge SDKs** (Modbus serial/TCP or Matter/CHIP — mocks only
 today); TLS (still out of scope for lab transport); **catalog optional-depth passes complete** for all listed classes — deepen series (#56–#73 + follow-on) landed optional-point passes on **56** classes
 (mostly Tier-A + Tier-B `humidifier` / `beverage_cooler` / `kegerator` / `warming_drawer` / `pizza_oven` / `electric_grill` / `electric_smoker` / `espresso_machine` / `drip_coffee_maker` / `coffee_grinder` / `water_dispenser` / `toaster` / `blender` / `food_processor` / `stand_mixer` / `juicer` / `rice_cooker` / `slow_cooker` / `bread_maker` / `dehydrator` / `vacuum_sealer` / `ice_cream_maker` / `yogurt_maker` / `waffle_maker` / `pasta_maker` / `steam_cooker` / `garbage_disposal` / `trash_compactor` / `boiler` / `water_softener` / `water_filter` + undepened Tier-A `washer` + `dryer` + `washer_dryer` + `fridge` + `dishwasher` + `microwave` + `oven` + `range` + `induction_hob` + `air_fryer` + `kettle` + `coffee_machine` + `water_heater` + `hvac`); **0 of 31 Tier-B** ids remain thin tables
-(all 31 have optional-depth passes; all listed undepened Tier-A classes now have optional-depth passes (0 remaining); see §4); procedure⇄thermal dedicated wasm UI
-(thin `thermal_wait` + `thermal_offer` with soft decline + `fallback_power_w` + continuous `requeue_offer` are present;
-fuller typed multi-round / plant Counter replies still deferred); washer/dryer
+(all 31 have optional-depth passes; all listed undepened Tier-A classes now have optional-depth passes (0 remaining); see §4); procedure⇄thermal **dedicated wasm UI** landed thin
+(Thermal procedures subsection + `run_thermal_procedure` + outcome badges for accept/soft/requeue/temp;
+fuller typed multi-round / plant Counter replies / conformance console still deferred); washer/dryer
 **typical_capability over lab TCP** landed (0.1.99) — full HAL binding for every
 typical point still not required (CottonOptions / DryOptions / cancel-pause-resume already landed).
 
@@ -82,9 +82,9 @@ achieved** remains honest — not that every §2 bullet is production-complete o
 that real bridge SDKs / TLS are done. This is **not** IEC certification,
 production firmware, or a shipping commercial appliance. Remaining work is depth
 beyond the lab bar (real bridge SDK, full plant runtime schema promotion, TLS,
-dedicated thermal wasm UI beyond soft decline + thin fallback + continuous
-re-queue; washer/dryer lab typical_capability-over-wire landed — full HAL
-binding for every typical point still not required).
+plant Counter / fuller typed multi-round dialogue; washer/dryer lab
+typical_capability-over-wire landed — full HAL binding for every typical point
+still not required; dedicated thermal procedure wasm UI landed thin in 0.1.102).
 
 ---
 
@@ -203,9 +203,11 @@ production firmware:
   thin `thermal_offer` (offer + immediate accept / decline; soft
   `on_decline: continue`; thin `fallback_power_w` retry; continuous
   `requeue_offer` on wait; `offer_fridge_dhw` / `offer_fridge_dhw_soft` /
-  `wait_dhw_with_requeue` + conformance) are present; dedicated wasm/UI wiring
-  and fuller typed multi-round / plant Counter replies remain open. Dual-path
-  dishwasher demo can still orchestrate transfer outside the procedure JSON.
+  `wait_dhw_with_requeue` + conformance) are present; **dedicated wasm/UI**
+  (Thermal procedures one-click + outcome badges + `run_thermal_procedure`)
+  landed thin — not a full conformance console; fuller typed multi-round /
+  plant Counter replies remain open. Dual-path dishwasher demo can still
+  orchestrate transfer outside the procedure JSON.
 - **TLS** — lab TCP stays cleartext (+ optional PSK); TLS/OAuth remain out of
   scope for the lab path.
 - **Richer controller-over-TCP** — interlock smoke for washer+dryer is done;
@@ -270,7 +272,7 @@ multiple small PRs.
    `homecooked-procedure` (serde + validate + sequential runner).
 2. ~~Simulator can load and run a small library.~~ **Done** — bundled
    `kettle_heat_80` + `reheat_dominos_microwave` + `wash_then_dry` + `oven_bake_180` + `coffee_brew_espresso` + `air_fryer_cook_200` + thin `wait_dhw_reservoir` (`thermal_wait`) + `offer_fridge_dhw` / `offer_fridge_dhw_soft` (`thermal_offer` soft decline + fallback) + `wait_dhw_with_requeue` (continuous `requeue_offer`); wasm `run_procedure` E2E
-   auto-spawns and completes device fixtures (microwave wait uses sim `elapsed_s` ticks). Dedicated wasm UI for thermal steps still thin (list + `run_procedure`).
+   auto-spawns and completes device fixtures (microwave wait uses sim `elapsed_s` ticks). Dedicated thermal procedure wasm UI landed thin (0.1.102: picker badges + one-click `run_thermal_procedure` + outcome badges).
 3. ~~Failures surface as protocol / capability errors, never as interlock bypass.~~
    **Done** under tests (out-of-range write, guard fail, wait timeout).
 
@@ -413,9 +415,10 @@ multiple small PRs.
    `get_example_procedure` / `parse_procedure` / `run_procedure` expose the
    sequential runner; simulator-web has a picker + paste/run panel with
    step outcomes (kettle + Domino’s microwave + wash-then-dry + oven bake +
-   coffee brew + air fryer cook; `wait_dhw_reservoir` / `offer_fridge_dhw` / `wait_dhw_with_requeue`
-   listed/bundled — thermal steps need plant attach); covered by wasm
-   `run_procedure` E2E tests).
+   coffee brew + air fryer cook; `wait_dhw_reservoir` / `offer_fridge_dhw` /
+   `offer_fridge_dhw_soft` / `wait_dhw_with_requeue` listed/bundled with
+   **Thermal procedures** one-click via `run_thermal_procedure`); covered by wasm
+   `run_procedure` / `run_thermal_procedure` E2E tests).
    **Thermal-port UI slice is done** — `create_thermal_demo` /
    `thermal_state` / `thermal_negotiate_demo` / `thermal_tick` /
    `thermal_demo_transfer` expose the fridge→DHW plant; simulator-web has a
@@ -685,3 +688,4 @@ the code that implements them.
 | 0.1.99 | Stream 4: washer + dryer **typical_capability over lab TCP** (Describe = catalog typical ∪ lab HAL/`sim_tick`/cycle pause-phase/DryOptions; unbound typical points store/default); conformance `controller_tcp_washer_typical_capability` / `controller_tcp_dryer_typical_capability` |
 | 0.1.100 | Stream 3/5: procedure⇄thermal **soft decline** (`on_decline: fail|continue`) + thin **`fallback_power_w`** retry; plant negotiate declines when available max < offer min; fixture `offer_fridge_dhw_soft` + conformance `procedure_thermal_offer_soft_decline`; Still-open refresh (typical_capability-over-wire landed in 0.1.99; continuous re-queue / dedicated wasm UI remain deferred) |
 | 0.1.101 | Stream 3/5: procedure⇄thermal **continuous re-queue** (`thermal_wait` + `requeue_offer` + inline transfer fields; re-negotiate each poll); fixture `wait_dhw_with_requeue` + conformance `procedure_thermal_wait_requeue`; Still-open refresh (dedicated wasm UI / plant Counter / schema plant runtime / real bridges / TLS remain deferred) |
+| 0.1.102 | Stream 3/5/7: dedicated procedure⇄thermal **wasm/simulator-web UI** (Thermal procedures subsection + picker `[thermal]` badges + `run_thermal_procedure` attach-plant one-click + richer step outcome badges for accept/soft/requeue/temp); Still-open refresh (plant Counter / schema plant runtime / real bridges / TLS remain deferred; not a full conformance console) |
