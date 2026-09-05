@@ -421,4 +421,90 @@ mod tests {
         let done = f32_val(&sim.read_value(&id, "trait.cycle.progress_percent").unwrap());
         assert!((done - 100.0).abs() < f32::EPSILON);
     }
+
+    #[test]
+    fn water_heater_thermal_port_read_write() {
+        let mut sim = Simulator::new();
+        let id = sim.spawn(ApplianceClassId::WaterHeater).unwrap();
+        assert_eq!(
+            sim.read_value(&id, "class.water_heater.thermal_port_id")
+                .unwrap(),
+            Value::String("preheat".into())
+        );
+        assert_eq!(
+            sim.read_value(&id, "class.water_heater.thermal_port_direction")
+                .unwrap(),
+            Value::Enum("sink".into())
+        );
+        assert_eq!(
+            sim.read_value(&id, "class.water_heater.thermal_port_media")
+                .unwrap(),
+            Value::Enum("water".into())
+        );
+        assert_eq!(
+            sim.read_value(&id, "class.water_heater.thermal_port_max_power_w")
+                .unwrap(),
+            Value::F32(2_000.0)
+        );
+        assert_eq!(
+            sim.read_value(&id, "class.water_heater.thermal_port_attached_reservoir_id")
+                .unwrap(),
+            Value::String(String::new())
+        );
+        sim.write(
+            &id,
+            "class.water_heater.thermal_port_attached_reservoir_id",
+            Value::String("dhw-tank".into()),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&id, "class.water_heater.thermal_port_attached_reservoir_id")
+                .unwrap(),
+            Value::String("dhw-tank".into())
+        );
+        let err = sim
+            .write(
+                &id,
+                "class.water_heater.thermal_port_direction",
+                Value::Enum("source".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn fridge_thermal_port_read_write() {
+        let mut sim = Simulator::new();
+        let id = sim.spawn(ApplianceClassId::Fridge).unwrap();
+        assert_eq!(
+            sim.read_value(&id, "class.fridge.thermal_port_id").unwrap(),
+            Value::String("condenser".into())
+        );
+        assert_eq!(
+            sim.read_value(&id, "class.fridge.thermal_port_direction")
+                .unwrap(),
+            Value::Enum("source".into())
+        );
+        assert_eq!(
+            sim.read_value(&id, "class.fridge.thermal_port_media")
+                .unwrap(),
+            Value::Enum("water".into())
+        );
+        assert_eq!(
+            sim.read_value(&id, "class.fridge.thermal_port_max_power_w")
+                .unwrap(),
+            Value::F32(120.0)
+        );
+        sim.write(
+            &id,
+            "class.fridge.thermal_port_attached_reservoir_id",
+            Value::String("dhw-tank".into()),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&id, "class.fridge.thermal_port_attached_reservoir_id")
+                .unwrap(),
+            Value::String("dhw-tank".into())
+        );
+    }
 }

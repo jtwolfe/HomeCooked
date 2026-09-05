@@ -212,6 +212,24 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
         "level" => Value::U8(0),
         "program" => first_enum(point).unwrap_or_else(|| Value::Enum("custom".into())),
         "available_programs" => enum_list(point),
+        "thermal_port_id" => match ctx.identity.class_id {
+            ApplianceClassId::WaterHeater => Value::String("preheat".into()),
+            ApplianceClassId::Fridge => Value::String("condenser".into()),
+            _ => Value::String(String::new()),
+        },
+        "thermal_port_direction" => match ctx.identity.class_id {
+            ApplianceClassId::WaterHeater => Value::Enum("sink".into()),
+            ApplianceClassId::Fridge => Value::Enum("source".into()),
+            _ => first_enum(point).unwrap_or_else(|| Value::Enum("unknown".into())),
+        },
+        // Align with `ThermalPlant::fridge_condenser_dhw_demo` (Media::Water).
+        "thermal_port_media" => Value::Enum("water".into()),
+        "thermal_port_max_power_w" => match ctx.identity.class_id {
+            ApplianceClassId::WaterHeater => Value::F32(2_000.0),
+            ApplianceClassId::Fridge => Value::F32(120.0),
+            _ => Value::F32(0.0),
+        },
+        "thermal_port_attached_reservoir_id" => Value::String(String::new()),
         _ => generic_default(point),
     }
 }

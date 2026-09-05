@@ -1021,6 +1021,80 @@ pub fn hub_lab_set_discover_describe() -> ScenarioResult {
     Ok(())
 }
 
+/// (4c) Catalog/sim thermal-port surface on water_heater (Stream 5 DoD).
+pub fn water_heater_thermal_ports() -> ScenarioResult {
+    const NAME: &str = "water_heater_thermal_ports";
+    let mut sim = Simulator::new();
+    let id = sim
+        .spawn(ApplianceClassId::WaterHeater)
+        .map_err(|e| err(NAME, format!("spawn water_heater: {e}")))?;
+
+    let direction = sim
+        .read_value(&id, "class.water_heater.thermal_port_direction")
+        .map_err(|e| err(NAME, format!("read direction: {e}")))?;
+    if direction != Value::Enum("sink".into()) {
+        return Err(err(NAME, format!("direction={direction:?}, expected sink")));
+    }
+    let media = sim
+        .read_value(&id, "class.water_heater.thermal_port_media")
+        .map_err(|e| err(NAME, format!("read media: {e}")))?;
+    if media != Value::Enum("water".into()) {
+        return Err(err(NAME, format!("media={media:?}, expected water")));
+    }
+    let max_w = sim
+        .read_value(&id, "class.water_heater.thermal_port_max_power_w")
+        .map_err(|e| err(NAME, format!("read max_power: {e}")))?;
+    if max_w != Value::F32(2_000.0) {
+        return Err(err(NAME, format!("max_power_w={max_w:?}, expected 2000")));
+    }
+
+    sim.write(
+        &id,
+        "class.water_heater.thermal_port_attached_reservoir_id",
+        Value::String("dhw-tank".into()),
+    )
+    .map_err(|e| err(NAME, format!("write attached_reservoir_id: {e}")))?;
+    let attached = sim
+        .read_value(&id, "class.water_heater.thermal_port_attached_reservoir_id")
+        .map_err(|e| err(NAME, format!("read attached_reservoir_id: {e}")))?;
+    if attached != Value::String("dhw-tank".into()) {
+        return Err(err(
+            NAME,
+            format!("attached_reservoir_id={attached:?}, expected dhw-tank"),
+        ));
+    }
+
+    // Lighter fridge check: source-side port seeds + write path.
+    let fridge = sim
+        .spawn(ApplianceClassId::Fridge)
+        .map_err(|e| err(NAME, format!("spawn fridge: {e}")))?;
+    let fridge_dir = sim
+        .read_value(&fridge, "class.fridge.thermal_port_direction")
+        .map_err(|e| err(NAME, format!("read fridge direction: {e}")))?;
+    if fridge_dir != Value::Enum("source".into()) {
+        return Err(err(
+            NAME,
+            format!("fridge direction={fridge_dir:?}, expected source"),
+        ));
+    }
+    sim.write(
+        &fridge,
+        "class.fridge.thermal_port_attached_reservoir_id",
+        Value::String("dhw-tank".into()),
+    )
+    .map_err(|e| err(NAME, format!("write fridge attached_reservoir_id: {e}")))?;
+    let fridge_attached = sim
+        .read_value(&fridge, "class.fridge.thermal_port_attached_reservoir_id")
+        .map_err(|e| err(NAME, format!("read fridge attached: {e}")))?;
+    if fridge_attached != Value::String("dhw-tank".into()) {
+        return Err(err(
+            NAME,
+            format!("fridge attached={fridge_attached:?}, expected dhw-tank"),
+        ));
+    }
+    Ok(())
+}
+
 /// Ordered smoke scenarios for the suite runner.
 pub fn all_scenarios() -> &'static [(&'static str, ScenarioFn)] {
     &[
@@ -1034,6 +1108,7 @@ pub fn all_scenarios() -> &'static [(&'static str, ScenarioFn)] {
             "thermal_then_dishwasher_preheat",
             thermal_then_dishwasher_preheat,
         ),
+        ("water_heater_thermal_ports", water_heater_thermal_ports),
         (
             "modbus_water_heater_roundtrip",
             modbus_water_heater_roundtrip,
