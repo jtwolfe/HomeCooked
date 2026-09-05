@@ -364,6 +364,9 @@ mod tests {
             .validate_write("class.steam_oven.steam_mode", &Value::Enum("combi".into()))
             .unwrap();
         steam
+            .validate_write("trait.program.program", &Value::Enum("steam".into()))
+            .unwrap();
+        steam
             .validate_write("trait.temperature.setpoint_c", &Value::F32(180.0))
             .unwrap();
 

@@ -444,6 +444,12 @@ mod tests {
         assert!(classes
             .iter()
             .any(|c| c.id == "induction_hob" && c.label == "Induction Hob"));
+        assert!(classes
+            .iter()
+            .any(|c| c.id == "steam_oven" && c.label == "Steam Oven"));
+        assert!(classes
+            .iter()
+            .any(|c| c.id == "coffee_machine" && c.label == "Coffee Machine"));
     }
 
     #[test]
