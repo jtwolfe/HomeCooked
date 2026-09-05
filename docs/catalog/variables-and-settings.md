@@ -1503,10 +1503,17 @@ Cycle remaining via `trait.cycle.remaining_s`. Setpoint resolution typically 0.1
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
 | `mode` | enum | — | `vacuum_seal` `seal_only` `pulse` `chamber` | r/w | req | |
-| `moist` | bool | — | | r/w | opt | |
+| `moist` | bool | — | | r/w | opt | Moist-food vacuum profile |
 | `vacuum_kpa` | f32 | kilopascal | 0–101 | r/e | opt | Remaining absolute or gauge as advertised |
-| `bag_detect` | bool | — | | r/e | opt | |
-| `form_factor` | enum | — | `bar` `chamber` | r | opt | |
+| `bag_detect` | bool | — | | r/e | opt | Bag present in seal channel |
+| `form_factor` | enum | — | `bar` `chamber` | r | opt | Hardware form |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving vacuum / seal profile |
+| `pump_on` | bool | — | | r/e | opt | Vacuum pump running |
+| `seal_heater_on` | bool | — | | r/e | opt | Seal-bar heater active |
+| `lid_locked` | bool | — | | r/e | opt | Lid / clamp interlock engaged |
+| `seal_fail` | bool | — | | r/e | opt | Seal incomplete / fault bit |
+| `timer_s` | duration_s | second | 0–3600 | r/w/e | opt | Delay start / cycle timer |
 
 ---
 

@@ -1230,12 +1230,17 @@ Vacuum sealer (bar or chamber).
 (pump), `heater` (seal bar), `fault`, `energy`, `safety`.
 
 **Typical controllable settings:** vacuum then seal, seal-only, pulse vacuum,
-moist/dry, chamber vacuum target (kPa) if chamber.
+moist/dry, delay timer; chamber vacuum target (kPa) if chamber.
 
-**Typical readable state:** pumping, sealing, complete, bag detect, overheat
-seal bar, vacuum pressure.
+**Typical readable state:** pumping, sealing, complete, bag detect, lid lock,
+seal heater, seal fail, vacuum pressure.
 
-**Notes:** Chamber vs bar is a variant flag. Lid interlock on chamber units.
+**Notes:**
+- Chamber vs bar is a variant flag (`form_factor`). Lid interlock on chamber units.
+- Catalog depth: optional class points include sabbath, eco, `pump_on`,
+  `seal_heater_on`, `lid_locked`, `seal_fail`, and `timer_s`, plus typical
+  `moist` / `vacuum_kpa` / `bag_detect` / `form_factor` (see variables-and-settings);
+  required `mode`.
 
 ### `ice_cream_maker`
 
