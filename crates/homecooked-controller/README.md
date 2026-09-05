@@ -38,9 +38,9 @@ the inlet is open (washer), drains on pump, drops humidity while drying, mirrors
 door lock feedback, and tracks drum rpm — enough for sensor-driven transitions
 in tests.
 
-**Lab TCP (thin):** [`ControllerEndpoint`](src/endpoint.rs) /
-[`DryerControllerEndpoint`](src/dryer_endpoint.rs) map small washer/dryer
-capabilities onto MockHal so clients over `homecooked-transport` get
+**Lab TCP:** [`ControllerEndpoint`](src/endpoint.rs) /
+[`DryerControllerEndpoint`](src/dryer_endpoint.rs) advertise catalog typical
+washer/dryer capability (plus lab HAL extras) onto MockHal so clients over `homecooked-transport` get
 `safety_interlock` on denied actuator writes (washer: water+lock; dryer:
 lock+blower). Washer and dryer TCP also start cotton/dry via
 `trait.cycle.start` and expose readable `trait.cycle.cycle_state` /
@@ -50,7 +50,10 @@ catalog writes (`class.washer.wash_temp_c` / `spin_rpm` before void
 `trait.cycle.start`). Dryer **DryOptions** via adjacent
 `class.dryer.dryness` / `heat_level` writes before void start. Void
 `trait.cycle.pause` / `resume` / `cancel` over TCP (washer drain / dryer cool →
-`idle`). typical_capability remains follow-up. No GPIO, TLS, or OAuth.
+`idle`). Describe advertises catalog **typical_capability** for washer/dryer
+merged with lab-only HAL / `sim_tick` (and dryer DryOptions setpoints);
+unbound typical points use last-write store / stable defaults — full HAL
+binding for every typical point is **not** required. No GPIO, TLS, or OAuth.
 
 ## Tests
 

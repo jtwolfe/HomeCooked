@@ -1,7 +1,10 @@
 //! Thin HomeCooked **device-role** adapter over [`Controller`] for lab TCP.
 //!
-//! Advertises a small washer capability whose writes map onto MockHal channels
-//! (I/O map + washer interlocks). Denied actuator commands surface as
+//! Advertises catalog [`typical_capability`](homecooked_schema::typical_capability)
+//! for washer, merged with lab-only HAL heater/door/water points and
+//! `class.washer.sim_tick`. Writes map onto MockHal channels (I/O map + washer
+//! interlocks) where wired; other typical points use last-write store / stable
+//! defaults. Denied actuator commands surface as
 //! [`ErrorCode::SafetyInterlock`] — the Stream 4 controller-sim-over-TCP smoke.
 //!
 //! Also exposes catalog cycle points so a TCP client can **start cotton**
@@ -11,9 +14,10 @@
 //! `class.washer.spin_rpm`) **before** void `trait.cycle.start` — same order as
 //! washer-dryer-io §6. Lab-only `class.washer.sim_tick` advances one host sim
 //! tick. Void writes to `trait.cycle.pause` / `resume` / `cancel` map onto host
-//! pause/resume/cancel (typical_capability remains follow-up; dryer DryOptions
-//! live on [`crate::DryerControllerEndpoint`]).
+//! pause/resume/cancel. Dryer DryOptions live on [`crate::DryerControllerEndpoint`].
 //! Dryer TCP: see [`crate::DryerControllerEndpoint`]. No TLS / OAuth.
+
+use std::collections::BTreeMap;
 
 use homecooked_hal::{bridge, ChannelId, HalValue};
 use homecooked_protocol::{
@@ -21,11 +25,7 @@ use homecooked_protocol::{
     Envelope, ErrorBody, HelloRecord, Payload, PointValue, PongBody, ReadRequest, ReadResponse,
     WriteOp, WriteRequest, WriteResponse,
 };
-use homecooked_schema::{
-    class_table, trait_table, AccessMode, ApplianceClassId, CapabilityModel, CommandArg, ErrorCode,
-    PointCapability, TraitCapability, TraitId, Value, ValueRange, ValueType, CATALOG_VERSION,
-    DEFAULT_CLASS_VERSION,
-};
+use homecooked_schema::{ApplianceClassId, CapabilityModel, ErrorCode, Value, CATALOG_VERSION};
 use homecooked_transport::RequestHandler;
 
 use crate::controller::Controller;
@@ -68,6 +68,8 @@ pub struct ControllerEndpoint {
     controller: Controller,
     /// Pending CottonOptions applied on the next `trait.cycle.start`.
     cotton_opts: CottonOptions,
+    /// Last-write cache for advertised typical points not wired to HAL/host.
+    point_store: BTreeMap<String, Value>,
 }
 
 impl ControllerEndpoint {
@@ -78,11 +80,21 @@ impl ControllerEndpoint {
 
     /// Same as [`Self::washer_lab`] with a custom device id.
     pub fn washer_named(device_id: impl Into<String>) -> Result<Self, Error> {
+        let capability = crate::lab_cap::lab_washer_capability();
+        let device_id = device_id.into();
+        let mut point_store = BTreeMap::new();
+        crate::lab_cap::seed_identity_store(
+            &mut point_store,
+            &capability,
+            &device_id,
+            ApplianceClassId::Washer,
+        );
         Ok(Self {
-            device_id: device_id.into(),
-            capability: lab_washer_capability(),
+            device_id,
+            capability,
             controller: Controller::washer_cotton_demo()?,
             cotton_opts: CottonOptions::default(),
+            point_store,
         })
     }
 
@@ -318,27 +330,30 @@ impl ControllerEndpoint {
                 Ok(Value::U16(rpm))
             }
             _ => {
-                let channel = point_to_channel(point_id).ok_or_else(|| {
-                    ErrorBody::new(
-                        ErrorCode::UnknownVariable,
-                        format!("unknown point {point_id}"),
-                    )
-                    .at_point(point_id)
-                })?;
-                // Prefer MockHal::get so actuator outputs (aout.*) are readable in lab.
-                let id = ChannelId::new(channel).map_err(|e| {
-                    ErrorBody::new(ErrorCode::Internal, e.to_string()).at_point(point_id)
-                })?;
-                let raw = self
-                    .controller
-                    .hal()
-                    .get(&id)
-                    .map_err(|e| {
-                        ErrorBody::new(ErrorCode::Internal, format!("hal get {channel}: {e}"))
-                            .at_point(point_id)
-                    })?
-                    .clone();
-                hal_to_value(&raw, point_id)
+                if let Some(channel) = point_to_channel(point_id) {
+                    // Prefer MockHal::get so actuator outputs (aout.*) are readable in lab.
+                    let id = ChannelId::new(channel).map_err(|e| {
+                        ErrorBody::new(ErrorCode::Internal, e.to_string()).at_point(point_id)
+                    })?;
+                    let raw = self
+                        .controller
+                        .hal()
+                        .get(&id)
+                        .map_err(|e| {
+                            ErrorBody::new(ErrorCode::Internal, format!("hal get {channel}: {e}"))
+                                .at_point(point_id)
+                        })?
+                        .clone();
+                    return hal_to_value(&raw, point_id);
+                }
+                crate::lab_cap::read_store_or_default(&self.point_store, &self.capability, point_id)
+                    .ok_or_else(|| {
+                        ErrorBody::new(
+                            ErrorCode::UnknownVariable,
+                            format!("unknown point {point_id}"),
+                        )
+                        .at_point(point_id)
+                    })
             }
         }
     }
@@ -455,11 +470,12 @@ impl ControllerEndpoint {
                     }
                 }
             }
-            other => Err(ErrorBody::new(
-                ErrorCode::NotWritable,
-                format!("{other} is not writable on controller lab endpoint"),
-            )
-            .at_point(other)),
+            other => crate::lab_cap::store_write(
+                &mut self.point_store,
+                &self.capability,
+                other,
+                op.value.clone(),
+            ),
         }
     }
 }
@@ -468,111 +484,6 @@ impl RequestHandler for ControllerEndpoint {
     fn handle(&mut self, request: Envelope) -> Envelope {
         self.handle_request(request)
     }
-}
-
-/// Thin lab capability: HAL-backed washer heater / door / water points + CottonOptions
-/// setpoints + cycle start/pause/resume/cancel + read.
-pub fn lab_washer_capability() -> CapabilityModel {
-    let mut cap = CapabilityModel::new(ApplianceClassId::Washer);
-    cap.class_version = DEFAULT_CLASS_VERSION;
-    let washer = class_table(ApplianceClassId::Washer).expect("washer class table");
-    cap.class_points = vec![
-        PointCapability {
-            id: HEATER_POINT.into(),
-            value_type: ValueType::Bool,
-            unit: None,
-            access: AccessMode::RW,
-            required: true,
-            range: None,
-            resolution: None,
-            zones: None,
-        },
-        PointCapability {
-            id: DOOR_LOCK_POINT.into(),
-            value_type: ValueType::Bool,
-            unit: None,
-            access: AccessMode::RW,
-            required: true,
-            range: None,
-            resolution: None,
-            zones: None,
-        },
-        PointCapability {
-            id: WATER_LEVEL_POINT.into(),
-            value_type: ValueType::F32,
-            unit: None,
-            access: AccessMode::RW,
-            required: true,
-            range: None,
-            resolution: None,
-            zones: None,
-        },
-        PointCapability {
-            id: DOOR_LOCK_FB_POINT.into(),
-            value_type: ValueType::Bool,
-            unit: None,
-            access: AccessMode::R,
-            required: true,
-            range: None,
-            resolution: None,
-            zones: None,
-        },
-        // Catalog CottonOptions knobs (write before trait.cycle.start).
-        PointCapability::from_catalog(
-            WASH_TEMP_POINT,
-            washer
-                .class_point("wash_temp_c")
-                .expect("washer wash_temp_c"),
-        ),
-        PointCapability::from_catalog(
-            SPIN_RPM_POINT,
-            washer.class_point("spin_rpm").expect("washer spin_rpm"),
-        ),
-        // Lab-only tick (not catalog): advance host cotton runtime one step.
-        PointCapability {
-            id: LAB_TICK_POINT.into(),
-            value_type: ValueType::Command,
-            unit: None,
-            access: AccessMode::W,
-            required: false,
-            range: Some(ValueRange::CommandArg {
-                arg: CommandArg::Void,
-            }),
-            resolution: None,
-            zones: None,
-        },
-    ];
-    // Advertise door_lid so Discover trait filters can match laundry clients.
-    cap.traits.push(TraitCapability {
-        trait_id: TraitId::DoorLid,
-        trait_version: DEFAULT_CLASS_VERSION,
-        points: Vec::new(),
-    });
-    // Catalog cycle points: start/pause/resume/cancel + observe state/phase.
-    let cycle = trait_table(TraitId::Cycle).expect("cycle trait table");
-    let mut cycle_points = Vec::new();
-    for id in [
-        "start",
-        "pause",
-        "resume",
-        "cancel",
-        "cycle_state",
-        "cycle_phase",
-    ] {
-        let p = cycle
-            .point(id)
-            .unwrap_or_else(|| panic!("missing trait.cycle.{id}"));
-        cycle_points.push(PointCapability::from_catalog(
-            format!("trait.cycle.{id}"),
-            p,
-        ));
-    }
-    cap.traits.push(TraitCapability {
-        trait_id: TraitId::Cycle,
-        trait_version: DEFAULT_CLASS_VERSION,
-        points: cycle_points,
-    });
-    cap
 }
 
 fn cycle_error_body(point_id: &str, err: Error) -> ErrorBody {
@@ -1017,5 +928,76 @@ mod endpoint_tests {
             ));
         }
         assert_eq!(ep.controller().cycle_state().as_str(), "idle");
+    }
+
+    #[test]
+    fn lab_capability_includes_typical_program_and_sim_tick() {
+        let cap = crate::lab_cap::lab_washer_capability();
+        assert!(cap.point("trait.program.program").is_some());
+        assert!(cap.point("class.washer.door_locked").is_some());
+        assert!(cap.point("class.washer.sim_tick").is_some());
+        assert!(cap.point("trait.cycle.pause").is_some());
+        assert!(cap.point("trait.cycle.cancel").is_some());
+        assert!(cap.point("class.washer.heater_enable").is_some());
+    }
+
+    #[test]
+    fn typical_points_store_default_over_handle() {
+        let mut ep = ControllerEndpoint::washer_lab().unwrap();
+        let read = Envelope::request(
+            Some(ep.device_id().into()),
+            Payload::Read(homecooked_protocol::ReadRequest {
+                points: vec![
+                    qid("trait.program.program"),
+                    qid("class.washer.sabbath_mode"),
+                ],
+                allow_partial: false,
+            }),
+        );
+        match ep.handle_request(read).payload {
+            Payload::ReadOk(body) => {
+                assert_eq!(body.values[0].value, Some(Value::Enum("cotton".into())));
+                assert_eq!(body.values[1].value, Some(Value::Bool(false)));
+            }
+            other => panic!("expected ReadOk defaults, got {other:?}"),
+        }
+        let write = Envelope::request(
+            Some(ep.device_id().into()),
+            Payload::Write(WriteRequest {
+                writes: vec![
+                    WriteOp {
+                        id: qid("trait.program.program"),
+                        value: Value::Enum("eco".into()),
+                    },
+                    WriteOp {
+                        id: qid("class.washer.sabbath_mode"),
+                        value: Value::Bool(true),
+                    },
+                ],
+                dry_run: false,
+                atomic: false,
+            }),
+        );
+        assert!(matches!(
+            ep.handle_request(write).payload,
+            Payload::WriteOk(_)
+        ));
+        let read2 = Envelope::request(
+            Some(ep.device_id().into()),
+            Payload::Read(homecooked_protocol::ReadRequest {
+                points: vec![
+                    qid("trait.program.program"),
+                    qid("class.washer.sabbath_mode"),
+                ],
+                allow_partial: false,
+            }),
+        );
+        match ep.handle_request(read2).payload {
+            Payload::ReadOk(body) => {
+                assert_eq!(body.values[0].value, Some(Value::Enum("eco".into())));
+                assert_eq!(body.values[1].value, Some(Value::Bool(true)));
+            }
+            other => panic!("expected ReadOk after store, got {other:?}"),
+        }
     }
 }

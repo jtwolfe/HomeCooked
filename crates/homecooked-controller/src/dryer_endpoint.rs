@@ -1,8 +1,11 @@
 //! Thin HomeCooked **device-role** adapter over [`DryerController`] for lab TCP.
 //!
-//! Same pattern as [`crate::endpoint::ControllerEndpoint`]: advertise a small
-//! dryer capability whose writes map onto MockHal channels (`dryer_rules`
-//! interlocks). Denied heater commands surface as
+//! Same pattern as [`crate::endpoint::ControllerEndpoint`]: advertise catalog
+//! [`typical_capability`](homecooked_schema::typical_capability) for dryer,
+//! merged with lab-only HAL heater/door/blower points, DryOptions setpoints,
+//! and `class.dryer.sim_tick`. Writes map onto MockHal channels (`dryer_rules`
+//! interlocks) where wired; other typical points use last-write store / stable
+//! defaults. Denied heater commands surface as
 //! [`ErrorCode::SafetyInterlock`].
 //!
 //! Also exposes catalog cycle points so a TCP client can **start dryer cotton**
@@ -12,8 +15,10 @@
 //! `class.dryer.heat_level`) **before** void `trait.cycle.start` — same order
 //! as washer-dryer-io §7 (maps onto [`DryOptions`] humidity / temp targets).
 //! Lab-only `class.dryer.sim_tick` advances one host sim tick. Void writes to
-//! `trait.cycle.pause` / `resume` / `cancel` map onto host pause/resume/cancel
-//! (typical_capability remains follow-up). No TLS / OAuth.
+//! `trait.cycle.pause` / `resume` / `cancel` map onto host pause/resume/cancel.
+//! No TLS / OAuth.
+
+use std::collections::BTreeMap;
 
 use homecooked_hal::{bridge, ChannelId, HalValue};
 use homecooked_protocol::{
@@ -21,11 +26,7 @@ use homecooked_protocol::{
     Envelope, ErrorBody, HelloRecord, Payload, PointValue, PongBody, ReadRequest, ReadResponse,
     WriteOp, WriteRequest, WriteResponse,
 };
-use homecooked_schema::{
-    class_table, trait_table, AccessMode, ApplianceClassId, CapabilityModel, CommandArg, ErrorCode,
-    PointCapability, TraitCapability, TraitId, Value, ValueRange, ValueType, CATALOG_VERSION,
-    DEFAULT_CLASS_VERSION,
-};
+use homecooked_schema::{ApplianceClassId, CapabilityModel, ErrorCode, Value, CATALOG_VERSION};
 use homecooked_transport::RequestHandler;
 
 use crate::cycle::DryOptions;
@@ -72,6 +73,8 @@ pub struct DryerControllerEndpoint {
     dryness: String,
     /// Wire token for [`HEAT_LEVEL_POINT`] (maps onto [`DryOptions::target_temp_c`]).
     heat_level: String,
+    /// Last-write cache for advertised typical points not wired to HAL/host.
+    point_store: BTreeMap<String, Value>,
 }
 
 impl DryerControllerEndpoint {
@@ -82,13 +85,23 @@ impl DryerControllerEndpoint {
 
     /// Same as [`Self::dryer_lab`] with a custom device id.
     pub fn dryer_named(device_id: impl Into<String>) -> Result<Self, Error> {
+        let capability = crate::lab_cap::lab_dryer_capability();
+        let device_id = device_id.into();
+        let mut point_store = BTreeMap::new();
+        crate::lab_cap::seed_identity_store(
+            &mut point_store,
+            &capability,
+            &device_id,
+            ApplianceClassId::Dryer,
+        );
         Ok(Self {
-            device_id: device_id.into(),
-            capability: lab_dryer_capability(),
+            device_id,
+            capability,
             controller: DryerController::dryer_cotton_demo()?,
             dry_opts: DryOptions::default(),
             dryness: DEFAULT_DRYNESS.into(),
             heat_level: DEFAULT_HEAT_LEVEL.into(),
+            point_store,
         })
     }
 
@@ -316,26 +329,29 @@ impl DryerControllerEndpoint {
             DRYNESS_POINT => Ok(Value::Enum(self.dryness.clone())),
             HEAT_LEVEL_POINT => Ok(Value::Enum(self.heat_level.clone())),
             _ => {
-                let channel = point_to_channel(point_id).ok_or_else(|| {
-                    ErrorBody::new(
-                        ErrorCode::UnknownVariable,
-                        format!("unknown point {point_id}"),
-                    )
-                    .at_point(point_id)
-                })?;
-                let id = ChannelId::new(channel).map_err(|e| {
-                    ErrorBody::new(ErrorCode::Internal, e.to_string()).at_point(point_id)
-                })?;
-                let raw = self
-                    .controller
-                    .hal()
-                    .get(&id)
-                    .map_err(|e| {
-                        ErrorBody::new(ErrorCode::Internal, format!("hal get {channel}: {e}"))
-                            .at_point(point_id)
-                    })?
-                    .clone();
-                hal_to_value(&raw)
+                if let Some(channel) = point_to_channel(point_id) {
+                    let id = ChannelId::new(channel).map_err(|e| {
+                        ErrorBody::new(ErrorCode::Internal, e.to_string()).at_point(point_id)
+                    })?;
+                    let raw = self
+                        .controller
+                        .hal()
+                        .get(&id)
+                        .map_err(|e| {
+                            ErrorBody::new(ErrorCode::Internal, format!("hal get {channel}: {e}"))
+                                .at_point(point_id)
+                        })?
+                        .clone();
+                    return hal_to_value(&raw);
+                }
+                crate::lab_cap::read_store_or_default(&self.point_store, &self.capability, point_id)
+                    .ok_or_else(|| {
+                        ErrorBody::new(
+                            ErrorCode::UnknownVariable,
+                            format!("unknown point {point_id}"),
+                        )
+                        .at_point(point_id)
+                    })
             }
         }
     }
@@ -459,11 +475,12 @@ impl DryerControllerEndpoint {
                     }
                 }
             }
-            other => Err(ErrorBody::new(
-                ErrorCode::NotWritable,
-                format!("{other} is not writable on dryer controller lab endpoint"),
-            )
-            .at_point(other)),
+            other => crate::lab_cap::store_write(
+                &mut self.point_store,
+                &self.capability,
+                other,
+                op.value.clone(),
+            ),
         }
     }
 }
@@ -472,108 +489,6 @@ impl RequestHandler for DryerControllerEndpoint {
     fn handle(&mut self, request: Envelope) -> Envelope {
         self.handle_request(request)
     }
-}
-
-/// Thin lab capability: HAL-backed dryer heater / door / blower points + DryOptions
-/// setpoints + cycle start/pause/resume/cancel + read.
-pub fn lab_dryer_capability() -> CapabilityModel {
-    let mut cap = CapabilityModel::new(ApplianceClassId::Dryer);
-    cap.class_version = DEFAULT_CLASS_VERSION;
-    let dryer = class_table(ApplianceClassId::Dryer).expect("dryer class table");
-    cap.class_points = vec![
-        PointCapability {
-            id: HEATER_POINT.into(),
-            value_type: ValueType::Bool,
-            unit: None,
-            access: AccessMode::RW,
-            required: true,
-            range: None,
-            resolution: None,
-            zones: None,
-        },
-        PointCapability {
-            id: DOOR_LOCK_POINT.into(),
-            value_type: ValueType::Bool,
-            unit: None,
-            access: AccessMode::RW,
-            required: true,
-            range: None,
-            resolution: None,
-            zones: None,
-        },
-        PointCapability {
-            id: BLOWER_POINT.into(),
-            value_type: ValueType::Bool,
-            unit: None,
-            access: AccessMode::RW,
-            required: true,
-            range: None,
-            resolution: None,
-            zones: None,
-        },
-        PointCapability {
-            id: DOOR_LOCK_FB_POINT.into(),
-            value_type: ValueType::Bool,
-            unit: None,
-            access: AccessMode::R,
-            required: true,
-            range: None,
-            resolution: None,
-            zones: None,
-        },
-        // Catalog DryOptions knobs (write before trait.cycle.start).
-        PointCapability::from_catalog(
-            DRYNESS_POINT,
-            dryer.class_point("dryness").expect("dryer dryness"),
-        ),
-        PointCapability::from_catalog(
-            HEAT_LEVEL_POINT,
-            dryer.class_point("heat_level").expect("dryer heat_level"),
-        ),
-        // Lab-only tick (not catalog): advance host dryer cotton runtime one step.
-        PointCapability {
-            id: LAB_TICK_POINT.into(),
-            value_type: ValueType::Command,
-            unit: None,
-            access: AccessMode::W,
-            required: false,
-            range: Some(ValueRange::CommandArg {
-                arg: CommandArg::Void,
-            }),
-            resolution: None,
-            zones: None,
-        },
-    ];
-    cap.traits.push(TraitCapability {
-        trait_id: TraitId::DoorLid,
-        trait_version: DEFAULT_CLASS_VERSION,
-        points: Vec::new(),
-    });
-    // Catalog cycle points: start/pause/resume/cancel + observe state/phase over TCP.
-    let cycle = trait_table(TraitId::Cycle).expect("cycle trait table");
-    let mut cycle_points = Vec::new();
-    for id in [
-        "start",
-        "pause",
-        "resume",
-        "cancel",
-        "cycle_state",
-        "cycle_phase",
-    ] {
-        let p = cycle
-            .point(id)
-            .unwrap_or_else(|| panic!("missing trait.cycle.{id}"));
-        cycle_points.push(PointCapability::from_catalog(
-            format!("trait.cycle.{id}"),
-            p,
-        ));
-    }
-    cap.traits.push(TraitCapability {
-        trait_id: TraitId::Cycle,
-        trait_version: DEFAULT_CLASS_VERSION,
-        points: cycle_points,
-    });
-    cap
 }
 
 /// Defaults match [`DryOptions::default`] humidity / temp targets.
@@ -1035,5 +950,77 @@ mod dryer_endpoint_tests {
             ));
         }
         assert_eq!(ep.controller().cycle_state().as_str(), "idle");
+    }
+
+    #[test]
+    fn lab_capability_includes_typical_program_and_sim_tick() {
+        let cap = crate::lab_cap::lab_dryer_capability();
+        assert!(cap.point("trait.program.program").is_some());
+        assert!(cap.point("class.dryer.door_locked").is_some());
+        assert!(cap.point("class.dryer.lint_filter").is_some());
+        assert!(cap.point("class.dryer.sim_tick").is_some());
+        assert!(cap.point("class.dryer.dryness").is_some());
+        assert!(cap.point("trait.cycle.pause").is_some());
+        assert!(cap.point("class.dryer.heater_enable").is_some());
+    }
+
+    #[test]
+    fn typical_points_store_default_over_handle() {
+        let mut ep = DryerControllerEndpoint::dryer_lab().unwrap();
+        let read = Envelope::request(
+            Some(ep.device_id().into()),
+            Payload::Read(homecooked_protocol::ReadRequest {
+                points: vec![
+                    qid("trait.program.program"),
+                    qid("class.dryer.sabbath_mode"),
+                ],
+                allow_partial: false,
+            }),
+        );
+        match ep.handle_request(read).payload {
+            Payload::ReadOk(body) => {
+                assert_eq!(body.values[0].value, Some(Value::Enum("cotton".into())));
+                assert_eq!(body.values[1].value, Some(Value::Bool(false)));
+            }
+            other => panic!("expected ReadOk defaults, got {other:?}"),
+        }
+        let write = Envelope::request(
+            Some(ep.device_id().into()),
+            Payload::Write(WriteRequest {
+                writes: vec![
+                    WriteOp {
+                        id: qid("trait.program.program"),
+                        value: Value::Enum("eco".into()),
+                    },
+                    WriteOp {
+                        id: qid("class.dryer.sabbath_mode"),
+                        value: Value::Bool(true),
+                    },
+                ],
+                dry_run: false,
+                atomic: false,
+            }),
+        );
+        assert!(matches!(
+            ep.handle_request(write).payload,
+            Payload::WriteOk(_)
+        ));
+        let read2 = Envelope::request(
+            Some(ep.device_id().into()),
+            Payload::Read(homecooked_protocol::ReadRequest {
+                points: vec![
+                    qid("trait.program.program"),
+                    qid("class.dryer.sabbath_mode"),
+                ],
+                allow_partial: false,
+            }),
+        );
+        match ep.handle_request(read2).payload {
+            Payload::ReadOk(body) => {
+                assert_eq!(body.values[0].value, Some(Value::Enum("eco".into())));
+                assert_eq!(body.values[1].value, Some(Value::Bool(true)));
+            }
+            other => panic!("expected ReadOk after store, got {other:?}"),
+        }
     }
 }
