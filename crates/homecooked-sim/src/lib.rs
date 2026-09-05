@@ -548,6 +548,177 @@ mod tests {
     }
 
     #[test]
+    fn multi_cooker_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let mc = sim.spawn(ApplianceClassId::MultiCooker).unwrap();
+
+        assert_eq!(
+            sim.read_value(&mc, "class.multi_cooker.lid_locked")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&mc, "class.multi_cooker.safe_to_open")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&mc, "class.multi_cooker.pot_detect")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(
+            sim.read_value(&mc, "class.multi_cooker.burn_detected")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&mc, "class.multi_cooker.overpressure_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&mc, "class.multi_cooker.lid_mismatch")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&mc, "class.multi_cooker.keep_warm").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&mc, "class.multi_cooker.cook_s").unwrap(),
+            Value::DurationS(600)
+        );
+        assert_eq!(
+            sim.read_value(&mc, "class.multi_cooker.delayed_start_s")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&mc, "class.multi_cooker.keep_warm_s")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&mc, "class.multi_cooker.pressure_band")
+                .unwrap(),
+            Value::Enum("low".into())
+        );
+        assert_eq!(
+            sim.read_value(&mc, "class.multi_cooker.saute_level")
+                .unwrap(),
+            Value::Enum("low".into())
+        );
+        assert_eq!(
+            sim.read_value(&mc, "class.multi_cooker.float_valve")
+                .unwrap(),
+            Value::Enum("down".into())
+        );
+        assert_eq!(
+            sim.read_value(&mc, "class.multi_cooker.remote_vent_enabled")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&mc, "trait.cycle.remaining_s").unwrap(),
+            Value::DurationS(0)
+        );
+
+        sim.write(&mc, "class.multi_cooker.cook_s", Value::DurationS(2400))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&mc, "class.multi_cooker.cook_s").unwrap(),
+            Value::DurationS(2400)
+        );
+        sim.write(
+            &mc,
+            "class.multi_cooker.delayed_start_s",
+            Value::DurationS(900),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&mc, "class.multi_cooker.delayed_start_s")
+                .unwrap(),
+            Value::DurationS(900)
+        );
+        sim.write(&mc, "class.multi_cooker.keep_warm", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&mc, "class.multi_cooker.keep_warm").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(
+            &mc,
+            "class.multi_cooker.keep_warm_s",
+            Value::DurationS(1800),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&mc, "class.multi_cooker.keep_warm_s")
+                .unwrap(),
+            Value::DurationS(1800)
+        );
+        sim.write(
+            &mc,
+            "class.multi_cooker.saute_level",
+            Value::Enum("high".into()),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&mc, "class.multi_cooker.saute_level")
+                .unwrap(),
+            Value::Enum("high".into())
+        );
+        sim.write(
+            &mc,
+            "class.multi_cooker.pressure_band",
+            Value::Enum("high".into()),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&mc, "class.multi_cooker.pressure_band")
+                .unwrap(),
+            Value::Enum("high".into())
+        );
+        sim.write(
+            &mc,
+            "class.multi_cooker.remote_vent_enabled",
+            Value::Bool(true),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&mc, "class.multi_cooker.remote_vent_enabled")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        let err = sim
+            .write(&mc, "class.multi_cooker.pot_detect", Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &mc,
+                "class.multi_cooker.overpressure_alarm",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&mc, "class.multi_cooker.lid_mismatch", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&mc, "class.multi_cooker.burn_detected", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&mc, "trait.cycle.remaining_s", Value::DurationS(120))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {

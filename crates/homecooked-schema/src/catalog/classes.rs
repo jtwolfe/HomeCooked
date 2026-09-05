@@ -2167,6 +2167,7 @@ const MULTI_COOKER_PHASES: &[&str] = &[
 
 const PRESSURE_BAND: &[&str] = &["low", "high"];
 const FLOAT_VALVE: &[&str] = &["down", "up"];
+const SAUTE_LEVEL: &[&str] = &["low", "normal", "high"];
 
 static MULTI_COOKER_POINTS: &[CatalogPoint] = &[
     s(
@@ -2220,6 +2221,70 @@ static MULTI_COOKER_POINTS: &[CatalogPoint] = &[
     cmd("vent", Some(CatalogRange::CommandVoid), false),
     v(
         "burn_detected",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "pot_detect",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "cook_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 172800),
+        AccessMode::RW,
+        false,
+    ),
+    s(
+        "delayed_start_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 86400),
+        AccessMode::RW,
+        false,
+    ),
+    s(
+        "keep_warm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    ),
+    s(
+        "keep_warm_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 14400),
+        AccessMode::RW,
+        false,
+    ),
+    s(
+        "saute_level",
+        ValueType::Enum,
+        None,
+        en(SAUTE_LEVEL),
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "overpressure_alarm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "lid_mismatch",
         ValueType::Bool,
         None,
         None,

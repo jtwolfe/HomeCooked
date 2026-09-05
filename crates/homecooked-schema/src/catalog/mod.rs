@@ -210,6 +210,13 @@ fn extra_typical_trait_point(table: &ClassTable, trait_id: TraitId, point: &Cata
     {
         return true;
     }
+    // Multi-cooker: cycle remaining is typical cook-timer telemetry.
+    if table.class_id == ApplianceClassId::MultiCooker
+        && trait_id == TraitId::Cycle
+        && point.id == "remaining_s"
+    {
+        return true;
+    }
     false
 }
 
@@ -265,6 +272,25 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "overtemp_alarm"
                 | "delayed_start_s"
                 | "alarm_offset_c"
+        );
+    }
+    // Stream 7 catalog depth: multi-cooker optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::MultiCooker {
+        return matches!(
+            point.id,
+            "pressure_band"
+                | "pressure_kpa"
+                | "float_valve"
+                | "remote_vent_enabled"
+                | "burn_detected"
+                | "pot_detect"
+                | "cook_s"
+                | "delayed_start_s"
+                | "keep_warm"
+                | "keep_warm_s"
+                | "saute_level"
+                | "overpressure_alarm"
+                | "lid_mismatch"
         );
     }
     // Stream 5: device-facing thermal-port surface on Tier-A water_heater / fridge / hvac / dishwasher / dryer.
@@ -693,6 +719,81 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         cap.validate_write("trait.humidity.setpoint_rh", &Value::Percent(60.0))
             .unwrap();
+    }
+
+    #[test]
+    fn multi_cooker_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::MultiCooker).unwrap();
+        for id in [
+            "class.multi_cooker.lid_locked",
+            "class.multi_cooker.safe_to_open",
+            "class.multi_cooker.pressure_band",
+            "class.multi_cooker.pressure_kpa",
+            "class.multi_cooker.float_valve",
+            "class.multi_cooker.remote_vent_enabled",
+            "class.multi_cooker.burn_detected",
+            "class.multi_cooker.pot_detect",
+            "class.multi_cooker.cook_s",
+            "class.multi_cooker.delayed_start_s",
+            "class.multi_cooker.keep_warm",
+            "class.multi_cooker.keep_warm_s",
+            "class.multi_cooker.saute_level",
+            "class.multi_cooker.overpressure_alarm",
+            "class.multi_cooker.lid_mismatch",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical multi_cooker"
+            );
+        }
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Cycle)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.cycle.remaining_s"));
+        cap.validate_write(
+            "class.multi_cooker.pressure_band",
+            &Value::Enum("high".into()),
+        )
+        .unwrap();
+        cap.validate_write("class.multi_cooker.cook_s", &Value::DurationS(1800))
+            .unwrap();
+        cap.validate_write("class.multi_cooker.delayed_start_s", &Value::DurationS(600))
+            .unwrap();
+        cap.validate_write("class.multi_cooker.keep_warm", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.multi_cooker.keep_warm_s", &Value::DurationS(3600))
+            .unwrap();
+        cap.validate_write(
+            "class.multi_cooker.saute_level",
+            &Value::Enum("normal".into()),
+        )
+        .unwrap();
+        cap.validate_write("class.multi_cooker.remote_vent_enabled", &Value::Bool(true))
+            .unwrap();
+        let err = cap
+            .validate_write("class.multi_cooker.pot_detect", &Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.multi_cooker.overpressure_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.multi_cooker.lid_mismatch", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.multi_cooker.pressure_kpa", &Value::F32(50.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("trait.cycle.remaining_s", &Value::DurationS(100))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
     }
 
     #[test]

@@ -1207,14 +1207,24 @@ Head up → `safety_interlock` on start.
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `pressure_band` | enum | — | `low` `high` | r/w | opt | |
-| `pressure_kpa` | f32 | kilopascal | 0–150 | r/e | opt | Gauge |
-| `lid_locked` | bool | — | | r/e | req | |
-| `float_valve` | enum | — | `down` `up` | r/e | opt | |
-| `safe_to_open` | bool | — | | r/e | req | |
-| `remote_vent_enabled` | bool | — | | r/w | opt | Default false |
+| `pressure_band` | enum | — | `low` `high` | r/w | opt | Pressure cook band |
+| `pressure_kpa` | f32 | kilopascal | 0–150 | r/e | opt | Gauge pressure |
+| `lid_locked` | bool | — | | r/e | req | Lid locked while pressurized |
+| `float_valve` | enum | — | `down` `up` | r/e | opt | Float / pin valve position |
+| `safe_to_open` | bool | — | | r/e | req | Safe to unlock / open lid |
+| `remote_vent_enabled` | bool | — | | r/w | opt | Default false; unlocks remote `vent` |
 | `vent` | command | void | — | w | opt | Quick release; default `safety_interlock` |
-| `burn_detected` | bool | — | | r/e | opt | |
+| `burn_detected` | bool | — | | r/e | opt | Burn / high-temp pot sensor |
+| `pot_detect` | bool | — | | r/e | opt | Inner pot detected / seated |
+| `cook_s` | duration_s | second | 0–172800 | r/w | opt | Cook duration setpoint |
+| `delayed_start_s` | duration_s | second | 0–86400 | r/w | opt | Delayed cook start |
+| `keep_warm` | bool | — | | r/w/e | opt | Keep-warm enable |
+| `keep_warm_s` | duration_s | second | 0–14400 | r/w | opt | Keep-warm duration (0 = off / until cancel) |
+| `saute_level` | enum | — | `low` `normal` `high` | r/w | opt | Sauté heat level |
+| `overpressure_alarm` | bool | — | | r/e | opt | Over-pressure fault / alarm |
+| `lid_mismatch` | bool | — | | r/e | opt | Lid / program mismatch fault |
+
+Cycle remaining via `trait.cycle.remaining_s`.
 
 ---
 

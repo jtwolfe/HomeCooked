@@ -1022,22 +1022,27 @@ slow, rice, yogurt, steam in one pot.
 
 - Program (`pressure`, `saute`, `slow`, `steam`, `rice`, `yogurt`, `sous_vide`,
   `keep_warm`, `sterilize`)
-- Pressure band (`low`, `high`) or kPa, setpoint °C, duration, delay
-- Keep-warm, vent / quick-release command if the device allows **and**
-  advertises it (many will refuse remote vent)
+- Pressure band (`low`, `high`) or kPa, setpoint °C, cook duration (`cook_s`),
+  delayed start, sauté level
+- Keep-warm enable / duration, vent / quick-release command if the device allows
+  **and** advertises it (many will refuse remote vent)
 
 **Typical readable state:**
 
 - Phase (`preheat`, `pressurizing`, `at_pressure`, `cooking`, `keep_warm`,
   `safe_to_open`)
-- Pot temp, pressure, remaining, lid locked, float valve
-- Faults: overpressure, burn / high-temp, lid mismatch
+- Pot temp, pressure, remaining, lid locked, float valve, pot detect
+- Faults: overpressure alarm, burn / high-temp, lid mismatch
 
 **Notes:**
 
 - Safety: lid lock while pressurized. Remote quick-release is default-deny
   (`safety_interlock`) unless `remote_vent_enabled`.
 - Distinct from `slow_cooker` and `rice_cooker`.
+- Catalog depth: optional class points include pot detect / cook duration /
+  delayed start / keep-warm / sauté level / overpressure / lid mismatch plus
+  pressure band/kPa / float valve / burn / remote vent (see
+  variables-and-settings); typical also advertises `trait.cycle.remaining_s`.
 
 ### `sous_vide`
 
