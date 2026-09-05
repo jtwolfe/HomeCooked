@@ -284,9 +284,9 @@ fn negotiate_decline_on_band_mismatch() {
 }
 
 #[test]
-fn negotiate_declines_when_min_above_available_max() {
+fn negotiate_counters_when_min_above_available_max() {
     let mut plant = ThermalPlant::fridge_condenser_dhw_demo().unwrap();
-    // Condenser max is 120 W; offer min 150 → decline (no silent partial below min).
+    // Condenser max is 120 W; offer min 150 → Counter (no silent partial below min).
     let high = TransferOffer::new(
         PortRef::new("fridge-kitchen", "condenser").unwrap(),
         TransferTarget::port("water-heater-plant", "preheat").unwrap(),
@@ -295,12 +295,43 @@ fn negotiate_declines_when_min_above_available_max() {
         1,
     );
     let reply = plant.negotiate(high);
-    assert!(reply.is_decline(), "{reply:?}");
+    assert!(reply.is_counter(), "{reply:?}");
     match reply {
-        TransferReply::Decline(d) => {
-            assert!(d.reason.contains("below offer min"), "{}", d.reason);
+        TransferReply::Counter(c) => {
+            assert_eq!(c.suggested_power_w.min, 120);
+            assert_eq!(c.suggested_power_w.max, 120);
+            assert!(c.reason.contains("below offer min"), "{}", c.reason);
         }
-        other => panic!("expected decline, got {other:?}"),
+        other => panic!("expected counter, got {other:?}"),
+    }
+    // Plant unchanged until Accept.
+    assert!(plant.step(DT_HOUR).unwrap().is_empty());
+}
+
+#[test]
+fn negotiate_accepts_after_counter_suggested_band() {
+    let mut plant = ThermalPlant::fridge_condenser_dhw_demo().unwrap();
+    let high = TransferOffer::new(
+        PortRef::new("fridge-kitchen", "condenser").unwrap(),
+        TransferTarget::port("water-heater-plant", "preheat").unwrap(),
+        PowerBandW::new(150, 200).unwrap(),
+        None,
+        1,
+    );
+    let suggested = match plant.negotiate(high) {
+        TransferReply::Counter(c) => c.suggested_power_w,
+        other => panic!("expected counter, got {other:?}"),
+    };
+    let retry = TransferOffer::new(
+        PortRef::new("fridge-kitchen", "condenser").unwrap(),
+        TransferTarget::port("water-heater-plant", "preheat").unwrap(),
+        suggested,
+        None,
+        1,
+    );
+    match plant.negotiate(retry) {
+        TransferReply::Accept(a) => assert_eq!(a.accepted_power_w, 120),
+        other => panic!("expected accept, got {other:?}"),
     }
 }
 

@@ -37,9 +37,11 @@ Thin procedure⇄thermal wait on DHW reservoir temp:
 [`examples/wait_dhw_reservoir.json`](examples/wait_dhw_reservoir.json)
 (`SimulatorBackend::with_plant`). Continuous re-queue while waiting:
 [`examples/wait_dhw_with_requeue.json`](examples/wait_dhw_with_requeue.json)
-(`requeue_offer`). Soft-decline offer:
+(`requeue_offer`). Soft-decline / fallback offer:
 [`examples/offer_fridge_dhw_soft.json`](examples/offer_fridge_dhw_soft.json).
-See [`docs/standard/thermal-plant.md`](../../docs/standard/thermal-plant.md) §8.
+Plant Counter then accept (`accept_counter`):
+[`examples/offer_fridge_dhw_counter.json`](examples/offer_fridge_dhw_counter.json).
+See [`docs/standard/thermal-plant.md`](../../docs/standard/thermal-plant.md) §8 / §8.5.
 
 ## Runner
 

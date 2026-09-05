@@ -40,6 +40,10 @@ pub const OFFER_FRIDGE_DHW_JSON: &str = include_str!("../examples/offer_fridge_d
 /// Soft-decline / fallback fridge→DHW offer (procedure⇄thermal thin multi-round).
 pub const OFFER_FRIDGE_DHW_SOFT_JSON: &str = include_str!("../examples/offer_fridge_dhw_soft.json");
 
+/// Counter then accept fridge→DHW offer (`accept_counter` auto-accepts suggested band).
+pub const OFFER_FRIDGE_DHW_COUNTER_JSON: &str =
+    include_str!("../examples/offer_fridge_dhw_counter.json");
+
 /// Wait on DHW while re-queuing fridge→DHW transfer each poll (continuous re-queue).
 pub const WAIT_DHW_WITH_REQUEUE_JSON: &str = include_str!("../examples/wait_dhw_with_requeue.json");
 
@@ -55,6 +59,7 @@ pub const BUNDLED_EXAMPLE_PROCEDURES: &[(&str, &str)] = &[
     ("wait_dhw_reservoir", WAIT_DHW_RESERVOIR_JSON),
     ("offer_fridge_dhw", OFFER_FRIDGE_DHW_JSON),
     ("offer_fridge_dhw_soft", OFFER_FRIDGE_DHW_SOFT_JSON),
+    ("offer_fridge_dhw_counter", OFFER_FRIDGE_DHW_COUNTER_JSON),
     ("wait_dhw_with_requeue", WAIT_DHW_WITH_REQUEUE_JSON),
 ];
 
@@ -189,10 +194,15 @@ pub struct Step {
     /// first negotiate declines, retry once with this band (thin multi-round).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fallback_power_w: Option<PowerBandW>,
-    /// How to treat a final plant decline for [`StepAction::ThermalOffer`]
-    /// (serde default [`OnDecline::Fail`]).
+    /// How to treat a final plant decline / unanswered Counter for
+    /// [`StepAction::ThermalOffer`] (serde default [`OnDecline::Fail`]).
     #[serde(default, skip_serializing_if = "is_default_on_decline")]
     pub on_decline: OnDecline,
+    /// When true on [`StepAction::ThermalOffer`], auto-accept a plant
+    /// [`homecooked_thermal::TransferReply::Counter`] by re-offering the
+    /// suggested power band (typed multi-round Counter path).
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub accept_counter: bool,
     /// When true on [`StepAction::ThermalWait`], re-submit/`negotiate` the
     /// inline transfer fields (`from_port` / `to_*` / `power_w` / `priority`)
     /// before each wait poll tick so energy keeps flowing while waiting for
@@ -217,8 +227,10 @@ pub enum StepAction {
     #[serde(alias = "wait_reservoir")]
     ThermalWait,
     /// Submit a [`TransferOffer`] to the attached plant and immediately negotiate
-    /// (accept at max allowable, or decline). Optional `fallback_power_w` retries
-    /// once; `on_decline` chooses fail vs soft continue on a final decline.
+    /// (accept at max allowable, Counter when 0 < max < min, or decline). Optional
+    /// `accept_counter` auto-accepts a Counter suggested band; `fallback_power_w`
+    /// retries once on Decline or unanswered Counter; `on_decline` chooses fail vs
+    /// soft continue on a final Decline / unanswered Counter.
     #[serde(alias = "offer_transfer")]
     ThermalOffer,
 }

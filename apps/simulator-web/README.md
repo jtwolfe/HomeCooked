@@ -95,7 +95,7 @@ fixture writes cook settings and starts a cycle; sim ticks advance
 The oven bake sample sets `bake` + 180 °C; sim heats ~10 °C/s while the cycle runs.
 The coffee brew sample powers on, selects `espresso`, and waits on boiler heat (~10 °C/s).
 The air fryer cook sample sets `fries` + 200 °C; sim heats ~10 °C/s while the cycle runs.
-The `wait_dhw_reservoir` sample is a thin `thermal_wait` on plant reservoir `temp_c` (needs an attached ThermalPlant / demo transfer — not a standalone appliance recipe). Soft-decline (`offer_fridge_dhw_soft`) and continuous re-queue (`wait_dhw_with_requeue`) fixtures are also bundled.
+The `wait_dhw_reservoir` sample is a thin `thermal_wait` on plant reservoir `temp_c` (needs an attached ThermalPlant / demo transfer — not a standalone appliance recipe). Soft-decline (`offer_fridge_dhw_soft`), Counter-then-accept (`offer_fridge_dhw_counter`), and continuous re-queue (`wait_dhw_with_requeue`) fixtures are also bundled.
 
 ### Thermal procedures (dedicated slice)
 
@@ -107,9 +107,10 @@ One-click buttons call wasm `run_thermal_procedure(id)`, which:
 2. For tick-only `wait_dhw_reservoir`, primes a demo transfer so the wait can complete.
 3. Runs the fixture via `run_procedure`.
 
-Step outcomes show badges derived from the run result (accept power W, soft
-decline → continue, fallback accept, requeue polls, final reservoir temp °C) —
-no invented metrics. This is a thin lab UI, not a full conformance console.
+Step outcomes show badges derived from the run result (accept power W, counter
+accept / suggested W, soft decline → continue, fallback accept, requeue polls,
+final reservoir temp °C) — no invented metrics. This is a thin lab UI, not a
+full conformance console.
 
 Automated coverage: `cargo test -p homecooked-wasm run_thermal_procedure`.
 

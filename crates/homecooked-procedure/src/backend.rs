@@ -68,7 +68,7 @@ pub trait DeviceBackend {
         })
     }
 
-    /// Immediate-accept path: accept at max allowable power or decline.
+    /// Immediate path: accept at max allowable power, Counter when 0 < max < min, or decline.
     ///
     /// Mirrors [`ThermalPlant::negotiate`]. Default is unsupported.
     fn thermal_negotiate(&mut self, offer: TransferOffer) -> Result<TransferReply, Error> {

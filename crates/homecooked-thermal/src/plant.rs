@@ -1,12 +1,12 @@
-//! In-memory thermal plant: reservoirs, heat ports, offer/accept, tick step.
+//! In-memory thermal plant: reservoirs, heat ports, offer/accept/counter, tick step.
 
 use std::collections::BTreeMap;
 
 use crate::error::Error;
 use crate::types::{
     delta_temp_c, energy_kwh, require_compatible, require_overlap, require_temp_in_band, HeatPort,
-    Media, PortRef, Reservoir, ReservoirRole, TempBandC, TransferAccept, TransferDecline,
-    TransferOffer, TransferReply, TransferResult, TransferTarget,
+    Media, PortRef, PowerBandW, Reservoir, ReservoirRole, TempBandC, TransferAccept,
+    TransferCounter, TransferDecline, TransferOffer, TransferReply, TransferResult, TransferTarget,
 };
 
 /// In-memory plant registry and best-effort negotiator.
@@ -183,20 +183,36 @@ impl ThermalPlant {
         TransferDecline::new(reason)
     }
 
-    /// Accept at `min(offered_max, port limits)` or decline with the error
-    /// message. Declines when available max is below the offered minimum
-    /// (partial fill below `power_w.min` is not automatic). Still requires
+    /// Accept at `min(offered_max, port limits)`, counter when some power is
+    /// available but below the offered minimum, or decline when max is zero /
+    /// the offer is invalid. Partial fill below `power_w.min` is never
+    /// automatic — callers must Accept a Counter (or re-offer). Still requires
     /// [`Self::step`] to move energy.
     pub fn negotiate(&mut self, offer: TransferOffer) -> TransferReply {
         let max = match self.max_power_w(&offer) {
             Ok(m) => m,
             Err(e) => return TransferReply::Decline(TransferDecline::new(e.to_string())),
         };
+        if max == 0 {
+            return TransferReply::Decline(TransferDecline::new(
+                "available max 0 W (nothing to transfer)",
+            ));
+        }
         if max < offer.power_w.min {
-            return TransferReply::Decline(TransferDecline::new(format!(
-                "available max {max} W below offer min {} W",
-                offer.power_w.min
-            )));
+            // Suggest the available power as a tight band (no silent partial).
+            let suggested = match PowerBandW::new(max, max) {
+                Ok(b) => b,
+                Err(e) => {
+                    return TransferReply::Decline(TransferDecline::new(e.to_string()));
+                }
+            };
+            return TransferReply::Counter(TransferCounter::new(
+                suggested,
+                format!(
+                    "available max {max} W below offer min {} W; counter suggests {max} W",
+                    offer.power_w.min
+                ),
+            ));
         }
         match self.accept(offer, max) {
             Ok(a) => TransferReply::Accept(a),

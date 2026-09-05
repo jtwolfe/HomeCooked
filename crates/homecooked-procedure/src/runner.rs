@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::fmt;
 
 use homecooked_schema::{ErrorCode, Value};
-use homecooked_thermal::{TransferAccept, TransferReply};
+use homecooked_thermal::{PowerBandW, TransferAccept, TransferCounter, TransferReply};
 
 use crate::backend::DeviceBackend;
 use crate::document::{OnDecline, Procedure, Step, StepAction, StepTarget};
@@ -541,6 +541,30 @@ fn thermal_wait_step(
                         },
                     ));
                 }
+                TransferReply::Counter(counter) => {
+                    // Continuous re-queue does not auto-accept counters; fail
+                    // with the suggested band so callers can use thermal_offer
+                    // + accept_counter for typed Counter rounds.
+                    let message = format!(
+                        "thermal_wait requeue_offer countered (suggested {}–{} W): {}",
+                        counter.suggested_power_w.min,
+                        counter.suggested_power_w.max,
+                        counter.reason
+                    );
+                    return Err((
+                        StepOutcome {
+                            step_id: step.id.clone(),
+                            action: step.action,
+                            ok: false,
+                            read_value: Some(Value::F32(got as f32)),
+                            message: Some(message.clone()),
+                        },
+                        FailReason::Backend {
+                            code: ErrorCode::InvalidRequest,
+                            message,
+                        },
+                    ));
+                }
             }
         }
 
@@ -579,48 +603,99 @@ fn thermal_offer_step(
 
     match reply {
         TransferReply::Accept(accept) => thermal_offer_accept(step, backend, accept, None),
+        TransferReply::Counter(counter) => thermal_offer_handle_counter(step, backend, counter),
         TransferReply::Decline(first_decline) => {
             // Thin multi-round: optional one retry with fallback_power_w.
             if let Some(fallback) = step.fallback_power_w {
-                let fallback_offer =
-                    step.transfer_offer_with_power(Some(fallback))
-                        .map_err(|e| {
-                            (
-                                StepOutcome {
-                                    step_id: step.id.clone(),
-                                    action: step.action,
-                                    ok: false,
-                                    read_value: None,
-                                    message: Some(e.to_string()),
-                                },
-                                FailReason::Backend {
-                                    code: ErrorCode::InvalidRequest,
-                                    message: e.to_string(),
-                                },
-                            )
-                        })?;
-                backend
-                    .thermal_offer(&fallback_offer)
-                    .map_err(|e| map_backend(step, e))?;
-                let retry = backend
-                    .thermal_negotiate(fallback_offer)
-                    .map_err(|e| map_backend(step, e))?;
-                match retry {
-                    TransferReply::Accept(accept) => {
-                        return thermal_offer_accept(
-                            step,
-                            backend,
-                            accept,
-                            Some(first_decline.reason.as_str()),
-                        );
-                    }
-                    TransferReply::Decline(decline) => {
-                        return thermal_offer_final_decline(step, &decline.reason);
-                    }
-                }
+                return thermal_offer_retry_fallback(
+                    step,
+                    backend,
+                    fallback,
+                    first_decline.reason.as_str(),
+                );
             }
             thermal_offer_final_decline(step, &first_decline.reason)
         }
+    }
+}
+
+fn thermal_offer_handle_counter(
+    step: &Step,
+    backend: &mut impl DeviceBackend,
+    counter: TransferCounter,
+) -> Result<StepOutcome, (StepOutcome, FailReason)> {
+    // Prefer accept_counter: re-offer the plant's suggested band and accept.
+    if step.accept_counter {
+        return thermal_offer_retry_band(
+            step,
+            backend,
+            counter.suggested_power_w,
+            format!(
+                "counter suggested {}–{} W ({})",
+                counter.suggested_power_w.min, counter.suggested_power_w.max, counter.reason
+            ),
+            "counter",
+        );
+    }
+    // Else thin fallback retry (same path as Decline) so soft fixtures stay green.
+    if let Some(fallback) = step.fallback_power_w {
+        return thermal_offer_retry_fallback(step, backend, fallback, &counter.reason);
+    }
+    // Unanswered Counter: soft-continue or fail like Decline, recording suggested W.
+    thermal_offer_final_counter(step, &counter)
+}
+
+fn thermal_offer_retry_fallback(
+    step: &Step,
+    backend: &mut impl DeviceBackend,
+    fallback: PowerBandW,
+    first_reason: &str,
+) -> Result<StepOutcome, (StepOutcome, FailReason)> {
+    thermal_offer_retry_band(
+        step,
+        backend,
+        fallback,
+        first_reason.to_string(),
+        "fallback",
+    )
+}
+
+fn thermal_offer_retry_band(
+    step: &Step,
+    backend: &mut impl DeviceBackend,
+    band: PowerBandW,
+    first_reason: String,
+    path_label: &str,
+) -> Result<StepOutcome, (StepOutcome, FailReason)> {
+    let retry_offer = step.transfer_offer_with_power(Some(band)).map_err(|e| {
+        (
+            StepOutcome {
+                step_id: step.id.clone(),
+                action: step.action,
+                ok: false,
+                read_value: None,
+                message: Some(e.to_string()),
+            },
+            FailReason::Backend {
+                code: ErrorCode::InvalidRequest,
+                message: e.to_string(),
+            },
+        )
+    })?;
+    backend
+        .thermal_offer(&retry_offer)
+        .map_err(|e| map_backend(step, e))?;
+    let retry = backend
+        .thermal_negotiate(retry_offer)
+        .map_err(|e| map_backend(step, e))?;
+    match retry {
+        TransferReply::Accept(accept) => {
+            // Message notes which multi-round path succeeded.
+            let note = format!("{path_label}; first reply: {first_reason}");
+            thermal_offer_accept(step, backend, accept, Some(&note))
+        }
+        TransferReply::Counter(counter) => thermal_offer_final_counter(step, &counter),
+        TransferReply::Decline(decline) => thermal_offer_final_decline(step, &decline.reason),
     }
 }
 
@@ -640,8 +715,8 @@ fn thermal_offer_accept(
     }
     let msg = match after_decline {
         Some(reason) => format!(
-            "thermal_offer accepted at {} W after fallback (first decline: {}; priority {})",
-            accept.accepted_power_w, reason, accept.priority
+            "thermal_offer accepted at {} W after {reason} (priority {})",
+            accept.accepted_power_w, accept.priority
         ),
         None => format!(
             "thermal_offer accepted at {} W (priority {})",
@@ -672,6 +747,38 @@ fn thermal_offer_final_decline(
                 action: step.action,
                 ok: false,
                 read_value: None,
+                message: Some(message.clone()),
+            },
+            FailReason::Backend {
+                code: ErrorCode::InvalidRequest,
+                message,
+            },
+        )),
+    }
+}
+
+fn thermal_offer_final_counter(
+    step: &Step,
+    counter: &TransferCounter,
+) -> Result<StepOutcome, (StepOutcome, FailReason)> {
+    let message = format!(
+        "thermal_offer countered (suggested {}–{} W): {}",
+        counter.suggested_power_w.min, counter.suggested_power_w.max, counter.reason
+    );
+    match step.on_decline {
+        OnDecline::Continue => Ok(ok_outcome(
+            step,
+            Some(Value::U32(counter.suggested_power_w.max)),
+            Some(format!(
+                "{message} (continuing; set accept_counter to auto-accept)"
+            )),
+        )),
+        OnDecline::Fail => Err((
+            StepOutcome {
+                step_id: step.id.clone(),
+                action: step.action,
+                ok: false,
+                read_value: Some(Value::U32(counter.suggested_power_w.max)),
                 message: Some(message.clone()),
             },
             FailReason::Backend {

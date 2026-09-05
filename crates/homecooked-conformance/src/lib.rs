@@ -21,8 +21,8 @@ use homecooked_hub::{LabHub, LAB_KETTLE_ID};
 use homecooked_procedure::{
     run, DeviceBindings, Procedure, SimulatorBackend, AIR_FRYER_COOK_200_JSON,
     COFFEE_BREW_ESPRESSO_JSON, DISHWASHER_DHW_PREHEAT_JSON, KETTLE_HEAT_80_JSON,
-    OFFER_FRIDGE_DHW_JSON, OFFER_FRIDGE_DHW_SOFT_JSON, OVEN_BAKE_180_JSON, WAIT_DHW_RESERVOIR_JSON,
-    WAIT_DHW_WITH_REQUEUE_JSON, WASH_THEN_DRY_JSON,
+    OFFER_FRIDGE_DHW_COUNTER_JSON, OFFER_FRIDGE_DHW_JSON, OFFER_FRIDGE_DHW_SOFT_JSON,
+    OVEN_BAKE_180_JSON, WAIT_DHW_RESERVOIR_JSON, WAIT_DHW_WITH_REQUEUE_JSON, WASH_THEN_DRY_JSON,
 };
 use homecooked_protocol::{Envelope, Payload, PingBody, WriteOp};
 use homecooked_schema::{
@@ -729,9 +729,10 @@ pub fn procedure_thermal_offer_dhw() -> ScenarioResult {
 
 /// (4e) Soft decline + thin fallback multi-round fridge→DHW offer.
 ///
-/// First band min exceeds condenser max (declines); `fallback_power_w` retries
+/// First band min exceeds condenser max (Counters); `fallback_power_w` retries
 /// and accepts at 120 W with duration apply. `on_decline=continue` is set but
-/// unused on the happy path.
+/// unused on the happy path. See `procedure_thermal_offer_counter` for
+/// `accept_counter`.
 pub fn procedure_thermal_offer_soft_decline() -> ScenarioResult {
     const NAME: &str = "procedure_thermal_offer_soft_decline";
 
@@ -782,6 +783,66 @@ pub fn procedure_thermal_offer_soft_decline() -> ScenarioResult {
         return Err(err(
             NAME,
             format!("dhw end temp={dhw_end}, expected >= 36.0 after fallback duration"),
+        ));
+    }
+    Ok(())
+}
+
+/// (4g) Plant Counter then accept: high-min offer → suggested band via `accept_counter`.
+///
+/// Runs `offer_fridge_dhw_counter` against `SimulatorBackend` + demo plant —
+/// first negotiate Counters (condenser 120 W < offer min 150 W); the step
+/// auto-reoffers the suggested band and accepts at 120 W with duration apply.
+pub fn procedure_thermal_offer_counter() -> ScenarioResult {
+    const NAME: &str = "procedure_thermal_offer_counter";
+
+    let plant = ThermalPlant::fridge_condenser_dhw_demo()
+        .map_err(|e| err(NAME, format!("demo plant: {e}")))?;
+    let start = plant
+        .get_reservoir("dhw-tank")
+        .and_then(|r| r.temp_c)
+        .ok_or_else(|| err(NAME, "dhw-tank missing temp"))?;
+    if (start - 35.0).abs() >= 1e-4 {
+        return Err(err(NAME, format!("dhw start temp={start}, expected 35")));
+    }
+
+    let doc = Procedure::load_json(OFFER_FRIDGE_DHW_COUNTER_JSON)
+        .map_err(|e| err(NAME, format!("load procedure: {e}")))?;
+    let mut backend = SimulatorBackend::with_plant(Simulator::new(), plant);
+    let result = run(&doc, &mut backend, &DeviceBindings::new());
+    if !result.is_completed() {
+        return Err(err(
+            NAME,
+            format!("counter offer expected completed, got {:?}", result.status),
+        ));
+    }
+    let accepted = result.outcomes[0]
+        .read_value
+        .as_ref()
+        .and_then(|v| v.as_i64())
+        .ok_or_else(|| err(NAME, "missing accepted power read_value"))?;
+    if accepted != 120 {
+        return Err(err(
+            NAME,
+            format!("accepted_power_w={accepted}, expected 120"),
+        ));
+    }
+    let msg = result.outcomes[0].message.as_deref().unwrap_or("");
+    if !msg.contains("counter") {
+        return Err(err(
+            NAME,
+            format!("expected counter accept message, got {msg:?}"),
+        ));
+    }
+    let dhw_end = backend
+        .plant()
+        .and_then(|p| p.get_reservoir("dhw-tank"))
+        .and_then(|r| r.temp_c)
+        .ok_or_else(|| err(NAME, "dhw-tank missing temp after offer"))?;
+    if dhw_end < 36.0 {
+        return Err(err(
+            NAME,
+            format!("dhw end temp={dhw_end}, expected >= 36.0 after counter duration"),
         ));
     }
     Ok(())
@@ -3135,6 +3196,10 @@ pub fn all_scenarios() -> &'static [(&'static str, ScenarioFn)] {
         (
             "procedure_thermal_offer_soft_decline",
             procedure_thermal_offer_soft_decline,
+        ),
+        (
+            "procedure_thermal_offer_counter",
+            procedure_thermal_offer_counter,
         ),
         (
             "procedure_thermal_wait_requeue",
