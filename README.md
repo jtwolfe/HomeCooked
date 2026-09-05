@@ -48,6 +48,7 @@ is **0.1.0** (peers are rejected only on protocol **major** mismatch).
 | `homecooked-controller` | [`crates/homecooked-controller`](crates/homecooked-controller) | Host controller sim: IoMap + MockHal + interlocks + washer cotton cycle ([control-system.md](docs/standard/control-system.md)) |
 | `homecooked-thermal` | [`crates/homecooked-thermal`](crates/homecooked-thermal) | Thermal plant slice: reservoirs, heat ports, offer/accept, tick transfer ([thermal-plant.md](docs/standard/thermal-plant.md)) |
 | `homecooked-bridge` | [`crates/homecooked-bridge`](crates/homecooked-bridge) | Fabric bridges: Modbus adapter (mocked transport) plus Zigbee/Matter/BACnet stubs ([bridges.md](docs/standard/bridges.md)) |
+| `homecooked-transport` | [`crates/homecooked-transport`](crates/homecooked-transport) | Lab TCP transport for protocol envelopes (length-prefixed JSON); sim-backed server + client ([overview.md](docs/standard/overview.md) §6) |
 | simulator-web | [`apps/simulator-web`](apps/simulator-web) | Static HTML/JS UI that loads the wasm-pack output |
 
 `list_all_class_ids` covers the full class index in
@@ -85,6 +86,18 @@ the browser will not load the ES module / WASM.
 See [`apps/simulator-web/README.md`](apps/simulator-web/README.md) (grouped
 Tier-A picker, rebuild/serve commands, manual smoke) and
 [`docs/ROADMAP.md`](docs/ROADMAP.md) Stream 7.
+
+
+## TCP lab transport
+
+Cleartext TCP binding for protocol envelopes (no TLS / OAuth). Framing is
+**length-prefixed JSON** (`u32` BE length + compact envelope). See
+[`crates/homecooked-transport`](crates/homecooked-transport).
+
+```bash
+cargo test -p homecooked-transport
+cargo run -p homecooked-transport --example homecooked-tcp-demo
+```
 
 ## Contributing
 
