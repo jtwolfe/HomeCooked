@@ -2364,6 +2364,10 @@ const HVAC_MODE: &[&str] = &[
 ];
 const REVERSING_VALVE: &[&str] = &["heat", "cool", "unknown"];
 
+/// Thin HVAC climate surface (mode/setpoints/space/outdoor/hold/quiet/eco/
+/// compressor/aux/defrost/reversing_valve). Depth points live in `HVAC_DEPTH`
+/// so optional Tier-A deepen does not rewrite the thermal-port / dual-setpoint
+/// core or required `hvac_mode` / `space_c`.
 static HVAC_BASE: &[CatalogPoint] = &[
     s(
         "hvac_mode",
@@ -2450,7 +2454,51 @@ static HVAC_BASE: &[CatalogPoint] = &[
     ),
 ];
 
-const HVAC_MERGED: [CatalogPoint; 18] = concat2(HVAC_BASE, THERMAL_PORT_POINTS);
+/// HVAC optional depth (Stream 7 undepened Tier-A). Fridge / dehumidifier
+/// climate template (sabbath/fan_on/temp alarms/timer). Reuses thin-table
+/// hvac_mode / heat_setpoint_c / cool_setpoint_c / deadband_c / space_c /
+/// outdoor_c / hold / quiet / eco / compressor_on / aux_heat / defrost /
+/// reversing_valve (not parallel eco_mode / defrost_active / compressor_on).
+/// Do not duplicate required hvac_mode / space_c or `thermal_port_*`. Fan
+/// trait already typical (`fan_state`); class `fan_on` is compact RE telemetry
+/// like air_fryer / dehydrator. Filter life uses `trait.filter.life_percent`.
+static HVAC_DEPTH: &[CatalogPoint] = &[
+    s(
+        "sabbath_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    ),
+    v("fan_on", ValueType::Bool, None, None, AccessMode::RE, false),
+    v(
+        "high_temp_alarm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "low_temp_alarm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "timer_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 3600),
+        AccessMode::RWE,
+        false,
+    ),
+];
+
+const HVAC_MERGED: [CatalogPoint; 23] = concat3(HVAC_BASE, HVAC_DEPTH, THERMAL_PORT_POINTS);
 const HVAC_POINTS: &[CatalogPoint] = &HVAC_MERGED;
 
 const DEHUMIDIFIER_TRAITS: &[TraitId] = &[

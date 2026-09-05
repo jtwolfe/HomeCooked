@@ -7698,6 +7698,212 @@ mod tests {
     }
 
     #[test]
+    fn hvac_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let hv = sim.spawn(ApplianceClassId::Hvac).unwrap();
+
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.hvac_mode").unwrap(),
+            Value::Enum("auto".into())
+        );
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.space_c").unwrap(),
+            Value::F32(21.0)
+        );
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.heat_setpoint_c").unwrap(),
+            Value::F32(20.0)
+        );
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.cool_setpoint_c").unwrap(),
+            Value::F32(24.0)
+        );
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.deadband_c").unwrap(),
+            Value::F32(2.0)
+        );
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.outdoor_c").unwrap(),
+            Value::F32(12.0)
+        );
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.hold").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.quiet").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.eco").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.compressor_on").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.aux_heat").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.defrost").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.reversing_valve").unwrap(),
+            Value::Enum("heat".into())
+        );
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.sabbath_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.fan_on").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.high_temp_alarm").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.low_temp_alarm").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.timer_s").unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&hv, "trait.humidity.setpoint_rh").unwrap(),
+            Value::Percent(45.0)
+        );
+        assert_eq!(
+            sim.read_value(&hv, "trait.fan.fan_speed").unwrap(),
+            Value::U8(2)
+        );
+        assert_eq!(
+            sim.read_value(&hv, "trait.filter.life_percent").unwrap(),
+            Value::Percent(80.0)
+        );
+        // Thermal-port surface unchanged.
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.thermal_port_id").unwrap(),
+            Value::String("coil".into())
+        );
+
+        sim.write(&hv, "class.hvac.hvac_mode", Value::Enum("heat".into()))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.hvac_mode").unwrap(),
+            Value::Enum("heat".into())
+        );
+        sim.write(&hv, "class.hvac.heat_setpoint_c", Value::F32(19.0))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.heat_setpoint_c").unwrap(),
+            Value::F32(19.0)
+        );
+        sim.write(&hv, "class.hvac.cool_setpoint_c", Value::F32(25.0))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.cool_setpoint_c").unwrap(),
+            Value::F32(25.0)
+        );
+        sim.write(&hv, "class.hvac.deadband_c", Value::F32(1.5))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.deadband_c").unwrap(),
+            Value::F32(1.5)
+        );
+        sim.write(&hv, "class.hvac.hold", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.hold").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&hv, "class.hvac.quiet", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.quiet").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&hv, "class.hvac.eco", Value::Bool(true)).unwrap();
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.eco").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&hv, "class.hvac.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.sabbath_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&hv, "class.hvac.timer_s", Value::DurationS(1200))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hv, "class.hvac.timer_s").unwrap(),
+            Value::DurationS(1200)
+        );
+        sim.write(&hv, "trait.humidity.setpoint_rh", Value::Percent(40.0))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&hv, "trait.humidity.setpoint_rh").unwrap(),
+            Value::Percent(40.0)
+        );
+        sim.write(&hv, "trait.fan.fan_speed", Value::U8(3)).unwrap();
+        assert_eq!(
+            sim.read_value(&hv, "trait.fan.fan_speed").unwrap(),
+            Value::U8(3)
+        );
+
+        let err = sim
+            .write(&hv, "class.hvac.space_c", Value::F32(22.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&hv, "class.hvac.outdoor_c", Value::F32(8.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&hv, "class.hvac.compressor_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&hv, "class.hvac.aux_heat", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&hv, "class.hvac.defrost", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &hv,
+                "class.hvac.reversing_valve",
+                Value::Enum("cool".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&hv, "class.hvac.fan_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&hv, "class.hvac.high_temp_alarm", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&hv, "class.hvac.low_temp_alarm", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&hv, "trait.filter.life_percent", Value::Percent(50.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn kettle_optional_depth_points_read_and_write() {
         let mut sim = Simulator::new();
         let k = sim.spawn(ApplianceClassId::Kettle).unwrap();
