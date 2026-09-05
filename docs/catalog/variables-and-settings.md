@@ -746,6 +746,8 @@ child_lock, audio.
 | `compressor_on` | bool | — | | r/e | opt | |
 | `high_temp_alarm` | bool | — | | r/e | opt | |
 | `power_fail_ms` | timestamp_ms | — | | r/e | opt | Last outage |
+| `door_ajar` | bool | — | | r/e | opt | Door / lid ajar bit |
+| `low_temp_alarm` | bool | — | | r/e | opt | Too-cold alarm |
 | `thermal_port_id` | string | — | local port id | r | opt | Device heat port (e.g. `condenser`); see thermal-plant |
 | `thermal_port_direction` | enum | — | `source` `sink` `bidirectional` | r | opt | Seed `source` (condenser reject) |
 | `thermal_port_media` | enum | — | `water` `air` `glycol` `refrigerant_proxy` `unknown` | r | opt | Seed `water` (matches plant demo) |
@@ -753,6 +755,8 @@ child_lock, audio.
 | `thermal_port_attached_reservoir_id` | string | — | reservoir id or empty | r/w | opt | Attach/detach plant reservoir |
 
 Fridge `setpoint_c` typical 1–7. `super_mode` is super-cool.
+Shared cold-cabinet points plus fridge-only `door_ajar` / `low_temp_alarm`;
+`thermal_port_*` condenser surface unchanged.
 
 ---
 

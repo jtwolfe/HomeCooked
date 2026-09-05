@@ -532,6 +532,25 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "night_mode"
         );
     }
+    // Stream 7 undepened Tier-A deepen: fridge optional telemetry/settings.
+    // Advertise shared cold-cabinet thin-table points + fridge-only door/low-temp;
+    // thermal_port_* stay via the Stream 5 match below (do not return false here).
+    if table.class_id == ApplianceClassId::Fridge
+        && matches!(
+            point.id,
+            "vacation_mode"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "defrost_active"
+                | "compressor_on"
+                | "high_temp_alarm"
+                | "power_fail_ms"
+                | "door_ajar"
+                | "low_temp_alarm"
+        )
+    {
+        return true;
+    }
     // Stream 7 catalog depth: freezer optional telemetry/settings in typical sim.
     // Includes shared cold-cabinet points + freezer-only extras.
     if table.class_id == ApplianceClassId::Freezer {
@@ -2098,6 +2117,96 @@ mod tests {
             .validate_write("class.humidifier.misting", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn fridge_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::Fridge).unwrap();
+        for id in [
+            "class.fridge.vacation_mode",
+            "class.fridge.sabbath_mode",
+            "class.fridge.eco_mode",
+            "class.fridge.defrost_active",
+            "class.fridge.compressor_on",
+            "class.fridge.high_temp_alarm",
+            "class.fridge.power_fail_ms",
+            "class.fridge.door_ajar",
+            "class.fridge.low_temp_alarm",
+            // Thermal ports remain advertised (Stream 5).
+            "class.fridge.thermal_port_id",
+            "class.fridge.thermal_port_direction",
+            "class.fridge.thermal_port_media",
+            "class.fridge.thermal_port_max_power_w",
+            "class.fridge.thermal_port_attached_reservoir_id",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical fridge"
+            );
+        }
+        // Writable cold-cabinet settings.
+        cap.validate_write("class.fridge.vacation_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.fridge.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.fridge.eco_mode", &Value::Bool(true))
+            .unwrap();
+        // Read-only telemetry / alarms.
+        let err = cap
+            .validate_write("class.fridge.door_ajar", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.fridge.low_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.fridge.defrost_active", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.fridge.compressor_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.fridge.high_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.fridge.power_fail_ms", &Value::TimestampMs(1))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        // Freezer / fridge_freezer extras stay off fridge; fridge owns thermal ports.
+        assert!(!cap
+            .class_points
+            .iter()
+            .any(|p| p.id == "class.fridge.fast_freeze"));
+        assert!(!cap
+            .class_points
+            .iter()
+            .any(|p| p.id == "class.fridge.anti_sweat"));
+        assert!(!cap
+            .class_points
+            .iter()
+            .any(|p| p.id == "class.fridge.door_ajar_fridge"));
+        let freezer = typical_capability(ApplianceClassId::Freezer).unwrap();
+        assert!(freezer
+            .class_points
+            .iter()
+            .any(|p| p.id == "class.freezer.door_ajar"));
+        assert!(!freezer
+            .class_points
+            .iter()
+            .any(|p| p.id == "class.freezer.thermal_port_id"));
+        let ff = typical_capability(ApplianceClassId::FridgeFreezer).unwrap();
+        assert!(ff
+            .class_points
+            .iter()
+            .any(|p| p.id == "class.fridge_freezer.door_ajar_fridge"));
+        assert!(!ff
+            .class_points
+            .iter()
+            .any(|p| p.id == "class.fridge_freezer.thermal_port_id"));
     }
 
     #[test]

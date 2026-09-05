@@ -1727,6 +1727,103 @@ mod tests {
     }
 
     #[test]
+    fn fridge_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let fr = sim.spawn(ApplianceClassId::Fridge).unwrap();
+
+        assert_eq!(
+            sim.read_value(&fr, "class.fridge.vacation_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&fr, "class.fridge.sabbath_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&fr, "class.fridge.eco_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&fr, "class.fridge.defrost_active").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&fr, "class.fridge.compressor_on").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&fr, "class.fridge.high_temp_alarm").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&fr, "class.fridge.power_fail_ms").unwrap(),
+            Value::TimestampMs(0)
+        );
+        assert_eq!(
+            sim.read_value(&fr, "class.fridge.door_ajar").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&fr, "class.fridge.low_temp_alarm").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&fr, "trait.temperature.setpoint_c#fridge")
+                .unwrap(),
+            Value::F32(4.0)
+        );
+        // Thermal ports still present.
+        assert_eq!(
+            sim.read_value(&fr, "class.fridge.thermal_port_id").unwrap(),
+            Value::String("condenser".into())
+        );
+
+        sim.write(&fr, "class.fridge.vacation_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&fr, "class.fridge.vacation_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&fr, "class.fridge.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&fr, "class.fridge.sabbath_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&fr, "class.fridge.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&fr, "class.fridge.eco_mode").unwrap(),
+            Value::Bool(true)
+        );
+
+        let err = sim
+            .write(&fr, "class.fridge.door_ajar", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&fr, "class.fridge.low_temp_alarm", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&fr, "class.fridge.defrost_active", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&fr, "class.fridge.compressor_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&fr, "class.fridge.high_temp_alarm", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&fr, "class.fridge.power_fail_ms", Value::TimestampMs(1))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn freezer_optional_depth_points_read_and_write() {
         let mut sim = Simulator::new();
         let fz = sim.spawn(ApplianceClassId::Freezer).unwrap();
