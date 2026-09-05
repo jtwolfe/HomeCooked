@@ -4701,14 +4701,80 @@ const ICE_CREAM_TRAITS: &[TraitId] = &[
 
 const ICE_CREAM_PROGRAMS: &[&str] = &["ice_cream", "gelato", "sorbet", "keep_cool"];
 
-static ICE_CREAM_MAKER_POINTS: &[CatalogPoint] = &[v(
-    "doneness",
-    ValueType::Percent,
-    Some(Unit::Percent),
-    num(0.0, 100.0),
-    AccessMode::RE,
-    false,
-)];
+static ICE_CREAM_MAKER_POINTS: &[CatalogPoint] = &[
+    v(
+        "doneness",
+        ValueType::Percent,
+        Some(Unit::Percent),
+        num(0.0, 100.0),
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "sabbath_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    ),
+    s(
+        "eco_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "compressor_on",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "motor_on",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "bowl_present",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "lid_locked",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "low_temp_alarm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "timer_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 3600),
+        AccessMode::RWE,
+        false,
+    ),
+];
 
 const YOGURT_MAKER_TRAITS: &[TraitId] = &[
     TraitId::Identity,

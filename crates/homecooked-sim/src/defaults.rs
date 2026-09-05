@@ -256,7 +256,8 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
         "bowl_present" => match ctx.identity.class_id {
             ApplianceClassId::FoodProcessor
             | ApplianceClassId::StandMixer
-            | ApplianceClassId::RiceCooker => Value::Bool(true),
+            | ApplianceClassId::RiceCooker
+            | ApplianceClassId::IceCreamMaker => Value::Bool(true),
             _ => Value::Bool(false),
         },
         "texture" => match ctx.identity.class_id {
@@ -274,7 +275,8 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
         "lid_locked" => match ctx.identity.class_id {
             ApplianceClassId::Blender
             | ApplianceClassId::FoodProcessor
-            | ApplianceClassId::VacuumSealer => Value::Bool(true),
+            | ApplianceClassId::VacuumSealer
+            | ApplianceClassId::IceCreamMaker => Value::Bool(true),
             _ => Value::Bool(false),
         },
         "boiler_c" => Value::F32(20.0),

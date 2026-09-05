@@ -1524,6 +1524,14 @@ Cycle remaining via `trait.cycle.remaining_s`. Setpoint resolution typically 0.1
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
 | `doneness` | percent | percent | 0–100 | r/e | opt | Motor-load proxy |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving churn / cool profile |
+| `compressor_on` | bool | — | | r/e | opt | Compressor running (compressor models) |
+| `motor_on` | bool | — | | r/e | opt | Churn / dasher motor running |
+| `bowl_present` | bool | — | | r/e | opt | Freezer bowl seated |
+| `lid_locked` | bool | — | | r/e | opt | Lid / paddle interlock engaged |
+| `low_temp_alarm` | bool | — | | r/e | opt | Bowl / mix below safe low |
+| `timer_s` | duration_s | second | 0–3600 | r/w/e | opt | Delay start / churn timer |
 
 ---
 
