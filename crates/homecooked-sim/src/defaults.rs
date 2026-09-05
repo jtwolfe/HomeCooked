@@ -250,8 +250,18 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             _ => Value::Bool(false),
         },
         "bowl_present" => match ctx.identity.class_id {
-            ApplianceClassId::FoodProcessor | ApplianceClassId::StandMixer => Value::Bool(true),
+            ApplianceClassId::FoodProcessor
+            | ApplianceClassId::StandMixer
+            | ApplianceClassId::RiceCooker => Value::Bool(true),
             _ => Value::Bool(false),
+        },
+        "texture" => match ctx.identity.class_id {
+            ApplianceClassId::RiceCooker => Value::Enum("normal".into()),
+            _ => first_enum(point).unwrap_or_else(|| Value::Enum("unknown".into())),
+        },
+        "water_ratio" => match ctx.identity.class_id {
+            ApplianceClassId::RiceCooker => Value::F32(1.5),
+            _ => Value::F32(numeric_default(point)),
         },
         "head_down" => match ctx.identity.class_id {
             ApplianceClassId::StandMixer => Value::Bool(true),

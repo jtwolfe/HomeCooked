@@ -1378,9 +1378,16 @@ Head up → `safety_interlock` on start.
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `texture` | enum | — | `soft` `normal` `firm` | r/w | opt | |
-| `bowl_present` | bool | — | | r/e | opt | |
-| `keep_warm` | bool | — | | r/w/e | opt | |
+| `texture` | enum | — | `soft` `normal` `firm` | r/w | opt | Cooked grain texture |
+| `bowl_present` | bool | — | | r/e | opt | Inner bowl / pot seated |
+| `keep_warm` | bool | — | | r/w/e | opt | Keep-warm enable |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving cook / hold |
+| `heater_on` | bool | — | | r/e | opt | Heater element active |
+| `high_temp_alarm` | bool | — | | r/e | opt | Bowl / boil-dry over-temp |
+| `lid_open` | bool | — | | r/e | opt | Lid open |
+| `timer_s` | duration_s | second | 0–86400 | r/w/e | opt | Delay start / cook remaining |
+| `water_ratio` | f32 | — | 0.5–3.0 | r/w | opt | Water:rice volume ratio |
 
 ---
 
