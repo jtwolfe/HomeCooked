@@ -780,10 +780,18 @@ No extra points. Setpoint typically 1–10 °C.
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `clean_cycle_needed` | bool | — | | r/e | opt | |
-| `water_temp_c` | f32 | celsius | 0–40 | r | opt | Inlet |
+| `clean_cycle_needed` | bool | — | | r/e | opt | Descale / clean due |
+| `water_temp_c` | f32 | celsius | 0–40 | r | opt | Inlet water temperature |
+| `water_low` | bool | — | | r/e | opt | Low / no water supply |
+| `scoop_light` | bool | — | | r/w | opt | Bin scoop light |
+| `max_ice_mode` | bool | — | | r/w/e | opt | Boost ice production |
+| `harvest_fail` | bool | — | | r/e | opt | Harvest / eject failure |
+| `scale_alert` | bool | — | | r/e | opt | Mineral scale alert |
+| `delayed_start_s` | duration_s | second | 0–86400 | r/w | opt | Delayed production start |
 
-Commands: `trait.maintenance.start_clean` starts a clean cycle.
+Bin level / full via `trait.ice` (`bin_percent` / `bin_full`). Filter life via
+`trait.filter.life_percent`. Commands: `trait.maintenance.start_clean` starts a
+clean cycle.
 
 ---
 

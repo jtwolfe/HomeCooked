@@ -1,6 +1,6 @@
 # HomeCooked roadmap — ~75% project completeness
 
-Version **0.1.33**. Planning doc for a long flesh-out of the catalog, control
+Version **0.1.34**. Planning doc for a long flesh-out of the catalog, control
 stack, and simulator. It does **not** freeze APIs; crate and YAML shapes may
 evolve with the code that implements each stream.
 
@@ -106,8 +106,9 @@ Even with Stream 3–7 thin DoDs met on `main`, the §2 bar is not fully cleared
 - **Richer UI** — picker + procedure runner + thermal panel + port chips are
   in; conformance-oriented / deeper screens remain.
 - **Deeper Tier-B optional points** — thin tables cover all 31 ids; depth
-  **started** with `wine_cooler` (optional class telemetry/settings + humidity
-  setpoint in typical/sim); more classes can follow.
+  started with `wine_cooler`, continued with `ice_maker` (optional class
+  telemetry/settings + ice bin / filter life in typical/sim); more classes can
+  follow.
 - **Procedure⇄thermal depth** — thin `thermal_wait` on reservoir `temp_c` is
   present (`wait_dhw_reservoir` + conformance); offer/accept/negotiate as
   procedure steps and wasm/UI wiring remain open. Dual-path dishwasher demo
@@ -388,7 +389,7 @@ devices:
 | `toaster_oven` | |
 | `sous_vide` | |
 | `multi_cooker` | |
-| `ice_maker` | |
+| `ice_maker` | Optional depth: water/scale/harvest alerts, scoop light, max-ice, delayed start + ice bin/filter life |
 | `wine_cooler` | Optional depth: sabbath/compressor/alarms/vibration/bottle_count + humidity setpoint |
 
 Count: **25** Tier-A ids, all with static tables + sim.
@@ -502,3 +503,4 @@ the code that implements them.
 | 0.1.31 | Stream 5: shared thermal vocabulary types (`Media` / `PortDirection` / `TempBandC` / `HeatPortSpec`) in `homecooked-schema`; `homecooked-thermal` re-exports; plant runtime still crate-local |
 | 0.1.32 | Stream 5: `ClassTable.thermal_ports: &[HeatPortSpec]` advertisement matching sim seeds (water_heater/fridge/hvac/dishwasher/dryer) |
 | 0.1.33 | Stream 7 catalog depth: deepen `wine_cooler` optional class points (sabbath/compressor/alarms/vibration_alert/bottle_count + typical humidity setpoint); Tier-B deepen started |
+| 0.1.34 | Stream 7 catalog depth: deepen `ice_maker` optional class points (water_low/scoop_light/max_ice_mode/harvest_fail/scale_alert/delayed_start_s + typical ice bin/filter life) |

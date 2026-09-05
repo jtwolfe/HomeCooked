@@ -211,6 +211,18 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
         "remaining_s" | "elapsed_s" => Value::DurationS(0),
         "wash_temp_c" => Value::F32(40.0),
         "bottle_count" => Value::U16(24),
+        "water_temp_c" => match ctx.identity.class_id {
+            ApplianceClassId::IceMaker => Value::F32(12.0),
+            _ => Value::F32(numeric_default(point)),
+        },
+        "bin_percent" => match ctx.identity.class_id {
+            ApplianceClassId::IceMaker => Value::Percent(45.0),
+            _ => Value::Percent(0.0),
+        },
+        "life_percent" => match ctx.identity.class_id {
+            ApplianceClassId::IceMaker => Value::Percent(80.0),
+            _ => Value::Percent(0.0),
+        },
         "current_rh" => match ctx.identity.class_id {
             ApplianceClassId::WineCooler => Value::Percent(60.0),
             _ => Value::Percent(0.0),

@@ -373,6 +373,81 @@ mod tests {
     }
 
     #[test]
+    fn ice_maker_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let ice = sim.spawn(ApplianceClassId::IceMaker).unwrap();
+
+        assert_eq!(
+            sim.read_value(&ice, "class.ice_maker.water_temp_c")
+                .unwrap(),
+            Value::F32(12.0)
+        );
+        assert_eq!(
+            sim.read_value(&ice, "class.ice_maker.water_low").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&ice, "class.ice_maker.clean_cycle_needed")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&ice, "class.ice_maker.harvest_fail")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&ice, "class.ice_maker.scale_alert").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&ice, "trait.ice.bin_percent").unwrap(),
+            Value::Percent(45.0)
+        );
+        assert_eq!(
+            sim.read_value(&ice, "trait.ice.bin_full").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&ice, "trait.filter.life_percent").unwrap(),
+            Value::Percent(80.0)
+        );
+
+        sim.write(&ice, "class.ice_maker.scoop_light", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&ice, "class.ice_maker.scoop_light").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&ice, "class.ice_maker.max_ice_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&ice, "class.ice_maker.max_ice_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(
+            &ice,
+            "class.ice_maker.delayed_start_s",
+            Value::DurationS(1800),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&ice, "class.ice_maker.delayed_start_s")
+                .unwrap(),
+            Value::DurationS(1800)
+        );
+        let err = sim
+            .write(&ice, "class.ice_maker.water_low", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&ice, "trait.ice.bin_percent", Value::Percent(90.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {
