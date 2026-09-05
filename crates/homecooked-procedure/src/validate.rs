@@ -97,6 +97,52 @@ fn validate_step(step: &Step) -> Result<(), Error> {
             if step.timeout_s.is_none() {
                 return Err(Error::at_step(&step.id, "thermal_wait requires timeout_s"));
             }
+            if step.requeue_offer {
+                if step.from_port.is_none() {
+                    return Err(Error::at_step(
+                        &step.id,
+                        "thermal_wait requeue_offer requires from_port",
+                    ));
+                }
+                let has_to_port = step.to_port.is_some();
+                let has_to_res =
+                    matches!(step.to_reservoir_id.as_deref(), Some(id) if !id.is_empty());
+                match (has_to_port, has_to_res) {
+                    (true, false) | (false, true) => {}
+                    (true, true) => {
+                        return Err(Error::at_step(
+                            &step.id,
+                            "thermal_wait requeue_offer requires exactly one of to_port or to_reservoir_id",
+                        ));
+                    }
+                    (false, false) => {
+                        return Err(Error::at_step(
+                            &step.id,
+                            "thermal_wait requeue_offer requires to_port or to_reservoir_id",
+                        ));
+                    }
+                }
+                if step.power_w.is_none() {
+                    return Err(Error::at_step(
+                        &step.id,
+                        "thermal_wait requeue_offer requires power_w",
+                    ));
+                }
+                if let Some(band) = step.power_w {
+                    if band.min > band.max {
+                        return Err(Error::at_step(
+                            &step.id,
+                            "thermal_wait requeue_offer power_w min must be <= max",
+                        ));
+                    }
+                    if band.max == 0 {
+                        return Err(Error::at_step(
+                            &step.id,
+                            "thermal_wait requeue_offer power_w max must be > 0",
+                        ));
+                    }
+                }
+            }
         }
         StepAction::ThermalOffer => {
             if step.from_port.is_none() {

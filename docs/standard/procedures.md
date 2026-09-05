@@ -1,6 +1,6 @@
 # Procedures — fine-grained dynamic control
 
-Version **0.1.0** — design extension (docs sketch).
+Version **0.1.7** — design extension (docs sketch).
 
 HomeCooked already exposes **named programs** on many appliances
 (`trait.program`). Homes also need **timed and conditional sequences** that
@@ -46,8 +46,10 @@ A **procedure** is an ordered list of **steps**. Each step is one of:
 - **wait** — duration and/or condition
 - **guard** — assert a condition; fail or branch if false
 - **thermal_wait** (thin) — wait until a plant reservoir `temp_c` meets a numeric
-  comparison (`cmp` / `temp_c` / `reservoir_id` / `timeout_s`); requires a runner
-  backend with an attached thermal plant (see [`thermal-plant.md`](./thermal-plant.md) §8)
+  comparison (`cmp` / `temp_c` / `reservoir_id` / `timeout_s`); optional
+  `requeue_offer` + transfer fields re-negotiate each poll (continuous heat while
+  waiting); requires a runner backend with an attached thermal plant (see
+  [`thermal-plant.md`](./thermal-plant.md) §8 / §8.4)
 - **thermal_offer** (thin) — submit a heat-transfer offer aligned with
   `TransferOffer` (`from_port`, `to_port` | `to_reservoir_id`, `power_w`,
   `duration_s?`, `priority?`, `fallback_power_w?`, `on_decline?`) and
@@ -80,6 +82,8 @@ Step {
   reservoir_id:  string?
   cmp:           eq | ne | gt | gte | lt | lte?
   temp_c:        number?              // °C threshold
+  requeue_offer: bool?                // when true, re-negotiate inline offer each poll
+  // shared transfer fields (thermal_offer, or thermal_wait when requeue_offer):
   // thermal_offer fields (when op = thermal_offer | offer_transfer):
   from_port:     { device_id, port_id }?
   to_port:       { device_id, port_id }?   // xor to_reservoir_id
@@ -243,7 +247,7 @@ AI-generated protocols:
 
 ## 6. Relation to named programs
 
-Bundled oven example `oven_bake_180` writes `trait.program.program = bake` then a cavity setpoint before `start`. Bundled coffee example `coffee_brew_espresso` powers on, selects `espresso`, then waits on `class.coffee_machine.boiler_c`. Bundled air fryer example `air_fryer_cook_200` selects `fries`, sets cavity setpoint 200 °C, then waits on `trait.temperature.current_c`. Bundled `wait_dhw_reservoir` is a thin `thermal_wait` on plant reservoir `dhw-tank` (requires `SimulatorBackend` + `ThermalPlant`; see thermal-plant §8). Bundled `offer_fridge_dhw` is a thin `thermal_offer` (fridge condenser → DHW preheat, `duration_s` apply; see thermal-plant §8.3). Bundled `offer_fridge_dhw_soft` demos soft decline + thin `fallback_power_w` retry (first band min above condenser max, then accept at 80–120 W).
+Bundled oven example `oven_bake_180` writes `trait.program.program = bake` then a cavity setpoint before `start`. Bundled coffee example `coffee_brew_espresso` powers on, selects `espresso`, then waits on `class.coffee_machine.boiler_c`. Bundled air fryer example `air_fryer_cook_200` selects `fries`, sets cavity setpoint 200 °C, then waits on `trait.temperature.current_c`. Bundled `wait_dhw_reservoir` is a thin `thermal_wait` on plant reservoir `dhw-tank` (requires `SimulatorBackend` + `ThermalPlant`; see thermal-plant §8). Bundled `offer_fridge_dhw` is a thin `thermal_offer` (fridge condenser → DHW preheat, `duration_s` apply; see thermal-plant §8.3). Bundled `offer_fridge_dhw_soft` demos soft decline + thin `fallback_power_w` retry (first band min above condenser max, then accept at 80–120 W). Bundled `wait_dhw_with_requeue` is a `thermal_wait` with `requeue_offer` that keeps re-negotiating fridge→DHW each poll until DHW ≥ 36 °C (see thermal-plant §8.4).
 
 A procedure step may **select** a named program (`trait.program.program = eco`)
 and then `start`, or it may drive fine-grained setpoints when the device
@@ -272,3 +276,4 @@ exposes them and the recipe needs them (pizza crisp finish).
 | 0.1.4 | Bundled `air_fryer_cook_200` example (program fries + setpoint + sim heat wait) |
 | 0.1.5 | Thin `thermal_offer` / `offer_transfer` step + `offer_fridge_dhw` fixture (offer + immediate accept) |
 | 0.1.6 | Soft decline (`on_decline`) + thin `fallback_power_w` retry + `offer_fridge_dhw_soft` fixture |
+| 0.1.7 | Continuous re-queue: `thermal_wait` + `requeue_offer` + `wait_dhw_with_requeue` fixture |

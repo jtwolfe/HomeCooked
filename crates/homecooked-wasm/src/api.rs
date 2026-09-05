@@ -569,7 +569,7 @@ impl WasmApi {
     ///
     /// Dual-path orchestrator (transfer outside procedure JSON, then dishwasher
     /// settings). Thin in-procedure `thermal_wait` is separate — see
-    /// `docs/standard/thermal-plant.md` §8.2 / `wait_dhw_reservoir`.
+    /// `docs/standard/thermal-plant.md` §8.2 / `wait_dhw_reservoir` (+ `wait_dhw_with_requeue`).
     pub fn run_thermal_then_dishwasher_preheat(&mut self, dt_s: f32) -> Result<String, ApiError> {
         if !dt_s.is_finite() || dt_s <= 0.0 {
             return Err(ApiError::invalid_request("dt_s must be > 0"));
@@ -1242,7 +1242,7 @@ mod tests {
     ) {
         let items: Vec<ExampleProcedureInfo> =
             serde_json::from_str(&WasmApi::list_example_procedures()).unwrap();
-        assert_eq!(items.len(), 10);
+        assert_eq!(items.len(), 11);
         assert_eq!(items[0].id, "kettle_heat_80");
         assert_eq!(items[0].name, "Heat kettle to 80C");
         assert!(items[0].class_hints.iter().any(|c| c == "kettle"));
@@ -1271,6 +1271,12 @@ mod tests {
         assert_eq!(items[9].id, "offer_fridge_dhw_soft");
         assert_eq!(items[9].name, "Soft-decline / fallback fridge→DHW offer");
         assert!(items[9].class_hints.is_empty());
+        assert_eq!(items[10].id, "wait_dhw_with_requeue");
+        assert_eq!(
+            items[10].name,
+            "Wait for DHW while re-queuing fridge→DHW transfer"
+        );
+        assert!(items[10].class_hints.is_empty());
     }
 
     #[test]
@@ -1341,6 +1347,13 @@ mod tests {
         let summary: ProcedureSummary =
             serde_json::from_str(&WasmApi::parse_procedure(&soft).unwrap()).unwrap();
         assert_eq!(summary.id, "offer_fridge_dhw_soft");
+        assert_eq!(summary.step_count, 1);
+        assert!(summary.devices.is_empty());
+
+        let requeue = WasmApi::get_example_procedure("wait_dhw_with_requeue").unwrap();
+        let summary: ProcedureSummary =
+            serde_json::from_str(&WasmApi::parse_procedure(&requeue).unwrap()).unwrap();
+        assert_eq!(summary.id, "wait_dhw_with_requeue");
         assert_eq!(summary.step_count, 1);
         assert!(summary.devices.is_empty());
 
@@ -1711,5 +1724,23 @@ mod tests {
             .and_then(|v| v.as_i64())
             .unwrap();
         assert_eq!(accepted, 120);
+    }
+
+    #[test]
+    fn run_procedure_thermal_wait_with_requeue() {
+        let mut api = WasmApi::new();
+        api.create_thermal_demo().unwrap();
+        let json = WasmApi::get_example_procedure("wait_dhw_with_requeue").unwrap();
+        let raw = api.run_procedure(&json).unwrap();
+        let out: ProcedureRunOut = serde_json::from_str(&raw).unwrap();
+        assert_eq!(out.status, "completed", "requeue wait failed: {raw}");
+        assert_eq!(out.outcomes.len(), 1);
+        assert!(out.outcomes[0].ok);
+        let got = out.outcomes[0]
+            .read_value
+            .as_ref()
+            .and_then(|v| v.as_f64())
+            .unwrap();
+        assert!(got >= 36.0, "got={got}");
     }
 }

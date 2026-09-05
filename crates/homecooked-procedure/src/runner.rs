@@ -468,13 +468,16 @@ fn thermal_wait_step(
             .thermal_read_reservoir_temp(reservoir_id)
             .map_err(|e| map_backend(step, e))?;
         if cmp.eval(got, threshold) {
-            return Ok(ok_outcome(
-                step,
-                Some(Value::F32(got as f32)),
-                Some(format!(
+            let msg = if step.requeue_offer {
+                format!(
+                    "thermal_wait {reservoir_id} {cmp:?} {threshold} satisfied after {elapsed} ms (got {got}; requeue_offer)"
+                )
+            } else {
+                format!(
                     "thermal_wait {reservoir_id} {cmp:?} {threshold} satisfied after {elapsed} ms (got {got})"
-                )),
-            ));
+                )
+            };
+            return Ok(ok_outcome(step, Some(Value::F32(got as f32)), Some(msg)));
         }
 
         if elapsed >= timeout_ms {
@@ -494,6 +497,53 @@ fn thermal_wait_step(
 
         let remaining = timeout_ms.saturating_sub(elapsed);
         let dt = remaining.min(poll);
+
+        // Continuous re-queue: plant accepts are one-shot per step, so re-offer
+        // + negotiate before each poll tick while waiting on temperature.
+        if step.requeue_offer {
+            let offer = step.transfer_offer_for_requeue().map_err(|e| {
+                (
+                    StepOutcome {
+                        step_id: step.id.clone(),
+                        action: step.action,
+                        ok: false,
+                        read_value: None,
+                        message: Some(e.to_string()),
+                    },
+                    FailReason::Backend {
+                        code: ErrorCode::InvalidRequest,
+                        message: e.to_string(),
+                    },
+                )
+            })?;
+            backend
+                .thermal_offer(&offer)
+                .map_err(|e| map_backend(step, e))?;
+            let reply = backend
+                .thermal_negotiate(offer)
+                .map_err(|e| map_backend(step, e))?;
+            match reply {
+                TransferReply::Accept(_) => {}
+                TransferReply::Decline(decline) => {
+                    let message =
+                        format!("thermal_wait requeue_offer declined: {}", decline.reason);
+                    return Err((
+                        StepOutcome {
+                            step_id: step.id.clone(),
+                            action: step.action,
+                            ok: false,
+                            read_value: Some(Value::F32(got as f32)),
+                            message: Some(message.clone()),
+                        },
+                        FailReason::Backend {
+                            code: ErrorCode::InvalidRequest,
+                            message,
+                        },
+                    ));
+                }
+            }
+        }
+
         backend.thermal_tick(dt).map_err(|e| map_backend(step, e))?;
         elapsed = elapsed.saturating_add(dt);
     }

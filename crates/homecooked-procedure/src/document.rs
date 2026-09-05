@@ -40,6 +40,9 @@ pub const OFFER_FRIDGE_DHW_JSON: &str = include_str!("../examples/offer_fridge_d
 /// Soft-decline / fallback fridge→DHW offer (procedure⇄thermal thin multi-round).
 pub const OFFER_FRIDGE_DHW_SOFT_JSON: &str = include_str!("../examples/offer_fridge_dhw_soft.json");
 
+/// Wait on DHW while re-queuing fridge→DHW transfer each poll (continuous re-queue).
+pub const WAIT_DHW_WITH_REQUEUE_JSON: &str = include_str!("../examples/wait_dhw_with_requeue.json");
+
 /// Bundled example documents: `(id, json)`.
 pub const BUNDLED_EXAMPLE_PROCEDURES: &[(&str, &str)] = &[
     ("kettle_heat_80", KETTLE_HEAT_80_JSON),
@@ -52,6 +55,7 @@ pub const BUNDLED_EXAMPLE_PROCEDURES: &[(&str, &str)] = &[
     ("wait_dhw_reservoir", WAIT_DHW_RESERVOIR_JSON),
     ("offer_fridge_dhw", OFFER_FRIDGE_DHW_JSON),
     ("offer_fridge_dhw_soft", OFFER_FRIDGE_DHW_SOFT_JSON),
+    ("wait_dhw_with_requeue", WAIT_DHW_WITH_REQUEUE_JSON),
 ];
 
 /// Ordered recipe / protocol document.
@@ -136,6 +140,10 @@ fn is_default_on_decline(v: &OnDecline) -> bool {
     *v == OnDecline::Fail
 }
 
+fn is_false(v: &bool) -> bool {
+    !*v
+}
+
 /// One sequential HomeCooked operation.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Step {
@@ -185,6 +193,13 @@ pub struct Step {
     /// (serde default [`OnDecline::Fail`]).
     #[serde(default, skip_serializing_if = "is_default_on_decline")]
     pub on_decline: OnDecline,
+    /// When true on [`StepAction::ThermalWait`], re-submit/`negotiate` the
+    /// inline transfer fields (`from_port` / `to_*` / `power_w` / `priority`)
+    /// before each wait poll tick so energy keeps flowing while waiting for
+    /// the reservoir threshold (continuous re-queue). Offer `duration_s` is
+    /// ignored here — each poll's `thermal_tick` dt drives applied energy.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub requeue_offer: bool,
 }
 
 /// Executable ops. Sketch `guard` deserializes as [`StepAction::Assert`].
@@ -198,6 +213,7 @@ pub enum StepAction {
     #[serde(alias = "guard")]
     Assert,
     /// Wait until a thermal plant reservoir temperature meets `cmp`/`temp_c`.
+    /// Optional `requeue_offer` + transfer fields re-negotiate each poll.
     #[serde(alias = "wait_reservoir")]
     ThermalWait,
     /// Submit a [`TransferOffer`] to the attached plant and immediately negotiate
@@ -307,6 +323,16 @@ impl Step {
             self.duration_s,
             priority,
         ))
+    }
+
+    /// Build a re-queue [`TransferOffer`] for [`StepAction::ThermalWait`].
+    ///
+    /// Forces `duration_s = None` so each wait-poll `thermal_tick` applies the
+    /// full poll interval (plant accepts remain one-shot per step).
+    pub fn transfer_offer_for_requeue(&self) -> Result<TransferOffer, Error> {
+        let mut offer = self.transfer_offer_with_power(None)?;
+        offer.duration_s = None;
+        Ok(offer)
     }
 }
 
