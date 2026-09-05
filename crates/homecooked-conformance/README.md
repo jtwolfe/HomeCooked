@@ -33,3 +33,5 @@ Also covered by `cargo test --workspace` (CI).
    via `homecooked-bridge` (illustrative object types; no BACnet stack)
 9. **tcp_kettle_discover_describe_read_write** — TCP client against a sim
    kettle on an ephemeral port (`homecooked-transport`)
+10. **tcp_psk_good_secret_describe_ping** — TCP PSK pairing with a good shared
+   secret: describe + ping against a sim kettle (`homecooked-transport`)

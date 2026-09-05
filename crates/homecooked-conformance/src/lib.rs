@@ -15,7 +15,7 @@ use homecooked_controller::{Controller, CottonOptions, CyclePhase, CycleState, W
 use homecooked_core::DeviceId;
 use homecooked_hal::ChannelId;
 use homecooked_procedure::{run, DeviceBindings, Procedure, KETTLE_HEAT_80_JSON};
-use homecooked_protocol::{Envelope, Payload, WriteOp};
+use homecooked_protocol::{Envelope, Payload, PingBody, WriteOp};
 use homecooked_schema::{
     typical_capability, ApplianceClassId, QualifiedPointId, Value, TIER_A_CLASS_IDS,
 };
@@ -23,7 +23,7 @@ use homecooked_sim::Simulator;
 use homecooked_thermal::{
     energy_kwh, PortRef, PowerBandW, ThermalPlant, TransferOffer, TransferReply, TransferTarget,
 };
-use homecooked_transport::{spawn_server, TcpClient};
+use homecooked_transport::{spawn_server, spawn_server_with_config, ServerConfig, TcpClient};
 
 /// Named smoke scenario failure (printed by the suite runner).
 #[derive(Debug)]
@@ -685,6 +685,69 @@ pub fn tcp_kettle_discover_describe_read_write() -> ScenarioResult {
     Ok(())
 }
 
+/// (7) TCP PSK: good shared secret → describe + ping against sim kettle.
+pub fn tcp_psk_good_secret_describe_ping() -> ScenarioResult {
+    const NAME: &str = "tcp_psk_good_secret_describe_ping";
+    let mut sim = Simulator::new();
+    let kettle_id = sim
+        .spawn_named("kettle-psk-conformance", ApplianceClassId::Kettle)
+        .map_err(|e| err(NAME, format!("spawn: {e}")))?;
+    if kettle_id.as_str() != "kettle-psk-conformance" {
+        return Err(err(
+            NAME,
+            format!(
+                "device id={}, expected kettle-psk-conformance",
+                kettle_id.as_str()
+            ),
+        ));
+    }
+
+    let (addr, _shared, _server) = spawn_server_with_config(
+        "127.0.0.1:0",
+        sim,
+        ServerConfig::with_psk("lab-conformance-psk"),
+    )
+    .map_err(|e| err(NAME, format!("spawn_server_with_config: {e}")))?;
+    thread::sleep(Duration::from_millis(20));
+
+    let mut client = TcpClient::connect_with_psk(addr, Some("lab-conformance-psk"))
+        .map_err(|e| err(NAME, format!("connect_with_psk: {e}")))?;
+
+    let desc = client
+        .describe("kettle-psk-conformance", vec![])
+        .map_err(|e| err(NAME, format!("describe: {e}")))?;
+    if desc.capability.class_id != ApplianceClassId::Kettle {
+        return Err(err(
+            NAME,
+            format!(
+                "describe class={:?}, expected Kettle",
+                desc.capability.class_id
+            ),
+        ));
+    }
+
+    let req = Envelope::new(Payload::Ping(PingBody {
+        echo: Some("psk-conformance".into()),
+    }));
+    let resp = client
+        .exchange(&req)
+        .map_err(|e| err(NAME, format!("ping: {e}")))?;
+    match resp.payload {
+        Payload::Pong(p) => {
+            if p.echo.as_deref() != Some("psk-conformance") {
+                return Err(err(
+                    NAME,
+                    format!("pong echo={:?}, expected psk-conformance", p.echo),
+                ));
+            }
+        }
+        other => {
+            return Err(err(NAME, format!("expected Pong, got {other:?}")));
+        }
+    }
+    Ok(())
+}
+
 /// Ordered smoke scenarios for the suite runner.
 pub fn all_scenarios() -> &'static [(&'static str, ScenarioFn)] {
     &[
@@ -702,6 +765,10 @@ pub fn all_scenarios() -> &'static [(&'static str, ScenarioFn)] {
         (
             "tcp_kettle_discover_describe_read_write",
             tcp_kettle_discover_describe_read_write,
+        ),
+        (
+            "tcp_psk_good_secret_describe_ping",
+            tcp_psk_good_secret_describe_ping,
         ),
     ]
 }
