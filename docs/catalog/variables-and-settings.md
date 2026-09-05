@@ -698,6 +698,13 @@ remote, maintenance, audio, safety.
 | `drain_tank` | enum | — | `ok` `full` `missing` `na` | r/e | opt | Condenser |
 | `dryness_percent` | percent | percent | 0–100 | r/e | opt | Estimate |
 | `vent_blocked` | bool | — | | r/e | opt | |
+| `sabbath_mode` | bool | — | | r/w/e | opt | Suppress beeps / delay display |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving heater/fan duty (distinct from `eco` program) |
+| `door_ajar` | bool | — | | r/e | opt | Door / lid ajar bit |
+| `door_locked` | bool | — | | r/e | opt | Door lock engaged (cycle safety) |
+| `high_temp_alarm` | bool | — | | r/e | opt | Drum / exhaust overtemp |
+| `lint_full` | bool | — | | r/e | opt | Lint trap full bit (alongside `lint_filter`) |
+| `timer_s` | duration_s | second | 0–86400 | r/w/e | opt | Delay / countdown timer (also see `trait.time_schedule.delay_start_s`) |
 | `thermal_port_id` | string | — | local port id | r | opt | Device heat port (e.g. `exhaust`); see thermal-plant |
 | `thermal_port_direction` | enum | — | `source` `sink` `bidirectional` | r | opt | Seed `source` (exhaust / heat reject) |
 | `thermal_port_media` | enum | — | `water` `air` `glycol` `refrigerant_proxy` `unknown` | r | opt | Seed `air` |

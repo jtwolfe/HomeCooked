@@ -277,9 +277,11 @@ fn extra_typical_trait_point(table: &ClassTable, trait_id: TraitId, point: &Cata
             return true;
         }
     }
-    // Washer: delay start is typical laundry scheduling (reuse TimeSchedule).
-    if table.class_id == ApplianceClassId::Washer
-        && trait_id == TraitId::TimeSchedule
+    // Washer / dryer: delay start is typical laundry scheduling (reuse TimeSchedule).
+    if matches!(
+        table.class_id,
+        ApplianceClassId::Washer | ApplianceClassId::Dryer
+    ) && trait_id == TraitId::TimeSchedule
         && point.id == "delay_start_s"
     {
         return true;
@@ -316,6 +318,29 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "detergent_low"
                 | "timer_s"
         );
+    }
+    // Stream 7 undepened Tier-A deepen: dryer optional telemetry/settings in typical sim.
+    // Reuse thin-table anti_crease / dryness_percent / vent_blocked / drain_tank;
+    // dryer-only depth lives in DRYER_DEPTH (not DRYER_BASE) to avoid washer_dryer dups.
+    // Do not early-return false — dryer also advertises thermal_port_* via the
+    // shared Stream 5 fall-through below.
+    if table.class_id == ApplianceClassId::Dryer
+        && matches!(
+            point.id,
+            "anti_crease"
+                | "dryness_percent"
+                | "vent_blocked"
+                | "drain_tank"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "door_ajar"
+                | "door_locked"
+                | "high_temp_alarm"
+                | "lint_full"
+                | "timer_s"
+        )
+    {
+        return true;
     }
     // Stream 3: coffee brew procedure waits on boiler telemetry.
     if table.class_id == ApplianceClassId::CoffeeMachine
@@ -4159,6 +4184,75 @@ mod tests {
                 assert!(is_snake_case_id(p.id), "trait.{}.{}", t, p.id);
             }
         }
+    }
+
+    #[test]
+    fn dryer_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::Dryer).unwrap();
+        for id in [
+            "class.dryer.anti_crease",
+            "class.dryer.dryness_percent",
+            "class.dryer.vent_blocked",
+            "class.dryer.drain_tank",
+            "class.dryer.sabbath_mode",
+            "class.dryer.eco_mode",
+            "class.dryer.door_ajar",
+            "class.dryer.door_locked",
+            "class.dryer.high_temp_alarm",
+            "class.dryer.lint_full",
+            "class.dryer.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical dryer"
+            );
+        }
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::TimeSchedule)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.time_schedule.delay_start_s"));
+        cap.validate_write("class.dryer.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.dryer.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.dryer.anti_crease", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.dryer.timer_s", &Value::DurationS(3600))
+            .unwrap();
+        cap.validate_write("trait.time_schedule.delay_start_s", &Value::DurationS(1800))
+            .unwrap();
+        let err = cap
+            .validate_write("class.dryer.dryness_percent", &Value::Percent(50.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.dryer.vent_blocked", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.dryer.drain_tank", &Value::Enum("full".into()))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.dryer.door_ajar", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.dryer.door_locked", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.dryer.high_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.dryer.lint_full", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
     }
 
     #[test]

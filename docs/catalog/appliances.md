@@ -197,18 +197,23 @@ textile load.
 - Program (`cotton`, `synthetic`, `delicates`, `wool`, `timed`, `air_fluff`,
   `bedding`, `hygiene`, `rack`, …)
 - Dryness target (`iron`, `cupboard`, `extra`) or timed duration
-- Temperature / heat level, anti-crease / wrinkle-prevent
-- Steam refresh, delay start, child lock, remote start
-- Eco / energy mode, drum light (if present)
+- Temperature / heat level, anti-crease / wrinkle-prevent (`anti_crease`)
+- Steam refresh, delay start (`trait.time_schedule.delay_start_s` / class
+  `timer_s`), child lock, remote start
+- Sabbath / eco mode, drum light (if present)
 
 **Typical readable state:**
 
 - Cycle state and phase (`heating`, `drying`, `cooling`, `anti_crease`,
   `complete`)
-- Remaining time, dryness estimate, exhaust / drum temperature
-- Lint filter present / clogged, condenser / drain tank full
-- Door, child lock, heater on, fan rpm
-- Energy this cycle, fault codes (overtemp, no-tumble, blocked airflow)
+- Remaining time, dryness estimate (`dryness_percent`), exhaust / drum
+  temperature
+- Lint filter present / clogged + `lint_full`, condenser / drain tank
+  (`drain_tank`), vent blocked (`vent_blocked`)
+- Door ajar / locked (`door_ajar` / `door_locked`), child lock, heater on, fan
+  rpm
+- Energy this cycle, fault codes / `high_temp_alarm` (overtemp, no-tumble,
+  blocked airflow)
 
 **Notes:**
 
@@ -221,6 +226,13 @@ textile load.
   tumbling motor — use a vendor class or `dehydrator` if they are cabinets.
 - Optional `thermal_port_*` class points advertise an exhaust / heat-reject
   source into the plant (not a parallel thermal class; see thermal-plant).
+- Catalog depth: optional class points include sabbath, eco, `door_ajar`,
+  `door_locked`, `high_temp_alarm`, `lint_full`, and `timer_s`, plus typical
+  `anti_crease` / `dryness_percent` / `vent_blocked` / `drain_tank`; delay
+  start also uses `trait.time_schedule.delay_start_s` (see
+  variables-and-settings). Dryer-only deepen points stay off the shared
+  `DRYER_BASE` slice so `washer_dryer` does not duplicate washer laundry
+  telemetry ids.
 
 ### `washer_dryer`
 
