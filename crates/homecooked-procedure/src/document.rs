@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use homecooked_schema::{ApplianceClassId, SemVer, Value};
+use homecooked_thermal::{PortRef, PowerBandW, TransferOffer, TransferTarget};
 
 use crate::error::Error;
 use crate::guard::{Guard, GuardSet};
@@ -33,6 +34,9 @@ pub const AIR_FRYER_COOK_200_JSON: &str = include_str!("../examples/air_fryer_co
 /// Wait on plant DHW reservoir temperature (procedure⇄thermal thin bridge).
 pub const WAIT_DHW_RESERVOIR_JSON: &str = include_str!("../examples/wait_dhw_reservoir.json");
 
+/// Offer fridge condenser heat to DHW preheat (procedure⇄thermal thin bridge).
+pub const OFFER_FRIDGE_DHW_JSON: &str = include_str!("../examples/offer_fridge_dhw.json");
+
 /// Bundled example documents: `(id, json)`.
 pub const BUNDLED_EXAMPLE_PROCEDURES: &[(&str, &str)] = &[
     ("kettle_heat_80", KETTLE_HEAT_80_JSON),
@@ -43,6 +47,7 @@ pub const BUNDLED_EXAMPLE_PROCEDURES: &[(&str, &str)] = &[
     ("coffee_brew_espresso", COFFEE_BREW_ESPRESSO_JSON),
     ("air_fryer_cook_200", AIR_FRYER_COOK_200_JSON),
     ("wait_dhw_reservoir", WAIT_DHW_RESERVOIR_JSON),
+    ("offer_fridge_dhw", OFFER_FRIDGE_DHW_JSON),
 ];
 
 /// Ordered recipe / protocol document.
@@ -133,6 +138,24 @@ pub struct Step {
     /// Threshold °C for [`StepAction::ThermalWait`].
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub temp_c: Option<f64>,
+    /// Source heat port for [`StepAction::ThermalOffer`].
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub from_port: Option<PortRef>,
+    /// Destination heat port for [`StepAction::ThermalOffer`] (xor `to_reservoir_id`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub to_port: Option<PortRef>,
+    /// Destination reservoir id for [`StepAction::ThermalOffer`] (xor `to_port`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub to_reservoir_id: Option<String>,
+    /// Offered power band (W) for [`StepAction::ThermalOffer`].
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub power_w: Option<PowerBandW>,
+    /// Optional transfer duration (s) for [`StepAction::ThermalOffer`] (`TransferOffer::duration_s`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub duration_s: Option<u32>,
+    /// Offer priority for [`StepAction::ThermalOffer`] (default 1 when omitted at run time).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub priority: Option<u8>,
 }
 
 /// Executable ops. Sketch `guard` deserializes as [`StepAction::Assert`].
@@ -148,6 +171,10 @@ pub enum StepAction {
     /// Wait until a thermal plant reservoir temperature meets `cmp`/`temp_c`.
     #[serde(alias = "wait_reservoir")]
     ThermalWait,
+    /// Submit a [`TransferOffer`] to the attached plant and immediately negotiate
+    /// (accept at max allowable, or decline).
+    #[serde(alias = "offer_transfer")]
+    ThermalOffer,
 }
 
 /// Device binding plus optional qualified point id.
@@ -197,6 +224,50 @@ impl Step {
 
     pub fn reservoir_id(&self) -> Option<&str> {
         self.reservoir_id.as_deref()
+    }
+
+    /// Build a [`TransferOffer`] from [`StepAction::ThermalOffer`] fields.
+    ///
+    /// Prefer [`Procedure::validate`] before run; this helper also errors if
+    /// destination fields are missing or both `to_port` and `to_reservoir_id`
+    /// are set.
+    pub fn transfer_offer(&self) -> Result<TransferOffer, Error> {
+        let from_port = self
+            .from_port
+            .clone()
+            .ok_or_else(|| Error::at_step(&self.id, "thermal_offer requires from_port"))?;
+        let to = match (&self.to_port, self.to_reservoir_id.as_deref()) {
+            (Some(port), None) => TransferTarget::Port {
+                device_id: port.device_id.clone(),
+                port_id: port.port_id.clone(),
+            },
+            (None, Some(rid)) if !rid.is_empty() => TransferTarget::Reservoir {
+                reservoir_id: rid.to_string(),
+            },
+            (Some(_), Some(_)) => {
+                return Err(Error::at_step(
+                    &self.id,
+                    "thermal_offer requires exactly one of to_port or to_reservoir_id",
+                ));
+            }
+            _ => {
+                return Err(Error::at_step(
+                    &self.id,
+                    "thermal_offer requires to_port or to_reservoir_id",
+                ));
+            }
+        };
+        let power_w = self
+            .power_w
+            .ok_or_else(|| Error::at_step(&self.id, "thermal_offer requires power_w"))?;
+        let priority = self.priority.unwrap_or(1);
+        Ok(TransferOffer::new(
+            from_port,
+            to,
+            power_w,
+            self.duration_s,
+            priority,
+        ))
     }
 }
 

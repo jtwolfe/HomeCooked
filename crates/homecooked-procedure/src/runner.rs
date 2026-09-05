@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::fmt;
 
 use homecooked_schema::{ErrorCode, Value};
+use homecooked_thermal::TransferReply;
 
 use crate::backend::DeviceBackend;
 use crate::document::{Procedure, Step, StepAction, StepTarget};
@@ -253,6 +254,7 @@ fn execute_step(
         }
         StepAction::Wait => wait_step(step, backend, device.as_deref(), bindings, config),
         StepAction::ThermalWait => thermal_wait_step(step, backend, config),
+        StepAction::ThermalOffer => thermal_offer_step(step, backend),
     }
 }
 
@@ -494,5 +496,68 @@ fn thermal_wait_step(
         let dt = remaining.min(poll);
         backend.thermal_tick(dt).map_err(|e| map_backend(step, e))?;
         elapsed = elapsed.saturating_add(dt);
+    }
+}
+
+fn thermal_offer_step(
+    step: &Step,
+    backend: &mut impl DeviceBackend,
+) -> Result<StepOutcome, (StepOutcome, FailReason)> {
+    let offer = step.transfer_offer().map_err(|e| {
+        (
+            StepOutcome {
+                step_id: step.id.clone(),
+                action: step.action,
+                ok: false,
+                read_value: None,
+                message: Some(e.to_string()),
+            },
+            FailReason::Backend {
+                code: ErrorCode::InvalidRequest,
+                message: e.to_string(),
+            },
+        )
+    })?;
+
+    backend
+        .thermal_offer(&offer)
+        .map_err(|e| map_backend(step, e))?;
+
+    let reply = backend
+        .thermal_negotiate(offer)
+        .map_err(|e| map_backend(step, e))?;
+
+    match reply {
+        TransferReply::Accept(accept) => {
+            // When duration_s is set, apply one plant tick of that length so the
+            // fridge→DHW demo heats in-procedure (accepts are one-shot per step).
+            if let Some(dur) = accept.duration_s {
+                let dt_ms = u64::from(dur).saturating_mul(1_000);
+                backend
+                    .thermal_tick(dt_ms)
+                    .map_err(|e| map_backend(step, e))?;
+            }
+            Ok(ok_outcome(
+                step,
+                Some(Value::U32(accept.accepted_power_w)),
+                Some(format!(
+                    "thermal_offer accepted at {} W (priority {})",
+                    accept.accepted_power_w, accept.priority
+                )),
+            ))
+        }
+        TransferReply::Decline(decline) => Err((
+            StepOutcome {
+                step_id: step.id.clone(),
+                action: step.action,
+                ok: false,
+                read_value: None,
+                message: Some(format!("thermal_offer declined: {}", decline.reason)),
+            },
+            FailReason::Backend {
+                code: ErrorCode::InvalidRequest,
+                message: format!("thermal_offer declined: {}", decline.reason),
+            },
+        )),
     }
 }

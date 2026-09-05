@@ -98,6 +98,37 @@ fn validate_step(step: &Step) -> Result<(), Error> {
                 return Err(Error::at_step(&step.id, "thermal_wait requires timeout_s"));
             }
         }
+        StepAction::ThermalOffer => {
+            if step.from_port.is_none() {
+                return Err(Error::at_step(&step.id, "thermal_offer requires from_port"));
+            }
+            let has_to_port = step.to_port.is_some();
+            let has_to_res = matches!(step.to_reservoir_id.as_deref(), Some(id) if !id.is_empty());
+            match (has_to_port, has_to_res) {
+                (true, false) | (false, true) => {}
+                (true, true) => {
+                    return Err(Error::at_step(
+                        &step.id,
+                        "thermal_offer requires exactly one of to_port or to_reservoir_id",
+                    ));
+                }
+                (false, false) => {
+                    return Err(Error::at_step(
+                        &step.id,
+                        "thermal_offer requires to_port or to_reservoir_id",
+                    ));
+                }
+            }
+            if step.power_w.is_none() {
+                return Err(Error::at_step(&step.id, "thermal_offer requires power_w"));
+            }
+            if let Some(0) = step.duration_s {
+                return Err(Error::at_step(
+                    &step.id,
+                    "thermal_offer duration_s must be positive when set",
+                ));
+            }
+        }
     }
     Ok(())
 }
@@ -120,6 +151,7 @@ fn action_name(action: StepAction) -> &'static str {
         StepAction::Wait => "wait",
         StepAction::Assert => "assert",
         StepAction::ThermalWait => "thermal_wait",
+        StepAction::ThermalOffer => "thermal_offer",
     }
 }
 

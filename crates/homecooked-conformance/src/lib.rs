@@ -21,7 +21,7 @@ use homecooked_hub::{LabHub, LAB_KETTLE_ID};
 use homecooked_procedure::{
     run, DeviceBindings, Procedure, SimulatorBackend, AIR_FRYER_COOK_200_JSON,
     COFFEE_BREW_ESPRESSO_JSON, DISHWASHER_DHW_PREHEAT_JSON, KETTLE_HEAT_80_JSON,
-    OVEN_BAKE_180_JSON, WAIT_DHW_RESERVOIR_JSON, WASH_THEN_DRY_JSON,
+    OFFER_FRIDGE_DHW_JSON, OVEN_BAKE_180_JSON, WAIT_DHW_RESERVOIR_JSON, WASH_THEN_DRY_JSON,
 };
 use homecooked_protocol::{Envelope, Payload, PingBody, WriteOp};
 use homecooked_schema::{
@@ -669,6 +669,58 @@ pub fn procedure_thermal_wait_dhw() -> ScenarioResult {
         return Err(err(
             NAME,
             format!("thermal_wait expected completed, got {:?}", result.status),
+        ));
+    }
+    Ok(())
+}
+
+/// (4d) Thin procedure⇄thermal: `thermal_offer` fridge→DHW with duration apply.
+///
+/// Runs `offer_fridge_dhw` against `SimulatorBackend` + demo plant — offer +
+/// immediate negotiate (accept at max) + one tick for `duration_s`.
+pub fn procedure_thermal_offer_dhw() -> ScenarioResult {
+    const NAME: &str = "procedure_thermal_offer_dhw";
+
+    let plant = ThermalPlant::fridge_condenser_dhw_demo()
+        .map_err(|e| err(NAME, format!("demo plant: {e}")))?;
+    let start = plant
+        .get_reservoir("dhw-tank")
+        .and_then(|r| r.temp_c)
+        .ok_or_else(|| err(NAME, "dhw-tank missing temp"))?;
+    if (start - 35.0).abs() >= 1e-4 {
+        return Err(err(NAME, format!("dhw start temp={start}, expected 35")));
+    }
+
+    let doc = Procedure::load_json(OFFER_FRIDGE_DHW_JSON)
+        .map_err(|e| err(NAME, format!("load procedure: {e}")))?;
+    let mut backend = SimulatorBackend::with_plant(Simulator::new(), plant);
+    let result = run(&doc, &mut backend, &DeviceBindings::new());
+    if !result.is_completed() {
+        return Err(err(
+            NAME,
+            format!("thermal_offer expected completed, got {:?}", result.status),
+        ));
+    }
+    let accepted = result.outcomes[0]
+        .read_value
+        .as_ref()
+        .and_then(|v| v.as_i64())
+        .ok_or_else(|| err(NAME, "missing accepted power read_value"))?;
+    if accepted != 120 {
+        return Err(err(
+            NAME,
+            format!("accepted_power_w={accepted}, expected 120"),
+        ));
+    }
+    let dhw_end = backend
+        .plant()
+        .and_then(|p| p.get_reservoir("dhw-tank"))
+        .and_then(|r| r.temp_c)
+        .ok_or_else(|| err(NAME, "dhw-tank missing temp after offer"))?;
+    if dhw_end < 36.0 {
+        return Err(err(
+            NAME,
+            format!("dhw end temp={dhw_end}, expected >= 36.0 after offer duration"),
         ));
     }
     Ok(())
@@ -2072,6 +2124,7 @@ pub fn all_scenarios() -> &'static [(&'static str, ScenarioFn)] {
             thermal_then_dishwasher_preheat,
         ),
         ("procedure_thermal_wait_dhw", procedure_thermal_wait_dhw),
+        ("procedure_thermal_offer_dhw", procedure_thermal_offer_dhw),
         ("water_heater_thermal_ports", water_heater_thermal_ports),
         (
             "modbus_water_heater_roundtrip",

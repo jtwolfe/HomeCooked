@@ -3,14 +3,15 @@
 use homecooked_core::DeviceId;
 use homecooked_schema::{ErrorCode, Value};
 use homecooked_sim::Simulator;
-use homecooked_thermal::ThermalPlant;
+use homecooked_thermal::{ThermalPlant, TransferAccept, TransferOffer, TransferReply};
 
 use crate::error::Error;
 
 /// Read / write / simulated-time advance against a bound device.
 ///
 /// Optional thermal plant hooks let [`crate::document::StepAction::ThermalWait`]
-/// poll reservoir temperatures without inventing parallel appliance classes.
+/// poll reservoir temperatures and [`crate::document::StepAction::ThermalOffer`]
+/// submit transfer offers without inventing parallel appliance classes.
 /// Default implementations report [`ErrorCode::UnsupportedOperation`].
 pub trait DeviceBackend {
     fn read(&mut self, device_id: &str, point_id: &str) -> Result<Value, Error>;
@@ -42,6 +43,42 @@ pub trait DeviceBackend {
         let _ = dt_ms;
         Ok(())
     }
+
+    /// Validate a [`TransferOffer`] without changing plant state.
+    fn thermal_offer(&mut self, offer: &TransferOffer) -> Result<(), Error> {
+        let _ = offer;
+        Err(Error::Backend {
+            code: ErrorCode::UnsupportedOperation,
+            message: "thermal_offer not supported".into(),
+            point_id: None,
+        })
+    }
+
+    /// Queue an accepted transfer at `accepted_power_w` (energy applied on tick).
+    fn thermal_accept(
+        &mut self,
+        offer: TransferOffer,
+        accepted_power_w: u32,
+    ) -> Result<TransferAccept, Error> {
+        let _ = (offer, accepted_power_w);
+        Err(Error::Backend {
+            code: ErrorCode::UnsupportedOperation,
+            message: "thermal_accept not supported".into(),
+            point_id: None,
+        })
+    }
+
+    /// Immediate-accept path: accept at max allowable power or decline.
+    ///
+    /// Mirrors [`ThermalPlant::negotiate`]. Default is unsupported.
+    fn thermal_negotiate(&mut self, offer: TransferOffer) -> Result<TransferReply, Error> {
+        let _ = offer;
+        Err(Error::Backend {
+            code: ErrorCode::UnsupportedOperation,
+            message: "thermal_negotiate not supported".into(),
+            point_id: None,
+        })
+    }
 }
 
 impl DeviceBackend for Simulator {
@@ -66,7 +103,8 @@ impl DeviceBackend for Simulator {
 
 /// Owned wrapper so callers can name the adapter explicitly.
 ///
-/// Optional [`ThermalPlant`] enables [`crate::document::StepAction::ThermalWait`].
+/// Optional [`ThermalPlant`] enables thermal procedure steps (`thermal_wait`,
+/// `thermal_offer`).
 #[derive(Debug)]
 pub struct SimulatorBackend {
     pub sim: Simulator,
@@ -157,5 +195,46 @@ impl DeviceBackend for SimulatorBackend {
             point_id: None,
         })?;
         Ok(())
+    }
+
+    fn thermal_offer(&mut self, offer: &TransferOffer) -> Result<(), Error> {
+        let plant = self.plant.as_ref().ok_or_else(|| Error::Backend {
+            code: ErrorCode::UnsupportedOperation,
+            message: "no thermal plant attached to SimulatorBackend".into(),
+            point_id: None,
+        })?;
+        plant.offer(offer).map_err(|e| Error::Backend {
+            code: ErrorCode::InvalidRequest,
+            message: e.to_string(),
+            point_id: None,
+        })
+    }
+
+    fn thermal_accept(
+        &mut self,
+        offer: TransferOffer,
+        accepted_power_w: u32,
+    ) -> Result<TransferAccept, Error> {
+        let plant = self.plant.as_mut().ok_or_else(|| Error::Backend {
+            code: ErrorCode::UnsupportedOperation,
+            message: "no thermal plant attached to SimulatorBackend".into(),
+            point_id: None,
+        })?;
+        plant
+            .accept(offer, accepted_power_w)
+            .map_err(|e| Error::Backend {
+                code: ErrorCode::InvalidRequest,
+                message: e.to_string(),
+                point_id: None,
+            })
+    }
+
+    fn thermal_negotiate(&mut self, offer: TransferOffer) -> Result<TransferReply, Error> {
+        let plant = self.plant.as_mut().ok_or_else(|| Error::Backend {
+            code: ErrorCode::UnsupportedOperation,
+            message: "no thermal plant attached to SimulatorBackend".into(),
+            point_id: None,
+        })?;
+        Ok(plant.negotiate(offer))
     }
 }
