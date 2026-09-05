@@ -36,6 +36,8 @@ Also covered by `cargo test --workspace` (CI).
 4b. **thermal_then_dishwasher_preheat** — dual-path: thermal fridge→DHW
    (assert DHW rose), then `dishwasher_dhw_preheat` procedure writes eco +
    wash_temp reflecting preheat available
+4c. **water_heater_thermal_ports** — catalog/sim `thermal_port_*` on
+   `water_heater` / `fridge` / `hvac` / `dishwasher` (seeds + RW attach)
 5. **modbus_water_heater_roundtrip** — Modbus map ↔ HomeCooked points via
    `homecooked-bridge`
 6. **matter_kettle_roundtrip** — Matter mock fabric ↔ HomeCooked kettle points

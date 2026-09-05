@@ -805,6 +805,11 @@ CO₂ setpoint writes are vendor unless advertised.
 | `rinse_aid_dose` | u8 | — | 0–6 | r/w | opt | |
 | `turbidity` | u16 | — | 0–1000 device units | r | opt | Auto programs |
 | `wash_temp_c` | f32 | celsius | 30–75 | r/w | opt | |
+| `thermal_port_id` | string | — | local port id | r | opt | Device heat port (e.g. `inlet_preheat`); see thermal-plant |
+| `thermal_port_direction` | enum | — | `source` `sink` `bidirectional` | r | opt | Seed `sink` (DHW inlet preheat) |
+| `thermal_port_media` | enum | — | `water` `air` `glycol` `refrigerant_proxy` `unknown` | r | opt | Seed `water` |
+| `thermal_port_max_power_w` | f32 | watt | | r | opt | Seed 1800 (demo) |
+| `thermal_port_attached_reservoir_id` | string | — | reservoir id or empty | r/w | opt | Attach/detach plant reservoir |
 
 ---
 

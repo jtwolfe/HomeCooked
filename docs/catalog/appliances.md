@@ -449,6 +449,8 @@ Automatic dishwasher (built-in, drawer, or countertop).
 
 - Safety: door lock during wash; leak sensor trips `safety_interlock` and
   typically forces drain. Remote start needs closed door.
+- Optional `thermal_port_*` class points advertise a DHW inlet-preheat sink
+  (not a parallel thermal class; see thermal-plant).
 - Drawer dishwashers: one device with two `zone`s if independently runnable,
   else one cycle.
 - Do not confuse with `washer` (laundry). Different programs and no spin rpm.

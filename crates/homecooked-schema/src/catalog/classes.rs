@@ -471,6 +471,7 @@ const COLD_CABINET_POINTS: &[CatalogPoint] = &[
 
 /// Minimal device-facing thermal-port surface (Stream 5). Attachments on existing
 /// classes — not parallel appliance classes. See `docs/standard/thermal-plant.md`.
+/// Merged into water_heater / fridge / hvac / dishwasher.
 const THERMAL_PORT_DIRECTION: &[&str] = &["source", "sink", "bidirectional"];
 const THERMAL_PORT_MEDIA: &[&str] = &["water", "air", "glycol", "refrigerant_proxy", "unknown"];
 
@@ -558,7 +559,7 @@ const ZONE_WASH: &[&str] = &["all", "upper", "lower"];
 const RINSE_AID_LEVEL: &[&str] = &["empty", "low", "ok"];
 const SALT_LEVEL: &[&str] = &["empty", "low", "ok", "na"];
 
-static DISHWASHER_POINTS: &[CatalogPoint] = &[
+static DISHWASHER_BASE: &[CatalogPoint] = &[
     s(
         "extra_dry",
         ValueType::Bool,
@@ -640,6 +641,9 @@ static DISHWASHER_POINTS: &[CatalogPoint] = &[
         false,
     ),
 ];
+
+const DISHWASHER_MERGED: [CatalogPoint; 15] = concat2(DISHWASHER_BASE, THERMAL_PORT_POINTS);
+const DISHWASHER_POINTS: &[CatalogPoint] = &DISHWASHER_MERGED;
 
 const MICROWAVE_TRAITS: &[TraitId] = &[
     TraitId::Identity,
