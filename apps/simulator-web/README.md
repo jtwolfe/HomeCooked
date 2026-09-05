@@ -51,8 +51,13 @@ Open <http://127.0.0.1:8080>.
 3. Inspect identity (class id is highlighted in the device header), a few
    key telemetry chips (power / temperature / cycle when present),
    variables, and settings.
-4. Write settings / fire commands (`start`, `power_on`, …).
-5. Use **Tick** or **Auto tick** so simulated behavior (kettle heat, washer / dryer /
+4. For `water_heater` / `fridge`, a compact **Thermal port** panel shows
+   catalog `thermal_port_*` telemetry (id, direction, media, max power,
+   attached reservoir) and a write field for
+   `thermal_port_attached_reservoir_id` (e.g. `dhw-tank`). Hidden for other
+   classes.
+5. Write settings / fire commands (`start`, `power_on`, …).
+6. Use **Tick** or **Auto tick** so simulated behavior (kettle heat, washer / dryer /
    microwave progress) advances.
 
 Writes that fail capability checks (`out_of_range`, `not_writable`, …) show
@@ -149,6 +154,21 @@ With the page served as above, spawn at least:
 | `wine_cooler` | Cold | Device appears; header shows `wine_cooler`; no JS console errors |
 | `hvac` | Climate | Same; `class.hvac.*` points render |
 | `steam_oven` | Cooking | Same; steam / program points render |
+| `water_heater` | Utility | **Thermal port** panel: id `preheat`, direction `sink`, media `water`, max 2000 W; Set attach to `dhw-tank` |
+| `fridge` | Cold | **Thermal port** panel: id `condenser`, direction `source`, media `water`, max 120 W; Set attach works |
+| `kettle` | Beverage | **Thermal port** panel stays hidden |
+
+### Optional manual test (device thermal ports)
+
+1. Ensure `pkg/` includes Stream 5 catalog thermal ports (rebuild if your
+   package predates that slice):
+   `wasm-pack build crates/homecooked-wasm --target web --out-dir ../../apps/simulator-web/pkg`
+2. Serve `apps/simulator-web` and hard-refresh (blob-load boot).
+3. Create a **water_heater**; confirm the **Thermal port** chips (`preheat` /
+   `sink` / `water` / 2000) and empty attached reservoir.
+4. Enter `dhw-tank` → **Set**; chips / raw state show the attach string.
+5. Create a **fridge**; confirm `condenser` / `source` / 120 W chips.
+6. Create a **kettle**; confirm the thermal-port panel is absent.
 
 Automated coverage lives in `crates/homecooked-wasm` native tests:
 `list_appliance_classes` length is 56 and matches `STATIC_CLASS_IDS`;

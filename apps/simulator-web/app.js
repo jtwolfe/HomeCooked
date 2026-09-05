@@ -18,6 +18,10 @@ const dtInput = document.getElementById("dt-ms");
 const tickBtn = document.getElementById("tick-btn");
 const autoTick = document.getElementById("auto-tick");
 const writeError = document.getElementById("write-error");
+const thermalPortPanel = document.getElementById("thermal-port-panel");
+const thermalPortChips = document.getElementById("thermal-port-chips");
+const thermalPortAttachInput = document.getElementById("thermal-port-attach-input");
+const thermalPortAttachBtn = document.getElementById("thermal-port-attach-btn");
 const procedureSelect = document.getElementById("procedure-select");
 const loadProcedureBtn = document.getElementById("load-procedure-btn");
 const parseProcedureBtn = document.getElementById("parse-procedure-btn");
@@ -261,6 +265,70 @@ function highlightRows(state) {
   return rows;
 }
 
+
+const THERMAL_PORT_FIELDS = [
+  "thermal_port_id",
+  "thermal_port_direction",
+  "thermal_port_media",
+  "thermal_port_max_power_w",
+  "thermal_port_attached_reservoir_id",
+];
+
+function thermalPortPointId(classId, leaf) {
+  return `class.${classId}.${leaf}`;
+}
+
+function thermalPortState(classId, state) {
+  if (!classId || !state) return null;
+  const idKey = thermalPortPointId(classId, "thermal_port_id");
+  if (state[idKey] == null) return null;
+  const out = {};
+  for (const leaf of THERMAL_PORT_FIELDS) {
+    const key = thermalPortPointId(classId, leaf);
+    if (state[key] != null) out[leaf] = state[key];
+  }
+  return out;
+}
+
+function renderThermalPortPanel(classId, state) {
+  const ports = thermalPortState(classId, state);
+  if (!ports) {
+    thermalPortPanel.hidden = true;
+    thermalPortChips.innerHTML = "";
+    thermalPortAttachInput.value = "";
+    return;
+  }
+  thermalPortPanel.hidden = false;
+  thermalPortChips.innerHTML = "";
+  const chipOrder = [
+    ["thermal_port_id", "id"],
+    ["thermal_port_direction", "direction"],
+    ["thermal_port_media", "media"],
+    ["thermal_port_max_power_w", "max power w"],
+    ["thermal_port_attached_reservoir_id", "attached reservoir"],
+  ];
+  for (const [leaf, label] of chipOrder) {
+    if (ports[leaf] == null) continue;
+    const li = document.createElement("li");
+    const shown = displayValue(ports[leaf]);
+    li.innerHTML = `<span class="hl-label">${label}</span><span class="hl-value">${
+      shown === "" ? "—" : shown
+    }</span>`;
+    thermalPortChips.appendChild(li);
+  }
+  const attach = ports.thermal_port_attached_reservoir_id;
+  const attachVal =
+    attach && attach.value != null ? String(attach.value) : "";
+  // Keep in-progress edits when re-rendering the same device after tick.
+  if (document.activeElement !== thermalPortAttachInput) {
+    thermalPortAttachInput.value = attachVal;
+  }
+  thermalPortAttachBtn.dataset.pointId = thermalPortPointId(
+    classId,
+    "thermal_port_attached_reservoir_id",
+  );
+}
+
 function renderHighlights(state) {
   const rows = highlightRows(state);
   deviceHighlights.innerHTML = "";
@@ -302,6 +370,7 @@ function renderDevice(desc, state) {
   deviceTitle.textContent = `${name} · ${classId}`;
   deviceIdEl.textContent = desc.identity.device_id;
   renderHighlights(state);
+  renderThermalPortPanel(classId, state);
   rawState.textContent = JSON.stringify(state, null, 2);
 
   const rows = expandPoints(desc.points || [], state);
@@ -477,6 +546,13 @@ async function boot() {
   setStatus("Simulator ready");
   await refreshDevices();
 }
+
+
+thermalPortAttachBtn.addEventListener("click", async () => {
+  const pointId = thermalPortAttachBtn.dataset.pointId;
+  if (!selectedId || !pointId) return;
+  await applyWrite(pointId, thermalPortAttachInput.value);
+});
 
 createBtn.addEventListener("click", async () => {
   try {

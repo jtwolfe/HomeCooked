@@ -1,6 +1,6 @@
 # HomeCooked roadmap — ~75% project completeness
 
-Version **0.1.20**. Planning doc for a long flesh-out of the catalog, control
+Version **0.1.21**. Planning doc for a long flesh-out of the catalog, control
 stack, and simulator. It does **not** freeze APIs; crate and YAML shapes may
 evolve with the code that implements each stream.
 
@@ -23,7 +23,7 @@ What exists on `main` today (Done highlights called out):
 | `homecooked-protocol` | Envelope, request/response kinds, discovery, JSON, errors (v0.1.0); **invalid Envelope JSON table tests** |
 | `homecooked-core` | Device registry, capability-enforced read/write |
 | `homecooked-sim` | In-memory devices for all 56 statically tabled classes; microwave cook ticks advance `elapsed_s`; water_heater/fridge thermal-port seeds + RW attach |
-| `homecooked-wasm` + `apps/simulator-web` | wasm-bindgen JSON API; full-catalog picker (56) + procedure runner (kettle + Domino's + wash-then-dry `run_procedure` E2E) + thermal panel; **WASM fetch+blob load** (module cache defeat) — **Done** |
+| `homecooked-wasm` + `apps/simulator-web` | wasm-bindgen JSON API; full-catalog picker (56) + procedure runner (kettle + Domino's + wash-then-dry `run_procedure` E2E) + thermal panel + device `thermal_port_*` UI (`water_heater`/`fridge`); **WASM fetch+blob load** (module cache defeat) — **Done** |
 | `homecooked-io-map` | Chassis I/O map serde + validate (washer + dryer fragments) |
 | `homecooked-interlock` | Declarative interlock rules (washer heater/spin; dryer heater/motor) |
 | `homecooked-hal` | Firmware HAL sketch + host `MockHal` |
@@ -193,8 +193,9 @@ multiple small PRs.
 2. Sim devices that advertise and update a minimal port set (e.g. water heater
    / HVAC heat interface). **Done (thin)** for `water_heater` + `fridge`:
    optional `thermal_port_*` class points; sim seeds match the plant demo;
-   `thermal_port_attached_reservoir_id` is RW. HVAC / broader classes still
-   open.
+   `thermal_port_attached_reservoir_id` is RW. simulator-web device panel
+   surfaces the ports (chips + attach write) for those classes. HVAC /
+   broader classes still open.
 3. Docs note what remains vendor / experimental. **Progressed** — catalog +
    thermal-plant note that plant types stay in `homecooked-thermal`.
 
@@ -263,7 +264,8 @@ multiple small PRs.
    `thermal_state` / `thermal_negotiate_demo` / `thermal_tick` /
    `thermal_demo_transfer` expose the fridge→DHW plant; simulator-web has a
    Load demo / Negotiate / Tick / Transfer panel showing reservoirs, ports,
-   and last transfer results.
+   and last transfer results. Device panel also surfaces catalog
+   `thermal_port_*` chips + attach write for `water_heater` / `fridge`.
    **WASM module load:** simulator-web loads bindgen via **fetch + blob URL**
    (cache defeat after rebuilds) — **Done**.
    **Still open:** richer conformance-oriented screens.
@@ -290,8 +292,9 @@ multiple small PRs.
 **Definition of done**
 
 - wasm-pack build remains in CI; UI documented in `apps/simulator-web`.
-  *(Picker + procedure runner + thermal plant panel + list/spawn coverage is
-  in; smoke suite + write-denial matrix are in; richer UI still open.)*
+  *(Picker + procedure runner + thermal plant panel + catalog thermal-port
+  device chips + list/spawn coverage is in; smoke suite + write-denial matrix
+  are in; richer UI still open.)*
 - Conformance failures are actionable (named assertions, not a single opaque
   binary).
   *(Smoke suite + per-case `write_denial_matrix` failures; further matrices
@@ -436,3 +439,4 @@ the code that implements them.
 | 0.1.18 | Stream 4: controller-sim-over-TCP lab smoke (`ControllerEndpoint` + `RequestHandler` TCP; washer heater allow/deny; conformance `controller_tcp_washer_interlock`) |
 | 0.1.19 | Stream 7: deeper write-denial / catalog hygiene conformance matrix (`write_denial_matrix` + `catalog_hygiene`) |
 | 0.1.20 | Stream 4: dryer controller-sim-over-TCP (`DryerControllerEndpoint`; heater deny when unlocked; conformance `controller_tcp_dryer_interlock`) |
+| 0.1.21 | Stream 5/7: simulator-web surfaces catalog `thermal_port_*` on `water_heater`/`fridge` (chips + attach write) |
