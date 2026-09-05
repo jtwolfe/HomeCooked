@@ -225,6 +225,14 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             ApplianceClassId::CoffeeGrinder => Value::Percent(70.0),
             _ => Value::Percent(0.0),
         },
+        "hot_setpoint_c" => match ctx.identity.class_id {
+            ApplianceClassId::WaterDispenser => Value::F32(90.0),
+            _ => Value::F32(numeric_default(point)),
+        },
+        "cold_setpoint_c" => match ctx.identity.class_id {
+            ApplianceClassId::WaterDispenser => Value::F32(8.0),
+            _ => Value::F32(numeric_default(point)),
+        },
         "boiler_c" => Value::F32(20.0),
         "heat_level" => Value::Enum("low".into()),
         "water_empty" => Value::Bool(false),
@@ -354,6 +362,7 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
         "life_percent" => match ctx.identity.class_id {
             ApplianceClassId::IceMaker => Value::Percent(80.0),
             ApplianceClassId::RangeHood => Value::Percent(75.0),
+            ApplianceClassId::WaterDispenser => Value::Percent(85.0),
             _ => Value::Percent(0.0),
         },
         "current_rh" => match ctx.identity.class_id {

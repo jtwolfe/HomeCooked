@@ -252,6 +252,13 @@ fn extra_typical_trait_point(table: &ClassTable, trait_id: TraitId, point: &Cata
             return true;
         }
     }
+    // Water dispenser: filter life is typical demo telemetry (child_lock already required).
+    if table.class_id == ApplianceClassId::WaterDispenser
+        && trait_id == TraitId::Filter
+        && point.id == "life_percent"
+    {
+        return true;
+    }
     // Steam oven: cycle remaining + water hardness are typical.
     if table.class_id == ApplianceClassId::SteamOven {
         if trait_id == TraitId::Cycle && point.id == "remaining_s" {
@@ -612,6 +619,22 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "bean_level_percent"
                 | "timer_s"
                 | "single_dose"
+        );
+    }
+    // Stream 7 catalog depth: water_dispenser optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::WaterDispenser {
+        return matches!(
+            point.id,
+            "hot_setpoint_c"
+                | "cold_setpoint_c"
+                | "bottle_empty"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "heater_on"
+                | "cooler_on"
+                | "high_temp_alarm"
+                | "low_temp_alarm"
+                | "water_tank_empty"
         );
     }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
@@ -2376,6 +2399,76 @@ mod tests {
                 "class.coffee_grinder.bean_level_percent",
                 &Value::Percent(50.0),
             )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn water_dispenser_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::WaterDispenser).unwrap();
+        for id in [
+            "class.water_dispenser.hot_setpoint_c",
+            "class.water_dispenser.cold_setpoint_c",
+            "class.water_dispenser.bottle_empty",
+            "class.water_dispenser.sabbath_mode",
+            "class.water_dispenser.eco_mode",
+            "class.water_dispenser.heater_on",
+            "class.water_dispenser.cooler_on",
+            "class.water_dispenser.high_temp_alarm",
+            "class.water_dispenser.low_temp_alarm",
+            "class.water_dispenser.water_tank_empty",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical water_dispenser"
+            );
+        }
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Filter)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.filter.life_percent"));
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::ChildLock)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.child_lock.child_lock"));
+        cap.validate_write("class.water_dispenser.hot_setpoint_c", &Value::F32(90.0))
+            .unwrap();
+        cap.validate_write("class.water_dispenser.cold_setpoint_c", &Value::F32(8.0))
+            .unwrap();
+        cap.validate_write("class.water_dispenser.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.water_dispenser.eco_mode", &Value::Bool(true))
+            .unwrap();
+        let err = cap
+            .validate_write("class.water_dispenser.bottle_empty", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.water_dispenser.heater_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.water_dispenser.cooler_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.water_dispenser.high_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.water_dispenser.low_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.water_dispenser.water_tank_empty", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }

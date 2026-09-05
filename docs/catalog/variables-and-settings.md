@@ -1266,9 +1266,19 @@ Dispense + temperature traits. Extra:
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `hot_setpoint_c` | f32 | celsius | 60–100 | r/w | opt | |
-| `cold_setpoint_c` | f32 | celsius | 4–15 | r/w | opt | |
-| `bottle_empty` | bool | — | | r/e | opt | |
+| `hot_setpoint_c` | f32 | celsius | 60–100 | r/w | opt | Hot tank setpoint |
+| `cold_setpoint_c` | f32 | celsius | 4–15 | r/w | opt | Cold tank setpoint |
+| `bottle_empty` | bool | — | | r/e | opt | Bottle / reservoir empty (bottle units) |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving heater/cooler duty |
+| `heater_on` | bool | — | | r/e | opt | Hot tank heater active |
+| `cooler_on` | bool | — | | r/e | opt | Cold tank cooler / compressor active |
+| `high_temp_alarm` | bool | — | | r/e | opt | Hot tank overtemp |
+| `low_temp_alarm` | bool | — | | r/e | opt | Cold tank freeze / too-cold risk |
+| `water_tank_empty` | bool | — | | r/e | opt | Plumbed / internal tank empty |
+
+Filter life via `trait.filter.life_percent`. Hot-water lock via
+`trait.child_lock.child_lock` (required on this class).
 
 ---
 
