@@ -791,6 +791,21 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "timer_s"
         );
     }
+    // Stream 7 catalog depth: ice_cream_maker optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::IceCreamMaker {
+        return matches!(
+            point.id,
+            "doneness"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "compressor_on"
+                | "motor_on"
+                | "bowl_present"
+                | "lid_locked"
+                | "low_temp_alarm"
+                | "timer_s"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -3161,6 +3176,57 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.vacuum_sealer.seal_fail", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn ice_cream_maker_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::IceCreamMaker).unwrap();
+        for id in [
+            "class.ice_cream_maker.doneness",
+            "class.ice_cream_maker.sabbath_mode",
+            "class.ice_cream_maker.eco_mode",
+            "class.ice_cream_maker.compressor_on",
+            "class.ice_cream_maker.motor_on",
+            "class.ice_cream_maker.bowl_present",
+            "class.ice_cream_maker.lid_locked",
+            "class.ice_cream_maker.low_temp_alarm",
+            "class.ice_cream_maker.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical ice_cream_maker"
+            );
+        }
+        cap.validate_write("class.ice_cream_maker.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.ice_cream_maker.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.ice_cream_maker.timer_s", &Value::DurationS(1800))
+            .unwrap();
+        let err = cap
+            .validate_write("class.ice_cream_maker.doneness", &Value::Percent(50.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.ice_cream_maker.compressor_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.ice_cream_maker.motor_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.ice_cream_maker.bowl_present", &Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.ice_cream_maker.lid_locked", &Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.ice_cream_maker.low_temp_alarm", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }

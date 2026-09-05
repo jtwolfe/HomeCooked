@@ -4616,6 +4616,125 @@ mod tests {
     }
 
     #[test]
+    fn ice_cream_maker_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let icm = sim.spawn(ApplianceClassId::IceCreamMaker).unwrap();
+
+        assert_eq!(
+            sim.read_value(&icm, "class.ice_cream_maker.doneness")
+                .unwrap(),
+            Value::Percent(0.0)
+        );
+        assert_eq!(
+            sim.read_value(&icm, "class.ice_cream_maker.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&icm, "class.ice_cream_maker.eco_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&icm, "class.ice_cream_maker.compressor_on")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&icm, "class.ice_cream_maker.motor_on")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&icm, "class.ice_cream_maker.bowl_present")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(
+            sim.read_value(&icm, "class.ice_cream_maker.lid_locked")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(
+            sim.read_value(&icm, "class.ice_cream_maker.low_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&icm, "class.ice_cream_maker.timer_s")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+
+        sim.write(
+            &icm,
+            "class.ice_cream_maker.sabbath_mode",
+            Value::Bool(true),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&icm, "class.ice_cream_maker.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&icm, "class.ice_cream_maker.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&icm, "class.ice_cream_maker.eco_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(
+            &icm,
+            "class.ice_cream_maker.timer_s",
+            Value::DurationS(1800),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&icm, "class.ice_cream_maker.timer_s")
+                .unwrap(),
+            Value::DurationS(1800)
+        );
+
+        let err = sim
+            .write(&icm, "class.ice_cream_maker.doneness", Value::Percent(50.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &icm,
+                "class.ice_cream_maker.compressor_on",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&icm, "class.ice_cream_maker.motor_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &icm,
+                "class.ice_cream_maker.bowl_present",
+                Value::Bool(false),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&icm, "class.ice_cream_maker.lid_locked", Value::Bool(false))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &icm,
+                "class.ice_cream_maker.low_temp_alarm",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {

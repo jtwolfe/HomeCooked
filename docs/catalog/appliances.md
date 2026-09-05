@@ -1250,12 +1250,16 @@ Compressor or pre-freeze-bowl ice cream maker.
 `motor`, `fault`, `energy`.
 
 **Typical controllable settings:** time or doneness, program (`ice_cream`,
-`gelato`, `sorbet`), keep-cool.
+`gelato`, `sorbet`), keep-cool; sabbath / eco; delay timer.
 
 **Typical readable state:** churning, bowl temp, motor load (doneness proxy),
-done.
+compressor / motor on, bowl present, lid lock, low-temp alarm, done.
 
-**Notes:** Pre-freeze-bowl units may have no temperature sensor.
+**Notes:**
+- Pre-freeze-bowl units may have no temperature sensor / compressor.
+- Catalog depth: optional class points include sabbath, eco, `compressor_on`,
+  `motor_on`, `bowl_present`, `lid_locked`, `low_temp_alarm`, and `timer_s`,
+  plus typical `doneness` (see variables-and-settings).
 
 ### `yogurt_maker`
 
