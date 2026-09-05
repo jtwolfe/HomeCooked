@@ -2,7 +2,9 @@
 //!
 //! Types, capability model, and write validation derived from
 //! `docs/catalog` and `docs/standard/overview.md`. Schema and catalog
-//! versions are both **0.1.0**.
+//! versions are both **0.1.0**. Shared thermal vocabulary (`Media`,
+//! `PortDirection`, `TempBandC`, `HeatPortSpec`) aligns with catalog
+//! `thermal_port_*` tokens; full plant runtime stays in `homecooked-thermal`.
 
 mod access;
 mod capability;
@@ -12,6 +14,7 @@ mod export;
 mod identity;
 mod ids;
 mod spec;
+mod thermal;
 mod types;
 mod validate;
 mod version;
@@ -34,6 +37,10 @@ pub use ids::{
 };
 pub use spec::{
     CatalogPoint, CatalogRange, CommandSpec, PointKind, PointSpec, SettingSpec, VariableSpec,
+};
+pub use thermal::{
+    HeatPortSpec, InvalidTempBand, Media, PortDirection, TempBandC, THERMAL_PORT_DIRECTION_TOKENS,
+    THERMAL_PORT_MEDIA_TOKENS,
 };
 pub use types::{CommandArg, ListItemType, Unit, Value, ValueRange, ValueType};
 pub use validate::{is_write_validation_code, validate_against_spec};

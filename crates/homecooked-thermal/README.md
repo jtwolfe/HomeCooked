@@ -5,10 +5,11 @@ ports, a best-effort offer / accept / decline dialogue, and a coarse
 simulator tick. Aligns with
 [`docs/standard/thermal-plant.md`](../../docs/standard/thermal-plant.md).
 
-This is **not** a catalog promotion, a sim class-table change, a bridge, or
-CFD / plumbing physics. Types stay crate-local and experimental until a
-later revision promotes stable ids. Coordination may fail open (decline /
-timeout → appliances keep local thermal policy).
+This is **not** a full plant-type catalog promotion, a sim class-table change,
+a bridge, or CFD / plumbing physics. Shared vocabulary (`Media`,
+`PortDirection`, `TempBandC`) lives in `homecooked-schema` and is re-exported
+here; plant runtime types stay crate-local. Coordination may fail open
+(decline / timeout → appliances keep local thermal policy).
 
 ## Types
 

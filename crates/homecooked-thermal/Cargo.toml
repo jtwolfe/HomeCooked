@@ -9,5 +9,6 @@ description = "HomeCooked thermal plant slice: reservoirs, heat ports, offer/acc
 readme = "README.md"
 
 [dependencies]
+homecooked-schema = { path = "../homecooked-schema" }
 serde = { workspace = true }
 serde_json = { workspace = true }

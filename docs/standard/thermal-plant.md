@@ -97,7 +97,7 @@ Direction is from the appliance's point of view on each **heat port**.
 |---------|------------|--------------|
 | Appliance class | Washer, fridge, HPWH, HVAC, … | `docs/catalog/appliances.md` |
 | Plant object | Reservoir, loop segment, plant controller | Future plant catalog / this sketch |
-| Heat port | Advertised attachment on an appliance | Optional class points (`thermal_port_*`) on `water_heater` / `fridge` / `hvac` / `dishwasher` / `dryer`; plant objects still in `homecooked-thermal` |
+| Heat port | Advertised attachment on an appliance | Optional class points (`thermal_port_*`) on `water_heater` / `fridge` / `hvac` / `dishwasher` / `dryer`; vocabulary in `homecooked-schema`; plant runtime still in `homecooked-thermal` |
 
 **Rule:** do not invent parallel "thermal washer" classes. A `dryer` stays a
 `dryer`. If it can export condenser heat, it advertises a heat port that
@@ -232,9 +232,10 @@ cargo test -p homecooked-procedure thermal_wait
 cargo test -p homecooked-conformance procedure_thermal_wait_dhw
 ```
 
-**Still deferred:** offer/accept/negotiate as procedure steps; promoting plant
-types into schema; wasm/UI wiring for `thermal_wait` (dual-path orchestrator
-UI remains).
+**Still deferred:** offer/accept/negotiate as procedure steps; promoting full
+plant **runtime** into schema (vocabulary types `Media` / `PortDirection` /
+`TempBandC` / `HeatPortSpec` now live in `homecooked-schema`); wasm/UI wiring
+for `thermal_wait` (dual-path orchestrator UI remains).
 
 ---
 
@@ -247,3 +248,4 @@ UI remains).
 | 0.1.0+ | Dual-path demo: thermal fridge→DHW then `dishwasher_dhw_preheat` procedure (conformance + wasm). |
 | 0.1.0+ | Catalog/sim device telemetry surface: optional `thermal_port_id` / `direction` / `media` / `max_power_w` / `attached_reservoir_id` (RW) on `water_heater`, `fridge`, `hvac`, `dishwasher` (`inlet_preheat` sink), and `dryer` (`exhaust` source / air / 2000 W). Plant types remain crate-local in `homecooked-thermal`. |
 | 0.1.0+ | Thin procedure⇄thermal: `thermal_wait` step + backend hooks + `wait_dhw_reservoir` fixture + conformance `procedure_thermal_wait_dhw`. Offer/negotiate-as-steps and wasm UI still deferred. |
+| 0.1.0+ | Schema thermal vocabulary (`Media` / `PortDirection` / `TempBandC` / `HeatPortSpec`) in `homecooked-schema`; plant runtime remains crate-local in `homecooked-thermal`. |

@@ -431,6 +431,24 @@ mod tests {
     }
 
     #[test]
+    fn thermal_vocab_tokens_match_schema_enums() {
+        use crate::{
+            Media, PortDirection, THERMAL_PORT_DIRECTION_TOKENS, THERMAL_PORT_MEDIA_TOKENS,
+        };
+        assert_eq!(THERMAL_PORT_MEDIA_TOKENS.len(), Media::ALL.len());
+        for (token, media) in THERMAL_PORT_MEDIA_TOKENS.iter().zip(Media::ALL) {
+            assert_eq!(*token, media.as_str());
+        }
+        assert_eq!(
+            THERMAL_PORT_DIRECTION_TOKENS.len(),
+            PortDirection::ALL.len()
+        );
+        for (token, dir) in THERMAL_PORT_DIRECTION_TOKENS.iter().zip(PortDirection::ALL) {
+            assert_eq!(*token, dir.as_str());
+        }
+    }
+
+    #[test]
     fn water_heater_fridge_hvac_dishwasher_and_dryer_thermal_port_points() {
         let wh = typical_capability(ApplianceClassId::WaterHeater).unwrap();
         assert!(wh

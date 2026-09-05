@@ -472,8 +472,9 @@ const COLD_CABINET_POINTS: &[CatalogPoint] = &[
 /// Minimal device-facing thermal-port surface (Stream 5). Attachments on existing
 /// classes — not parallel appliance classes. See `docs/standard/thermal-plant.md`.
 /// Merged into water_heater / fridge / hvac / dishwasher / dryer.
-const THERMAL_PORT_DIRECTION: &[&str] = &["source", "sink", "bidirectional"];
-const THERMAL_PORT_MEDIA: &[&str] = &["water", "air", "glycol", "refrigerant_proxy", "unknown"];
+// Shared with `crate::thermal` — catalog vocabulary source of truth.
+const THERMAL_PORT_DIRECTION: &[&str] = crate::THERMAL_PORT_DIRECTION_TOKENS;
+const THERMAL_PORT_MEDIA: &[&str] = crate::THERMAL_PORT_MEDIA_TOKENS;
 
 static THERMAL_PORT_POINTS: &[CatalogPoint] = &[
     v(

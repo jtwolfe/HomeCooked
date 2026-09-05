@@ -2,6 +2,8 @@
 
 use std::fmt;
 
+use homecooked_schema::InvalidTempBand;
+
 use crate::types::{Media, PortDirection, TempBandC};
 
 /// Failure while registering plant objects or negotiating a transfer.
@@ -100,3 +102,12 @@ impl fmt::Display for Error {
 }
 
 impl std::error::Error for Error {}
+
+impl From<InvalidTempBand> for Error {
+    fn from(band: InvalidTempBand) -> Self {
+        Self::InvalidBand {
+            min: band.min,
+            max: band.max,
+        }
+    }
+}

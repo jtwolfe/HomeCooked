@@ -5,7 +5,9 @@
 //! source and sink agree. Aligns with
 //! [`docs/standard/thermal-plant.md`](../../docs/standard/thermal-plant.md).
 //!
-//! This crate does **not** promote types into the catalog, drive
+//! Catalog vocabulary (`Media`, `PortDirection`, `TempBandC`) is re-exported
+//! from `homecooked-schema`. Plant runtime (`ThermalPlant`, reservoirs,
+//! transfer dialogue, tick) stays crate-local. This crate does **not** drive
 //! `homecooked-sim` class points, talk to bridges, or model CFD / plumbing.
 //! Coordination remains best-effort and experimental.
 

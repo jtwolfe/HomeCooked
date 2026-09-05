@@ -1,13 +1,18 @@
 //! Plant objects and the offer / accept / decline dialogue.
 //!
 //! Shapes follow [`docs/standard/thermal-plant.md`](../../../docs/standard/thermal-plant.md)
-//! §§3–6. These types are crate-local (not catalog ids).
+//! §§3–6. Plant runtime types (`Reservoir`, `HeatPort`, transfer dialogue) stay
+//! crate-local. Shared catalog vocabulary (`Media`, `PortDirection`,
+//! `TempBandC`) is re-exported from `homecooked-schema`.
 
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
 use crate::error::Error;
+
+// Catalog vocabulary — schema is the source of truth for these tokens.
+pub use homecooked_schema::{Media, PortDirection, TempBandC};
 
 /// Joules (W·s) in one kilowatt-hour.
 pub const JOULES_PER_KWH: f32 = 3_600_000.0;
@@ -34,109 +39,6 @@ impl ReservoirRole {
 }
 
 impl fmt::Display for ReservoirRole {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
-    }
-}
-
-/// Working fluid / air advertised on a port or reservoir.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Media {
-    Water,
-    Air,
-    Glycol,
-    RefrigerantProxy,
-    Unknown,
-}
-
-impl Media {
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Water => "water",
-            Self::Air => "air",
-            Self::Glycol => "glycol",
-            Self::RefrigerantProxy => "refrigerant_proxy",
-            Self::Unknown => "unknown",
-        }
-    }
-
-    /// Equal medias match. [`Media::Unknown`] is compatible with anything
-    /// (best-effort sketch; isolation metadata is still the caller's job).
-    pub fn compatible_with(self, other: Self) -> bool {
-        self == other || self == Self::Unknown || other == Self::Unknown
-    }
-}
-
-impl fmt::Display for Media {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
-    }
-}
-
-/// Inclusive temperature band in °C.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-pub struct TempBandC {
-    pub min: f32,
-    pub max: f32,
-}
-
-impl TempBandC {
-    pub fn new(min: f32, max: f32) -> Result<Self, Error> {
-        if min > max {
-            return Err(Error::InvalidBand { min, max });
-        }
-        Ok(Self { min, max })
-    }
-
-    pub fn contains(self, temp_c: f32) -> bool {
-        temp_c >= self.min && temp_c <= self.max
-    }
-
-    pub fn overlaps(self, other: Self) -> bool {
-        self.min <= other.max && other.min <= self.max
-    }
-
-    /// `max - min`, used as the span in the thermal-mass proxy.
-    pub fn span(self) -> f32 {
-        self.max - self.min
-    }
-}
-
-impl fmt::Display for TempBandC {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[{}, {}] °C", self.min, self.max)
-    }
-}
-
-/// Direction from the appliance's point of view on a heat port.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum PortDirection {
-    Source,
-    Sink,
-    Bidirectional,
-}
-
-impl PortDirection {
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Source => "source",
-            Self::Sink => "sink",
-            Self::Bidirectional => "bidirectional",
-        }
-    }
-
-    pub const fn can_source(self) -> bool {
-        matches!(self, Self::Source | Self::Bidirectional)
-    }
-
-    pub const fn can_sink(self) -> bool {
-        matches!(self, Self::Sink | Self::Bidirectional)
-    }
-}
-
-impl fmt::Display for PortDirection {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.as_str())
     }
