@@ -12,8 +12,8 @@ use homecooked_bridge::{
     ZigbeeBridge, ZigbeeRaw,
 };
 use homecooked_controller::{
-    Controller, ControllerEndpoint, CottonOptions, CyclePhase, CycleState, WasherState,
-    WASHER_CTRL_DEVICE_ID,
+    Controller, ControllerEndpoint, CottonOptions, CyclePhase, CycleState, DryerControllerEndpoint,
+    WasherState, DRYER_CTRL_DEVICE_ID, WASHER_CTRL_DEVICE_ID,
 };
 use homecooked_core::DeviceId;
 use homecooked_hal::ChannelId;
@@ -1061,6 +1061,105 @@ pub fn controller_tcp_washer_interlock() -> ScenarioResult {
     Ok(())
 }
 
+/// (9b) Controller-sim over TCP: dryer heater allow + interlock deny when unlocked.
+pub fn controller_tcp_dryer_interlock() -> ScenarioResult {
+    const NAME: &str = "controller_tcp_dryer_interlock";
+    let ep =
+        DryerControllerEndpoint::dryer_lab().map_err(|e| err(NAME, format!("dryer_lab: {e}")))?;
+    let (addr, _shared, _server) = spawn_handler_server("127.0.0.1:0", ep)
+        .map_err(|e| err(NAME, format!("spawn_handler_server: {e}")))?;
+    thread::sleep(Duration::from_millis(20));
+
+    let mut client = TcpClient::connect(addr).map_err(|e| err(NAME, format!("connect: {e}")))?;
+
+    let desc = client
+        .describe(DRYER_CTRL_DEVICE_ID, vec![])
+        .map_err(|e| err(NAME, format!("describe: {e}")))?;
+    if desc.capability.class_id != ApplianceClassId::Dryer {
+        return Err(err(
+            NAME,
+            format!(
+                "describe class={:?}, expected Dryer",
+                desc.capability.class_id
+            ),
+        ));
+    }
+
+    client
+        .write(
+            DRYER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: QualifiedPointId::parse("class.dryer.door_lock")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                value: Value::Bool(true),
+            }],
+        )
+        .map_err(|e| err(NAME, format!("door_lock write: {e}")))?;
+    client
+        .write(
+            DRYER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: QualifiedPointId::parse("class.dryer.blower")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                value: Value::Bool(true),
+            }],
+        )
+        .map_err(|e| err(NAME, format!("blower write: {e}")))?;
+    client
+        .write(
+            DRYER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: QualifiedPointId::parse("class.dryer.heater_enable")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                value: Value::Bool(true),
+            }],
+        )
+        .map_err(|e| err(NAME, format!("heater allow write: {e}")))?;
+
+    client
+        .write(
+            DRYER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: QualifiedPointId::parse("class.dryer.heater_enable")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                value: Value::Bool(false),
+            }],
+        )
+        .map_err(|e| err(NAME, format!("heater off: {e}")))?;
+    client
+        .write(
+            DRYER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: QualifiedPointId::parse("class.dryer.door_lock")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                value: Value::Bool(false),
+            }],
+        )
+        .map_err(|e| err(NAME, format!("unlock door: {e}")))?;
+
+    let denied = client.write(
+        DRYER_CTRL_DEVICE_ID,
+        vec![WriteOp {
+            id: QualifiedPointId::parse("class.dryer.heater_enable")
+                .map_err(|e| err(NAME, e.to_string()))?,
+            value: Value::Bool(true),
+        }],
+    );
+    match denied {
+        Err(TransportError::Remote(body)) => {
+            if body.code != homecooked_schema::ErrorCode::SafetyInterlock {
+                return Err(err(
+                    NAME,
+                    format!("deny code={:?}, expected SafetyInterlock", body.code),
+                ));
+            }
+        }
+        Ok(_) => return Err(err(NAME, "expected heater deny, got WriteOk")),
+        Err(e) => return Err(err(NAME, format!("unexpected deny err: {e}"))),
+    }
+    Ok(())
+}
+
 /// (8) Optional lab hub: spawn lab set, TCP discover ≥3 devices, describe one.
 pub fn hub_lab_set_discover_describe() -> ScenarioResult {
     const NAME: &str = "hub_lab_set_discover_describe";
@@ -1402,6 +1501,10 @@ pub fn all_scenarios() -> &'static [(&'static str, ScenarioFn)] {
         (
             "controller_tcp_washer_interlock",
             controller_tcp_washer_interlock,
+        ),
+        (
+            "controller_tcp_dryer_interlock",
+            controller_tcp_dryer_interlock,
         ),
     ]
 }

@@ -12,11 +12,12 @@
 //!
 //! # Protocol / TCP
 //!
-//! [`ControllerEndpoint`] is a thin lab device-role adapter: protocol
-//! describe/read/write map onto MockHal channels so interlock denies surface
-//! as `safety_interlock` over [`homecooked_transport`] TCP
-//! (`spawn_handler_server`). Full catalog device-role / cycle-over-TCP depth
-//! remains follow-up. Lab only — no TLS / OAuth.
+//! [`ControllerEndpoint`] / [`DryerControllerEndpoint`] are thin lab
+//! device-role adapters: protocol describe/read/write map onto MockHal
+//! channels so interlock denies surface as `safety_interlock` over
+//! [`homecooked_transport`] TCP (`spawn_handler_server`). Full catalog
+//! device-role / cycle-over-TCP depth remains follow-up. Lab only — no TLS /
+//! OAuth.
 //!
 //! # Example
 //!
@@ -39,6 +40,7 @@
 mod controller;
 mod cycle;
 mod dryer_controller;
+mod dryer_endpoint;
 mod endpoint;
 mod error;
 mod plant;
@@ -49,6 +51,7 @@ mod tests;
 pub use controller::{write_hal, Controller};
 pub use cycle::{CottonOptions, CyclePhase, CycleState, DryOptions, DryerState, WasherState};
 pub use dryer_controller::{write_dryer_hal, DryerController};
+pub use dryer_endpoint::{lab_dryer_capability, DryerControllerEndpoint, DRYER_CTRL_DEVICE_ID};
 pub use endpoint::{lab_washer_capability, ControllerEndpoint, WASHER_CTRL_DEVICE_ID};
 pub use error::Error;
 pub use plant::{DRAIN_RATE_PA, FILL_RATE_PA, WATER_PRESENT_PA};

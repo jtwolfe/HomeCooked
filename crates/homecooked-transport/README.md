@@ -6,7 +6,7 @@ milestone 3 in [`docs/ROADMAP.md`](../../docs/ROADMAP.md) (smoke path).
 Host server accepts TCP connections, decodes a framed request, and dispatches
 via `homecooked-sim` / `homecooked-core` (`Simulator` → `DeviceHub`) **or** any
 [`RequestHandler`](src/handler.rs) (e.g. `homecooked-controller`
-`ControllerEndpoint` for interlock-gated HAL writes). A small client helper
+`ControllerEndpoint` / `DryerControllerEndpoint` for interlock-gated HAL writes). A small client helper
 sends Discover / Describe / Read / Write.
 
 **Out of scope:** TLS, OAuth / device auth, production session policy.
