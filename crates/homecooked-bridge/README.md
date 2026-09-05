@@ -1,7 +1,7 @@
 # homecooked-bridge
 
-Bridge slice: **Modbus** (mocked plant bus) and **Matter** (mocked fabric)
-adapters, plus stubs for Zigbee and BACnet. Aligns with
+Bridge slice: **Modbus** (mocked plant bus), **Matter** (mocked fabric), and
+**Zigbee** (mocked ZCL network) adapters, plus a stub for BACnet. Aligns with
 [`docs/standard/bridges.md`](../../docs/standard/bridges.md) and
 [`docs/ROADMAP.md`](../../docs/ROADMAP.md) Stream 6.
 
@@ -16,11 +16,12 @@ mesh routing, a production Modbus stack, or a CHIP / Matter SDK.
 |--------|------|
 | `Bridge` | Small trait: `read_point` / `write_point` / `read_foreign` / `write_foreign` |
 | `PointRef` | `device_id` + qualified point id (`trait.temperature.setpoint_c`) |
-| `ForeignRef` / `ForeignRaw` | Fabric address + payload (Modbus register/coil **or** Matter endpoint/cluster/attribute) |
+| `ForeignRef` / `ForeignRaw` | Fabric address + payload (Modbus register/coil **or** Matter/Zigbee endpoint/cluster/attribute) |
 | `PointBackend` / `MemoryBackend` | Apply HomeCooked updates (test store; core can be wired later) |
 | `modbus` | YAML/JSON map, in-memory slave, `ModbusBridge` |
 | `matter` | YAML/JSON map, in-memory attribute store, `MatterBridge` |
-| `zigbee` / `bacnet` | Compile-time stubs → `Error::UnsupportedFabric` |
+| `zigbee` | YAML/JSON map, in-memory attribute store, `ZigbeeBridge` (no zigbee2mqtt) |
+| `bacnet` | Compile-time stub → `Error::UnsupportedFabric` |
 
 ## Modbus (implemented)
 
@@ -66,16 +67,38 @@ Foreign attribute write → HomeCooked backend update, and HomeCooked write →
 attribute update, are both covered (same pattern as the Modbus water_heater
 test).
 
+## Zigbee (mock network)
+
+No zigbee2mqtt, ZCL SDK, or pairing. An in-memory attribute store holds
+cluster attribute values. A serde-loadable map translates them (same shape as
+the Matter mock — endpoint / cluster / attribute):
+
+| Foreign (illustrative lab constants) | HomeCooked point | Encoding |
+|--------------------------------------|------------------|----------|
+| ep1 / OnOff `0x0006` / attr `0x0000` | `trait.power.power_state` | bool → `on`/`off` |
+| ep1 / TemperatureMeasurement `0x0402` / MeasuredValue `0x0000` | `trait.temperature.current_c` | int16 hundredths °C (`scale: 0.01`); HC writes rejected |
+| ep1 / thermostat-like `0x0201` / attr `0x0012` | `trait.temperature.setpoint_c` | int16 hundredths °C |
+
+**These cluster IDs are illustrative lab constants, not a certified Zigbee
+product.**
+
+Example fixture: [`examples/kettle_zigbee_map.yaml`](examples/kettle_zigbee_map.yaml)
+(fake `kettle`, device id `kettle-lab-1`).
+
+```bash
+cargo test -p homecooked-bridge --test kettle_zigbee_roundtrip
+```
+
 ## Stubs
 
-`ZigbeeBridge` and `BacnetBridge` implement `Bridge` and return a clear
-unsupported error pointing at
-[`docs/standard/bridges.md`](../../docs/standard/bridges.md).
+`BacnetBridge` implements `Bridge` and returns a clear unsupported error
+pointing at [`docs/standard/bridges.md`](../../docs/standard/bridges.md).
 
 ## Still follow-up
 
 - Real serial / TCP Modbus
 - Real CHIP / Matter SDK (or thin bindings) behind the same map shape
+- Real zigbee2mqtt / ZCL bindings behind the same map shape
 - Capability-enforced writes through `homecooked-core` `DeviceHub`
-- Zigbee / BACnet adapters
+- BACnet adapter
 - Discovery / hello / describe from a live fabric

@@ -13,6 +13,11 @@ fn kettle_bindings(sim: &mut Simulator) -> DeviceBindings {
     DeviceBindings::new().bind("kettle", id.as_str())
 }
 
+fn microwave_bindings(sim: &mut Simulator) -> DeviceBindings {
+    let id = sim.spawn(ApplianceClassId::Microwave).unwrap();
+    DeviceBindings::new().bind("microwave", id.as_str())
+}
+
 #[test]
 fn bundled_example_constants_parse() {
     let kettle = Procedure::load_json(crate::KETTLE_HEAT_80_JSON).unwrap();
@@ -267,4 +272,71 @@ fn microwave_fixture_validates_against_typical_caps() {
     let mut caps = HashMap::new();
     caps.insert("microwave".to_string(), &cap);
     doc.validate_with_capabilities(Some(&caps)).unwrap();
+}
+
+#[test]
+fn dominos_microwave_completes_against_sim() {
+    let doc = Procedure::load_json(REHEAT_DOMINOS_MICROWAVE_JSON).unwrap();
+    let mut sim = Simulator::new();
+    let bindings = microwave_bindings(&mut sim);
+    let result = run(&doc, &mut sim, &bindings);
+    assert!(
+        result.is_completed(),
+        "expected completed, got {:?}",
+        result.status
+    );
+    assert!(result.outcomes.iter().all(|o| o.ok));
+    let mw = bindings.get("microwave").unwrap();
+    // cancel leaves cycle idle
+    assert_eq!(
+        sim.read_value(
+            &homecooked_core::DeviceId::new(mw),
+            "trait.cycle.cycle_state"
+        )
+        .unwrap(),
+        homecooked_schema::Value::Enum("idle".into())
+    );
+}
+
+#[test]
+fn short_microwave_wait_fixture_completes() {
+    let doc = Procedure::load_json(
+        r#"{
+          "id": "mw_short",
+          "name": "short microwave",
+          "devices": [{ "role": "microwave", "class_id": "microwave" }],
+          "steps": [
+            {
+              "id": "cook",
+              "action": "write",
+              "target": { "role": "microwave", "point": "class.microwave.cook_s" },
+              "value": { "type": "duration_s", "value": 3 }
+            },
+            {
+              "id": "start",
+              "action": "command",
+              "target": { "role": "microwave", "point": "trait.cycle.start" },
+              "value": { "type": "void" }
+            },
+            {
+              "id": "wait",
+              "action": "wait",
+              "target": { "role": "microwave" },
+              "timeout_s": 10,
+              "guards": [
+                { "point": "trait.cycle.elapsed_s", "gte": { "type": "duration_s", "value": 3 } }
+              ]
+            }
+          ]
+        }"#,
+    )
+    .unwrap();
+    let mut sim = Simulator::new();
+    let bindings = microwave_bindings(&mut sim);
+    let result = run(&doc, &mut sim, &bindings);
+    assert!(
+        result.is_completed(),
+        "expected completed, got {:?}",
+        result.status
+    );
 }

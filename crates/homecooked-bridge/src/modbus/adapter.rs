@@ -116,8 +116,8 @@ impl<B: PointBackend> ModbusBridge<B> {
             (kind, ForeignRaw::Coil(_)) => Err(Error::InvalidRaw {
                 detail: format!("coil raw is not valid for {kind}"),
             }),
-            (_, ForeignRaw::Matter(_)) => Err(Error::InvalidRaw {
-                detail: "matter raw is not valid for modbus bridge".into(),
+            (_, ForeignRaw::Matter(_)) | (_, ForeignRaw::Zigbee(_)) => Err(Error::InvalidRaw {
+                detail: "cluster attribute raw is not valid for modbus bridge".into(),
             }),
         }
     }

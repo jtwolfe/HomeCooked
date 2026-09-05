@@ -1,4 +1,4 @@
-//! Simple per-class simulation: kettle heat, washer cycle progress.
+//! Simple per-class simulation: kettle heat, washer/microwave cycle progress.
 
 use homecooked_core::{DeviceState, RegisteredDevice};
 use homecooked_protocol::WriteOp;
@@ -8,6 +8,8 @@ use homecooked_schema::{ApplianceClassId, Value};
 pub const KETTLE_HEAT_RATE_C_PER_S: f32 = 5.0;
 /// Stub washer cycle length.
 pub const WASHER_CYCLE_S: u32 = 60;
+/// Fallback microwave cook duration when `class.microwave.cook_s` is missing.
+pub const DEFAULT_MICROWAVE_COOK_S: u32 = 60;
 
 pub fn apply_writes(dev: &mut RegisteredDevice, writes: &[WriteOp]) {
     for op in writes {
@@ -50,6 +52,17 @@ fn start_cycle(dev: &mut RegisteredDevice) {
             set_duration(&mut dev.state, "trait.cycle.remaining_s", WASHER_CYCLE_S);
             set_string(&mut dev.state, "trait.cycle.cycle_phase", "fill");
         }
+        ApplianceClassId::Microwave => {
+            let cook = duration_of(&dev.state, "class.microwave.cook_s");
+            let cook = if cook == 0 {
+                DEFAULT_MICROWAVE_COOK_S
+            } else {
+                cook
+            };
+            set_duration(&mut dev.state, "trait.cycle.remaining_s", cook);
+            set_string(&mut dev.state, "trait.cycle.cycle_phase", "cook");
+            set_enum(&mut dev.state, "trait.power.power_state", "on");
+        }
         ApplianceClassId::Kettle => {
             set_enum(&mut dev.state, "trait.power.power_state", "on");
             set_enum(&mut dev.state, "trait.heater.heater_state", "on");
@@ -87,6 +100,7 @@ pub fn tick_device(dev: &mut RegisteredDevice, dt_ms: u64) {
         ApplianceClassId::Washer | ApplianceClassId::WasherDryer => {
             tick_washer(&mut dev.state, dt_ms)
         }
+        ApplianceClassId::Microwave => tick_microwave(&mut dev.state, dt_ms),
         _ => {}
     }
 }
@@ -139,6 +153,37 @@ fn tick_washer(state: &mut DeviceState, dt_ms: u64) {
         set_enum(state, "trait.cycle.cycle_state", "complete");
         set_percent(state, "trait.cycle.progress_percent", 100.0);
         set_string(state, "trait.cycle.cycle_phase", "complete");
+    }
+}
+
+fn tick_microwave(state: &mut DeviceState, dt_ms: u64) {
+    if !enum_is(state, "trait.cycle.cycle_state", "running") {
+        return;
+    }
+    let add_s = (dt_ms / 1000) as u32;
+    if add_s == 0 {
+        return;
+    }
+    let cook = duration_of(state, "class.microwave.cook_s");
+    let total = if cook == 0 {
+        DEFAULT_MICROWAVE_COOK_S
+    } else {
+        cook
+    }
+    .max(1);
+    let elapsed = duration_of(state, "trait.cycle.elapsed_s").saturating_add(add_s);
+    let elapsed = elapsed.min(total);
+    let remaining = total.saturating_sub(elapsed);
+    let progress = (elapsed as f32 / total as f32) * 100.0;
+    set_duration(state, "trait.cycle.elapsed_s", elapsed);
+    set_duration(state, "trait.cycle.remaining_s", remaining);
+    set_percent(state, "trait.cycle.progress_percent", progress.min(100.0));
+    set_string(state, "trait.cycle.cycle_phase", "cook");
+    if elapsed >= total {
+        set_enum(state, "trait.cycle.cycle_state", "complete");
+        set_percent(state, "trait.cycle.progress_percent", 100.0);
+        set_string(state, "trait.cycle.cycle_phase", "complete");
+        set_enum(state, "trait.power.power_state", "standby");
     }
 }
 
