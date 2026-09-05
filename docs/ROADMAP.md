@@ -32,7 +32,7 @@ What exists on `main` today:
 | `homecooked-thermal` | First executable thermal plant slice (types, registry, offer/accept, tick) |
 | `homecooked-bridge` | Bridge slice: Modbus + Matter + Zigbee + BACnet mock maps |
 | `homecooked-transport` | Lab TCP: length-prefixed JSON envelopes; optional PSK pairing; sim-backed server + client smoke |
-| `homecooked-conformance` | Light Stream 7 smoke: Tier-A / cotton / kettle procedure / thermal / Modbus / Matter / Zigbee / BACnet / TCP |
+| `homecooked-conformance` | Light Stream 7 smoke: Tier-A / cotton / kettle procedure / thermal / Modbus / Matter / Zigbee / BACnet / TCP / TCP PSK |
 | CI | rustfmt, clippy (`-D warnings`), `cargo test --workspace`, wasm-pack |
 
 **25 Tier-A classes are fully tabled** (see §4).
@@ -246,8 +246,8 @@ multiple small PRs.
    protocol major-version rejection, representative write denials.
    **Partial (smoke)** — `homecooked-conformance` runs named end-to-end
    scenarios (Tier-A catalog/sim/describe, washer cotton controller, kettle
-   procedure, thermal fridge→DHW, Modbus water_heater, Matter/Zigbee/BACnet kettle
-   kettle, TCP kettle). Deeper
+   procedure, thermal fridge→DHW, Modbus water_heater, Matter/Zigbee/BACnet
+   kettle, TCP kettle, TCP PSK describe/ping). Deeper
    catalog hygiene / major-version / write-denial matrices remain follow-up.
 3. CI runs the conformance suite (or a `cargo test` subset tagged as such).
    **Done (via workspace)** — `cargo test --workspace` includes
