@@ -49,6 +49,7 @@ is **0.1.0** (peers are rejected only on protocol **major** mismatch).
 | `homecooked-thermal` | [`crates/homecooked-thermal`](crates/homecooked-thermal) | Thermal plant slice: reservoirs, heat ports, offer/accept, tick transfer ([thermal-plant.md](docs/standard/thermal-plant.md)) |
 | `homecooked-bridge` | [`crates/homecooked-bridge`](crates/homecooked-bridge) | Fabric bridges: Modbus adapter (mocked transport) plus Zigbee/Matter/BACnet stubs ([bridges.md](docs/standard/bridges.md)) |
 | `homecooked-transport` | [`crates/homecooked-transport`](crates/homecooked-transport) | Lab TCP transport for protocol envelopes (length-prefixed JSON); sim-backed server + client ([overview.md](docs/standard/overview.md) §6) |
+| `homecooked-conformance` | [`crates/homecooked-conformance`](crates/homecooked-conformance) | Light Stream 7 conformance smoke (catalog↔schema↔sim↔protocol↔TCP) |
 | simulator-web | [`apps/simulator-web`](apps/simulator-web) | Static HTML/JS UI that loads the wasm-pack output |
 
 `list_all_class_ids` covers the full class index in
@@ -61,12 +62,14 @@ simulated devices) cover all **25 Tier-A** class ids listed in
 
 ```bash
 cargo test
+cargo test -p homecooked-conformance   # Stream 7 end-to-end smoke
 cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --all
 ```
 
 CI on `main` (and PRs targeting `main`) runs rustfmt, clippy (`-D warnings`),
-`cargo test`, and a wasm-pack build.
+`cargo test`, and a wasm-pack build. Conformance smoke lives in
+[`crates/homecooked-conformance`](crates/homecooked-conformance).
 
 ## Web simulator
 
