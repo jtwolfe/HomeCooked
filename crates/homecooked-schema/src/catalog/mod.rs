@@ -532,6 +532,22 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "steam_inject"
         );
     }
+    // Stream 7 catalog depth: electric_grill optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::ElectricGrill {
+        return matches!(
+            point.id,
+            "plate_top_c"
+                | "plate_bottom_c"
+                | "sear"
+                | "grease_tray"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "heater_on"
+                | "high_temp_alarm"
+                | "lid_open"
+                | "timer_s"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -1989,6 +2005,63 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.pizza_oven.door_ajar", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn electric_grill_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::ElectricGrill).unwrap();
+        for id in [
+            "class.electric_grill.plate_top_c",
+            "class.electric_grill.plate_bottom_c",
+            "class.electric_grill.sear",
+            "class.electric_grill.grease_tray",
+            "class.electric_grill.sabbath_mode",
+            "class.electric_grill.eco_mode",
+            "class.electric_grill.heater_on",
+            "class.electric_grill.high_temp_alarm",
+            "class.electric_grill.lid_open",
+            "class.electric_grill.timer_s",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical electric_grill"
+            );
+        }
+        cap.validate_write("class.electric_grill.sear", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.electric_grill.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.electric_grill.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.electric_grill.timer_s", &Value::DurationS(900))
+            .unwrap();
+        let err = cap
+            .validate_write("class.electric_grill.plate_top_c", &Value::F32(200.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.electric_grill.plate_bottom_c", &Value::F32(200.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write(
+                "class.electric_grill.grease_tray",
+                &Value::Enum("full".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.electric_grill.heater_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.electric_grill.high_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.electric_grill.lid_open", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }

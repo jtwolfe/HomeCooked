@@ -2465,6 +2465,155 @@ mod tests {
     }
 
     #[test]
+    fn electric_grill_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let grill = sim.spawn(ApplianceClassId::ElectricGrill).unwrap();
+
+        assert!(
+            (f32_val(
+                &sim.read_value(&grill, "class.electric_grill.plate_top_c")
+                    .unwrap()
+            ) - 20.0)
+                .abs()
+                < f32::EPSILON
+        );
+        assert!(
+            (f32_val(
+                &sim.read_value(&grill, "class.electric_grill.plate_bottom_c")
+                    .unwrap()
+            ) - 20.0)
+                .abs()
+                < f32::EPSILON
+        );
+        assert_eq!(
+            sim.read_value(&grill, "class.electric_grill.sear").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&grill, "class.electric_grill.grease_tray")
+                .unwrap(),
+            Value::Enum("ok".into())
+        );
+        assert_eq!(
+            sim.read_value(&grill, "class.electric_grill.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&grill, "class.electric_grill.eco_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&grill, "class.electric_grill.heater_on")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&grill, "class.electric_grill.high_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&grill, "class.electric_grill.lid_open")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&grill, "class.electric_grill.timer_s")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+
+        sim.write(&grill, "class.electric_grill.sear", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&grill, "class.electric_grill.sear").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(
+            &grill,
+            "class.electric_grill.sabbath_mode",
+            Value::Bool(true),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&grill, "class.electric_grill.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&grill, "class.electric_grill.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&grill, "class.electric_grill.eco_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(
+            &grill,
+            "class.electric_grill.timer_s",
+            Value::DurationS(600),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&grill, "class.electric_grill.timer_s")
+                .unwrap(),
+            Value::DurationS(600)
+        );
+        sim.write(&grill, "trait.temperature.setpoint_c", Value::F32(220.0))
+            .unwrap();
+        assert!(
+            (f32_val(
+                &sim.read_value(&grill, "trait.temperature.setpoint_c")
+                    .unwrap()
+            ) - 220.0)
+                .abs()
+                < f32::EPSILON
+        );
+
+        let err = sim
+            .write(
+                &grill,
+                "class.electric_grill.plate_top_c",
+                Value::F32(200.0),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &grill,
+                "class.electric_grill.plate_bottom_c",
+                Value::F32(200.0),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &grill,
+                "class.electric_grill.grease_tray",
+                Value::Enum("full".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&grill, "class.electric_grill.heater_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &grill,
+                "class.electric_grill.high_temp_alarm",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&grill, "class.electric_grill.lid_open", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {
