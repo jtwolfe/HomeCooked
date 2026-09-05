@@ -1,0 +1,16 @@
+[package]
+name = "homecooked-controller"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description = "Host-side controller simulator: IoMap + MockHal + interlocks + washer cycle runtime"
+readme = "README.md"
+
+[dependencies]
+homecooked-hal = { path = "../homecooked-hal" }
+homecooked-io-map = { path = "../homecooked-io-map" }
+homecooked-interlock = { path = "../homecooked-interlock" }
+serde = { workspace = true }
+serde_yaml = { workspace = true }

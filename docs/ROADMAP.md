@@ -24,13 +24,17 @@ What exists on `main` today:
 | `homecooked-core` | Device registry, capability-enforced read/write |
 | `homecooked-sim` | In-memory devices for the 25 Tier-A static classes |
 | `homecooked-wasm` + `apps/simulator-web` | wasm-bindgen JSON API and minimal static UI |
+| `homecooked-io-map` | Chassis I/O map serde + validate |
+| `homecooked-interlock` | Declarative interlock rules (washer heater/spin) |
+| `homecooked-hal` | Firmware HAL sketch + host `MockHal` |
+| `homecooked-procedure` | Procedure documents + sequential runner |
+| `homecooked-controller` | Host controller sim: IoMap + MockHal + interlocks + washer cotton cycle |
 | CI | rustfmt, clippy (`-D warnings`), `cargo test --workspace`, wasm-pack |
 
 **25 Tier-A classes are fully tabled** (see §4).
 
 `list_all_class_ids` already covers the full appliances index; most classes are
-ids-only (no static tables / sim yet). Control-system, thermal, procedures, and
-bridges remain **design sketches** without dedicated crates.
+ids-only (no static tables / sim yet). Thermal and bridges remain **design sketches** without dedicated crates; control-system has HAL + controller-sim + io-map/interlock crates (TCP transport still open); procedures has `homecooked-procedure`.
 
 Rough completeness: docs + thin protocol/sim spine ≈ **~30%** of the 75%
 target below. Remaining work is depth (tables, I/O map, interlocks, HAL/sim
@@ -124,17 +128,21 @@ multiple small PRs.
 
 **Milestones**
 
-1. Logical HAL channel kinds (`din` / `dout` / `ain` / `aout` / `relay` /
-   `motor` / …) as types, not a real board driver.
-2. Controller-sim: bind an I/O map + interlocks + a Tier-A profile; accept
-   HomeCooked writes and update channel state in memory.
+1. ~~Logical HAL channel kinds (`din` / `dout` / `ain` / `aout` / `relay` /
+   `motor` / …) as types, not a real board driver.~~ **Done** —
+   `homecooked-hal` + `MockHal`.
+2. ~~Controller-sim: bind an I/O map + interlocks + washer cycle runtime.~~
+   **Done (host API)** — `homecooked-controller` runs washer `cotton` on
+   MockHal with interlocks; protocol device-role registration left thin /
+   tests drive `Controller` directly.
 3. TCP transport for the existing protocol envelope (one peer = one sim
-   controller).
+   controller). **Still open.**
 
 **Definition of done**
 
 - Integration test: client over TCP → write gated actuator → interlock deny or
-  allow → channel state observable via read/describe.
+  allow → channel state observable via read/describe. *(TCP portion pending;
+  controller-sim unit tests cover cotton cycle + interlock denies on host.)*
 - No claim of production firmware or certified safety path.
 
 ### Stream 5 — Thermal ports in schema / sim
