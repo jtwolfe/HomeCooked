@@ -3106,6 +3106,151 @@ mod tests {
     }
 
     #[test]
+    fn coffee_grinder_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let grinder = sim.spawn(ApplianceClassId::CoffeeGrinder).unwrap();
+
+        assert_eq!(
+            sim.read_value(&grinder, "class.coffee_grinder.grind_s")
+                .unwrap(),
+            Value::DurationS(8)
+        );
+        assert_eq!(
+            sim.read_value(&grinder, "class.coffee_grinder.dose_g")
+                .unwrap(),
+            Value::F32(18.0)
+        );
+        assert_eq!(
+            sim.read_value(&grinder, "class.coffee_grinder.hopper_present")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        assert_eq!(
+            sim.read_value(&grinder, "class.coffee_grinder.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&grinder, "class.coffee_grinder.eco_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&grinder, "class.coffee_grinder.motor_on")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&grinder, "class.coffee_grinder.hopper_empty")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&grinder, "class.coffee_grinder.bean_level_percent")
+                .unwrap(),
+            Value::Percent(70.0)
+        );
+        assert_eq!(
+            sim.read_value(&grinder, "class.coffee_grinder.timer_s")
+                .unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&grinder, "class.coffee_grinder.single_dose")
+                .unwrap(),
+            Value::Bool(false)
+        );
+
+        sim.write(
+            &grinder,
+            "class.coffee_grinder.grind_s",
+            Value::DurationS(12),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&grinder, "class.coffee_grinder.grind_s")
+                .unwrap(),
+            Value::DurationS(12)
+        );
+        sim.write(&grinder, "class.coffee_grinder.dose_g", Value::F32(20.0))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&grinder, "class.coffee_grinder.dose_g")
+                .unwrap(),
+            Value::F32(20.0)
+        );
+        sim.write(
+            &grinder,
+            "class.coffee_grinder.sabbath_mode",
+            Value::Bool(true),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&grinder, "class.coffee_grinder.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&grinder, "class.coffee_grinder.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&grinder, "class.coffee_grinder.eco_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(
+            &grinder,
+            "class.coffee_grinder.timer_s",
+            Value::DurationS(300),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&grinder, "class.coffee_grinder.timer_s")
+                .unwrap(),
+            Value::DurationS(300)
+        );
+        sim.write(
+            &grinder,
+            "class.coffee_grinder.single_dose",
+            Value::Bool(true),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&grinder, "class.coffee_grinder.single_dose")
+                .unwrap(),
+            Value::Bool(true)
+        );
+
+        let err = sim
+            .write(
+                &grinder,
+                "class.coffee_grinder.hopper_present",
+                Value::Bool(false),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&grinder, "class.coffee_grinder.motor_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &grinder,
+                "class.coffee_grinder.hopper_empty",
+                Value::Bool(true),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(
+                &grinder,
+                "class.coffee_grinder.bean_level_percent",
+                Value::Percent(50.0),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {

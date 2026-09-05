@@ -1235,8 +1235,15 @@ optional and safety-gated (`remote_brew_enabled` bool, r/w, opt).
 |----|------|------|--------------|--------|-----|-------------|
 | `grind_s` | duration_s | second | 1–60 | r/w | opt | Time dose |
 | `dose_g` | f32 | gram | 5–30 | r/w | opt | Mass dose |
-| `grind_level` | u8 | — | 1–40 | r/w | req | |
-| `hopper_present` | bool | — | | r/e | opt | |
+| `grind_level` | u8 | — | 1–40 | r/w | req | Grind size ticks |
+| `hopper_present` | bool | — | | r/e | opt | Hopper / lid detect |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving idle |
+| `motor_on` | bool | — | | r/e | opt | Burr motor active |
+| `hopper_empty` | bool | — | | r/e | opt | Hopper empty / inhibit grind |
+| `bean_level_percent` | percent | percent | 0–100 | r/e | opt | Bean hopper fill level |
+| `timer_s` | duration_s | second | 0–3600 | r/w/e | opt | Delayed grind / countdown |
+| `single_dose` | bool | — | | r/w | opt | Single-dose / bypass hopper feed |
 
 ---
 
