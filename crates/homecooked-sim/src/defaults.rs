@@ -237,7 +237,24 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
         },
         "fan_speed" => match ctx.identity.class_id {
             ApplianceClassId::Dehumidifier => Value::U8(2),
+            ApplianceClassId::RangeHood => Value::U8(2),
             _ => Value::U8(int_min(point, 0) as u8),
+        },
+        "light_level" => match ctx.identity.class_id {
+            ApplianceClassId::RangeHood => Value::U8(2),
+            _ => Value::U8(int_min(point, 0) as u8),
+        },
+        "light_percent" => match ctx.identity.class_id {
+            ApplianceClassId::RangeHood => Value::Percent(80.0),
+            _ => Value::Percent(0.0),
+        },
+        "voc_index" => match ctx.identity.class_id {
+            ApplianceClassId::RangeHood => Value::U16(40),
+            _ => Value::U16(int_min(point, 0) as u16),
+        },
+        "charcoal_filter_life_percent" => match ctx.identity.class_id {
+            ApplianceClassId::RangeHood => Value::Percent(70.0),
+            _ => Value::Percent(0.0),
         },
         "water_temp_c" => match ctx.identity.class_id {
             ApplianceClassId::IceMaker => Value::F32(12.0),
@@ -249,6 +266,7 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
         },
         "life_percent" => match ctx.identity.class_id {
             ApplianceClassId::IceMaker => Value::Percent(80.0),
+            ApplianceClassId::RangeHood => Value::Percent(75.0),
             _ => Value::Percent(0.0),
         },
         "current_rh" => match ctx.identity.class_id {

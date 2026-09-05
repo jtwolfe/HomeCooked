@@ -233,6 +233,18 @@ fn extra_typical_trait_point(table: &ClassTable, trait_id: TraitId, point: &Cata
             return true;
         }
     }
+    // Range hood: fan speed + light dimming + grease-filter life are typical.
+    if table.class_id == ApplianceClassId::RangeHood {
+        if trait_id == TraitId::Fan && point.id == "fan_speed" {
+            return true;
+        }
+        if trait_id == TraitId::Lighting && point.id == "light_percent" {
+            return true;
+        }
+        if trait_id == TraitId::Filter && point.id == "life_percent" {
+            return true;
+        }
+    }
     false
 }
 
@@ -345,6 +357,25 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "bucket_removed"
                 | "filter_dirty"
                 | "delayed_start_s"
+        );
+    }
+    // Stream 7 catalog depth: range hood optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::RangeHood {
+        return matches!(
+            point.id,
+            "auto_mode"
+                | "delay_off_s"
+                | "voc_index"
+                | "grease_filter"
+                | "charcoal_filter"
+                | "filter_dirty"
+                | "boost"
+                | "boost_remaining_s"
+                | "light_level"
+                | "grease_sensor"
+                | "hob_linked"
+                | "overtemp"
+                | "charcoal_filter_life_percent"
         );
     }
     // Stream 5: device-facing thermal-port surface on Tier-A water_heater / fridge / hvac / dishwasher / dryer.
@@ -1016,6 +1047,107 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.dehumidifier.filter_dirty", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn range_hood_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::RangeHood).unwrap();
+        for id in [
+            "class.range_hood.auto_mode",
+            "class.range_hood.delay_off_s",
+            "class.range_hood.voc_index",
+            "class.range_hood.grease_filter",
+            "class.range_hood.charcoal_filter",
+            "class.range_hood.filter_dirty",
+            "class.range_hood.boost",
+            "class.range_hood.boost_remaining_s",
+            "class.range_hood.light_level",
+            "class.range_hood.grease_sensor",
+            "class.range_hood.hob_linked",
+            "class.range_hood.overtemp",
+            "class.range_hood.charcoal_filter_life_percent",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical range_hood"
+            );
+        }
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Fan)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.fan.fan_speed"));
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Lighting)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.lighting.light_percent"));
+        assert!(cap
+            .traits
+            .iter()
+            .find(|t| t.trait_id == TraitId::Filter)
+            .unwrap()
+            .points
+            .iter()
+            .any(|p| p.id == "trait.filter.life_percent"));
+        cap.validate_write("class.range_hood.auto_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.range_hood.boost", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.range_hood.hob_linked", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.range_hood.delay_off_s", &Value::DurationS(300))
+            .unwrap();
+        cap.validate_write("class.range_hood.light_level", &Value::U8(3))
+            .unwrap();
+        cap.validate_write("trait.fan.fan_speed", &Value::U8(2))
+            .unwrap();
+        cap.validate_write("trait.lighting.light_percent", &Value::Percent(80.0))
+            .unwrap();
+        let err = cap
+            .validate_write("class.range_hood.voc_index", &Value::U16(100))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.range_hood.grease_filter", &Value::Enum("ok".into()))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write(
+                "class.range_hood.charcoal_filter",
+                &Value::Enum("ok".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.range_hood.filter_dirty", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.range_hood.boost_remaining_s", &Value::DurationS(60))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.range_hood.grease_sensor", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.range_hood.overtemp", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write(
+                "class.range_hood.charcoal_filter_life_percent",
+                &Value::Percent(50.0),
+            )
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }

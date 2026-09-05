@@ -1029,10 +1029,22 @@ Fan + lighting traits. Extra:
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
 | `auto_mode` | bool | — | | r/w | opt | Follow hob or air quality |
-| `delay_off_s` | duration_s | second | 0–1800 | r/w | opt | |
-| `voc_index` | u16 | — | 0–500 | r/e | opt | If sensed |
-| `grease_filter` | enum | — | `ok` `clogged` `missing` | r/e | opt | |
-| `charcoal_filter` | enum | — | `ok` `replace` `na` | r/e | opt | Recirculating |
+| `delay_off_s` | duration_s | second | 0–1800 | r/w | opt | Delayed fan-off after cooking |
+| `voc_index` | u16 | — | 0–500 | r/e | opt | Air-quality / VOC index if sensed |
+| `grease_filter` | enum | — | `ok` `clogged` `missing` | r/e | opt | Grease filter status |
+| `charcoal_filter` | enum | — | `ok` `replace` `na` | r/e | opt | Recirculating charcoal filter |
+| `filter_dirty` | bool | — | | r/e | opt | Filter dirty indicator light |
+| `boost` | bool | — | | r/w | opt | High-speed boost mode engaged |
+| `boost_remaining_s` | duration_s | second | 0–900 | r/e | opt | Boost auto-expire countdown |
+| `light_level` | u8 | — | 0–5 | r/w | opt | Discrete hood light steps |
+| `grease_sensor` | bool | — | | r/e | opt | Cooking / grease plume detected |
+| `hob_linked` | bool | — | | r/w | opt | Auto-follow linked hob activity |
+| `overtemp` | bool | — | | r/e | opt | Motor / hood over-temperature |
+| `charcoal_filter_life_percent` | percent | percent | 0–100 | r/e | opt | Recirculating charcoal life |
+
+Fan speed via `trait.fan.fan_speed`; light dimming via
+`trait.lighting.light_percent`; grease-filter life via
+`trait.filter.life_percent`.
 
 ---
 
