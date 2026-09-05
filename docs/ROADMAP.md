@@ -32,6 +32,7 @@ What exists on `main` today:
 | `homecooked-thermal` | First executable thermal plant slice (types, registry, offer/accept, tick) |
 | `homecooked-bridge` | First bridge slice: Modbus map + in-memory slave; Zigbee/Matter/BACnet stubs |
 | `homecooked-transport` | Lab TCP: length-prefixed JSON envelopes; sim-backed server + client smoke |
+| `homecooked-conformance` | Light Stream 7 smoke: Tier-A / cotton / kettle procedure / thermal / Modbus / TCP |
 | CI | rustfmt, clippy (`-D warnings`), `cargo test --workspace`, wasm-pack |
 
 **25 Tier-A classes are fully tabled** (see §4).
@@ -217,17 +218,22 @@ multiple small PRs.
    conformance-oriented screens.
 2. Conformance suite: catalog id hygiene, capability advertisement rules,
    protocol major-version rejection, representative write denials.
-   **Still open** — not started in this slice.
+   **Partial (smoke)** — `homecooked-conformance` runs six named end-to-end
+   scenarios (Tier-A catalog/sim/describe, washer cotton controller, kettle
+   procedure, thermal fridge→DHW, Modbus water_heater, TCP kettle). Deeper
+   catalog hygiene / major-version / write-denial matrices remain follow-up.
 3. CI runs the conformance suite (or a `cargo test` subset tagged as such).
-   **Still open** — CI already runs rustfmt / clippy / `cargo test` /
-   wasm-pack; a named conformance suite is follow-up.
+   **Done (via workspace)** — `cargo test --workspace` includes
+   `homecooked-conformance`; also `cargo test -p homecooked-conformance`.
 
 **Definition of done**
 
 - wasm-pack build remains in CI; UI documented in `apps/simulator-web`.
-  *(Picker + list/spawn coverage is in; suite depth is not.)*
+  *(Picker + list/spawn coverage is in; smoke suite is in; deeper matrices /
+  procedure/thermal UI still open.)*
 - Conformance failures are actionable (named assertions, not a single opaque
   binary).
+  *(Smoke suite reports named scenario failures; deeper matrices still open.)*
 
 ---
 
@@ -288,7 +294,7 @@ absent static tables are OK until after the 75% bar.
 | later | thermal ports | 5 |
 | later | `feat/bridges-modbus` | 6 — Modbus + stubs (first slice) |
 | later | `feat/simulator-tier-a-ui` | 7 — grouped Tier-A picker (first UI slice) |
-| later | WASM UI + conformance suite | 7 — remaining |
+| later | WASM UI + conformance suite | 7 — smoke suite done (`homecooked-conformance`); deeper matrices / richer UI remaining |
 
 One concern per PR when practical. Catalog/standard docs land before or with
 the code that implements them.
@@ -301,3 +307,4 @@ the code that implements them.
 |---------|--------|
 | 0.1.0 | Initial ~30% → ~75% roadmap; Tier-A list; seven workstreams |
 | 0.1.1 | Stream 4 TCP lab smoke (`homecooked-transport`); auth/TLS still out of scope |
+| 0.1.2 | Stream 7 conformance smoke crate (`homecooked-conformance`) |

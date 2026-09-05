@@ -84,6 +84,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "homecooked-conformance"
+version = "0.1.0"
+dependencies = [
+ "homecooked-bridge",
+ "homecooked-controller",
+ "homecooked-core",
+ "homecooked-hal",
+ "homecooked-procedure",
+ "homecooked-protocol",
+ "homecooked-schema",
+ "homecooked-sim",
+ "homecooked-thermal",
+ "homecooked-transport",
+]
+
+[[package]]
 name = "homecooked-controller"
 version = "0.1.0"
 dependencies = [

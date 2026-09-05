@@ -1,0 +1,22 @@
+[package]
+name = "homecooked-conformance"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+description = "Light end-to-end conformance smoke suite (catalog↔schema↔sim↔protocol↔TCP)"
+publish = false
+readme = "README.md"
+
+[dependencies]
+homecooked-bridge = { path = "../homecooked-bridge" }
+homecooked-controller = { path = "../homecooked-controller" }
+homecooked-core = { path = "../homecooked-core" }
+homecooked-hal = { path = "../homecooked-hal" }
+homecooked-procedure = { path = "../homecooked-procedure" }
+homecooked-protocol = { path = "../homecooked-protocol" }
+homecooked-schema = { path = "../homecooked-schema" }
+homecooked-sim = { path = "../homecooked-sim" }
+homecooked-thermal = { path = "../homecooked-thermal" }
+homecooked-transport = { path = "../homecooked-transport" }
