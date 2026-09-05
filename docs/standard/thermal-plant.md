@@ -232,11 +232,11 @@ cargo test -p homecooked-procedure thermal_wait
 cargo test -p homecooked-conformance procedure_thermal_wait_dhw
 ```
 
-**Still deferred:** multi-round negotiate dialogue as separate procedure steps;
-soft decline-without-fail; promoting full plant **runtime** into schema
-(vocabulary types + `ClassTable.HeatPortSpec` live in `homecooked-schema`;
-`ThermalPlant` / transfer dialogue remain crate-local); wasm/UI wiring beyond
-bundled list/`run_procedure` for thermal steps (dual-path orchestrator UI remains).
+**Still deferred:** continuous re-queue across wait polls; promoting full plant
+**runtime** into schema (vocabulary types + `ClassTable.HeatPortSpec` live in
+`homecooked-schema`; `ThermalPlant` / transfer dialogue remain crate-local);
+wasm/UI wiring beyond bundled list/`run_procedure` for thermal steps (dual-path
+orchestrator UI remains). Soft decline + thin fallback retry live under §8.3.
 
 ### 8.3 Thin procedure⇄thermal bridge (`thermal_offer`)
 
@@ -244,30 +244,39 @@ Procedures can **submit a heat-transfer offer** aligned with `TransferOffer` and
 immediately negotiate (accept at max allowable power, or decline):
 
 - Step action `thermal_offer` (alias `offer_transfer`) with
-  `{ from_port, to_port | to_reservoir_id, power_w, duration_s?, priority? }`.
+  `{ from_port, to_port | to_reservoir_id, power_w, duration_s?, priority?,
+  fallback_power_w?, on_decline? }`.
 - `DeviceBackend::thermal_offer` / `thermal_accept` / `thermal_negotiate`
   (default: unsupported). `SimulatorBackend` with an attached plant implements
   them via `ThermalPlant::{offer,accept,negotiate}`.
 - On **Accept**, `read_value` is the accepted power (u32). When `duration_s` is
   set, the runner applies **one** `thermal_tick` of that length so the queued
-  accept moves energy (fridge→DHW demo). On **Decline**, the step fails
-  (`InvalidRequest`) with the decline reason recorded in the outcome message.
+  accept moves energy (fridge→DHW demo).
+- On **Decline**, default `on_decline: fail` fails the step (`InvalidRequest`)
+  with the decline reason. `on_decline: continue` soft-continues (`ok: true`,
+  `read_value` null, message notes the decline) so later steps can run.
+- Thin multi-round: optional `fallback_power_w` retries **once** with that band
+  after a first decline; the final decline still respects `on_decline`. Plant
+  `negotiate` declines when available max is below the offered min (no silent
+  partial below min). No new `TransferReply` variant.
 - Bundled fixture `offer_fridge_dhw` offers fridge condenser → water-heater
-  preheat at 80–120 W for 3600 s.
+  preheat at 80–120 W for 3600 s. `offer_fridge_dhw_soft` demos a first band
+  that declines (min above condenser max) then fallback accept.
 
 | Surface | Entry |
 |---------|--------|
-| Procedure crate | `OFFER_FRIDGE_DHW_JSON` + `SimulatorBackend::with_plant` |
-| Conformance | `procedure_thermal_offer_dhw` |
+| Procedure crate | `OFFER_FRIDGE_DHW_JSON` / `OFFER_FRIDGE_DHW_SOFT_JSON` + `SimulatorBackend::with_plant` |
+| Conformance | `procedure_thermal_offer_dhw` / `procedure_thermal_offer_soft_decline` |
 
 ```bash
 cargo test -p homecooked-procedure thermal_offer
 cargo test -p homecooked-conformance procedure_thermal_offer_dhw
+cargo test -p homecooked-conformance procedure_thermal_offer_soft_decline
 ```
 
-**Still deferred:** multi-round / counter-offer dialogue as steps; soft
-decline-without-fail; continuous re-queue across wait polls; dedicated wasm UI
-controls beyond listing/`run_procedure`.
+**Still deferred:** continuous re-queue across wait polls; dedicated wasm UI
+controls beyond listing/`run_procedure`; fuller multi-round dialogue as separate
+typed steps / plant Counter replies.
 
 ---
 
@@ -283,3 +292,4 @@ controls beyond listing/`run_procedure`.
 | 0.1.0+ | Thin procedure⇄thermal: `thermal_offer` / `offer_transfer` + backend `thermal_offer`/`thermal_accept`/`thermal_negotiate` + `offer_fridge_dhw` fixture + conformance `procedure_thermal_offer_dhw`. Multi-round dialogue / soft decline / richer wasm UI still deferred. |
 | 0.1.0+ | Schema thermal vocabulary (`Media` / `PortDirection` / `TempBandC` / `HeatPortSpec`) in `homecooked-schema`; plant runtime remains crate-local in `homecooked-thermal`. |
 | 0.1.0+ | `ClassTable.thermal_ports` advertises static `HeatPortSpec` for the five thermal-port classes (match sim seeds); catalog `thermal_port_*` points remain the device RW surface; plant runtime still crate-local. |
+| 0.1.0+ | Soft decline (`on_decline: fail|continue`) + thin `fallback_power_w` retry; plant negotiate declines when max < offer min; fixture `offer_fridge_dhw_soft` + conformance `procedure_thermal_offer_soft_decline`. Continuous re-queue / dedicated wasm UI still deferred. |

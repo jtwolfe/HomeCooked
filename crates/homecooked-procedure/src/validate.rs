@@ -128,6 +128,34 @@ fn validate_step(step: &Step) -> Result<(), Error> {
                     "thermal_offer duration_s must be positive when set",
                 ));
             }
+            if let Some(band) = step.power_w {
+                if band.min > band.max {
+                    return Err(Error::at_step(
+                        &step.id,
+                        "thermal_offer power_w min must be <= max",
+                    ));
+                }
+                if band.max == 0 {
+                    return Err(Error::at_step(
+                        &step.id,
+                        "thermal_offer power_w max must be > 0",
+                    ));
+                }
+            }
+            if let Some(band) = step.fallback_power_w {
+                if band.min > band.max {
+                    return Err(Error::at_step(
+                        &step.id,
+                        "thermal_offer fallback_power_w min must be <= max",
+                    ));
+                }
+                if band.max == 0 {
+                    return Err(Error::at_step(
+                        &step.id,
+                        "thermal_offer fallback_power_w max must be > 0",
+                    ));
+                }
+            }
         }
     }
     Ok(())

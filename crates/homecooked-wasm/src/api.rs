@@ -1242,7 +1242,7 @@ mod tests {
     ) {
         let items: Vec<ExampleProcedureInfo> =
             serde_json::from_str(&WasmApi::list_example_procedures()).unwrap();
-        assert_eq!(items.len(), 9);
+        assert_eq!(items.len(), 10);
         assert_eq!(items[0].id, "kettle_heat_80");
         assert_eq!(items[0].name, "Heat kettle to 80C");
         assert!(items[0].class_hints.iter().any(|c| c == "kettle"));
@@ -1268,6 +1268,9 @@ mod tests {
         assert_eq!(items[8].id, "offer_fridge_dhw");
         assert_eq!(items[8].name, "Offer fridge condenser heat to DHW preheat");
         assert!(items[8].class_hints.is_empty());
+        assert_eq!(items[9].id, "offer_fridge_dhw_soft");
+        assert_eq!(items[9].name, "Soft-decline / fallback fridge→DHW offer");
+        assert!(items[9].class_hints.is_empty());
     }
 
     #[test]
@@ -1332,6 +1335,12 @@ mod tests {
             serde_json::from_str(&WasmApi::parse_procedure(&offer).unwrap()).unwrap();
         assert_eq!(summary.id, "offer_fridge_dhw");
         assert_eq!(summary.step_count, 1);
+        assert!(summary.devices.is_empty());
+
+        let soft = WasmApi::get_example_procedure("offer_fridge_dhw_soft").unwrap();
+        let summary: ProcedureSummary =
+            serde_json::from_str(&WasmApi::parse_procedure(&soft).unwrap()).unwrap();
+        assert_eq!(summary.id, "offer_fridge_dhw_soft");
         assert_eq!(summary.step_count, 1);
         assert!(summary.devices.is_empty());
 

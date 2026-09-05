@@ -284,6 +284,27 @@ fn negotiate_decline_on_band_mismatch() {
 }
 
 #[test]
+fn negotiate_declines_when_min_above_available_max() {
+    let mut plant = ThermalPlant::fridge_condenser_dhw_demo().unwrap();
+    // Condenser max is 120 W; offer min 150 → decline (no silent partial below min).
+    let high = TransferOffer::new(
+        PortRef::new("fridge-kitchen", "condenser").unwrap(),
+        TransferTarget::port("water-heater-plant", "preheat").unwrap(),
+        PowerBandW::new(150, 200).unwrap(),
+        None,
+        1,
+    );
+    let reply = plant.negotiate(high);
+    assert!(reply.is_decline(), "{reply:?}");
+    match reply {
+        TransferReply::Decline(d) => {
+            assert!(d.reason.contains("below offer min"), "{}", d.reason);
+        }
+        other => panic!("expected decline, got {other:?}"),
+    }
+}
+
+#[test]
 fn priority_prefers_higher_sink_when_headroom_limited() {
     let mut plant = ThermalPlant::new();
     plant
