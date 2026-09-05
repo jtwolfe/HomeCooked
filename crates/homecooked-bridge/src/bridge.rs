@@ -4,6 +4,7 @@ use std::fmt;
 
 use homecooked_schema::{catalog_point, PointNamespace, QualifiedPointId, Value};
 
+use crate::bacnet::{BacnetObjectType, BacnetProperty};
 use crate::error::Error;
 use crate::modbus::RegisterKind;
 
@@ -54,6 +55,12 @@ pub enum ForeignLocator {
         cluster_id: u32,
         attribute_id: u32,
     },
+    Bacnet {
+        device_instance: u32,
+        object_type: BacnetObjectType,
+        object_instance: u32,
+        property: BacnetProperty,
+    },
 }
 
 impl fmt::Display for ForeignLocator {
@@ -76,12 +83,21 @@ impl fmt::Display for ForeignLocator {
                 f,
                 "zb-ep{endpoint}/cluster={cluster_id:#x}/attr={attribute_id:#x}"
             ),
+            Self::Bacnet {
+                device_instance,
+                object_type,
+                object_instance,
+                property,
+            } => write!(
+                f,
+                "bacnet/{device_instance}/{object_type}/{object_instance}/{property}"
+            ),
         }
     }
 }
 
 /// Foreign fabric address on a mapped device (Modbus register / coil, Matter /
-/// Zigbee endpoint+cluster+attribute, …).
+/// Zigbee endpoint+cluster+attribute, BACnet object property, …).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ForeignRef {
     pub device_id: String,
@@ -149,10 +165,30 @@ impl ForeignRef {
         )
     }
 
+    pub fn bacnet(
+        device_id: impl Into<String>,
+        device_instance: u32,
+        object_type: BacnetObjectType,
+        object_instance: u32,
+        property: BacnetProperty,
+    ) -> Result<Self, Error> {
+        Self::new(
+            device_id,
+            ForeignLocator::Bacnet {
+                device_instance,
+                object_type,
+                object_instance,
+                property,
+            },
+        )
+    }
+
     pub fn as_modbus(&self) -> Option<(RegisterKind, u16)> {
         match self.locator {
             ForeignLocator::Modbus { kind, address } => Some((kind, address)),
-            ForeignLocator::Matter { .. } | ForeignLocator::Zigbee { .. } => None,
+            ForeignLocator::Matter { .. }
+            | ForeignLocator::Zigbee { .. }
+            | ForeignLocator::Bacnet { .. } => None,
         }
     }
 
@@ -163,7 +199,9 @@ impl ForeignRef {
                 cluster_id,
                 attribute_id,
             } => Some((endpoint, cluster_id, attribute_id)),
-            ForeignLocator::Modbus { .. } | ForeignLocator::Zigbee { .. } => None,
+            ForeignLocator::Modbus { .. }
+            | ForeignLocator::Zigbee { .. }
+            | ForeignLocator::Bacnet { .. } => None,
         }
     }
 
@@ -174,7 +212,23 @@ impl ForeignRef {
                 cluster_id,
                 attribute_id,
             } => Some((endpoint, cluster_id, attribute_id)),
-            ForeignLocator::Modbus { .. } | ForeignLocator::Matter { .. } => None,
+            ForeignLocator::Modbus { .. }
+            | ForeignLocator::Matter { .. }
+            | ForeignLocator::Bacnet { .. } => None,
+        }
+    }
+
+    pub fn as_bacnet(&self) -> Option<(u32, BacnetObjectType, u32, BacnetProperty)> {
+        match self.locator {
+            ForeignLocator::Bacnet {
+                device_instance,
+                object_type,
+                object_instance,
+                property,
+            } => Some((device_instance, object_type, object_instance, property)),
+            ForeignLocator::Modbus { .. }
+            | ForeignLocator::Matter { .. }
+            | ForeignLocator::Zigbee { .. } => None,
         }
     }
 }
@@ -188,6 +242,8 @@ pub enum ForeignRaw {
     Matter(MatterRaw),
     /// Zigbee mock attribute payload.
     Zigbee(ZigbeeRaw),
+    /// BACnet mock property payload.
+    Bacnet(BacnetRaw),
 }
 
 /// Raw Matter attribute encoding used by the in-memory mock fabric.
@@ -201,6 +257,14 @@ pub enum MatterRaw {
 /// Raw Zigbee attribute encoding used by the in-memory mock network.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ZigbeeRaw {
+    Bool(bool),
+    Int16(i16),
+    UInt16(u16),
+}
+
+/// Raw BACnet property encoding used by the in-memory mock device.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BacnetRaw {
     Bool(bool),
     Int16(i16),
     UInt16(u16),

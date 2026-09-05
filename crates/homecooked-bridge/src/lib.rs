@@ -1,4 +1,4 @@
-//! Bridge slice for HomeCooked: Modbus + Matter + Zigbee mock adapters, BACnet stub.
+//! Bridge slice for HomeCooked: Modbus + Matter + Zigbee + BACnet mock adapters.
 //!
 //! Aligns with [`docs/standard/bridges.md`](../../docs/standard/bridges.md)
 //! and [`docs/ROADMAP.md`](../../docs/ROADMAP.md) Stream 6.
@@ -20,13 +20,16 @@
 //! endpoint/cluster/attribute map and an in-memory attribute store. There is
 //! **no** zigbee2mqtt / MQTT / ZCL SDK dependency.
 //!
-//! [`BacnetBridge`] compiles and returns [`Error::UnsupportedFabric`].
+//! [`bacnet::BacnetBridge`] mirrors the same pattern for plant-bus BACnet:
+//! YAML/JSON device instance + object type/instance + property → point map
+//! and an in-memory property store. There is **no** BACnet/IP / MS/TP stack
+//! dependency; object types in fixtures are illustrative lab constants.
 
 #![allow(clippy::module_name_repetitions)]
 
 mod access;
 mod backend;
-mod bacnet;
+pub mod bacnet;
 mod bridge;
 mod error;
 pub mod matter;
@@ -36,8 +39,13 @@ pub mod zigbee;
 
 pub use access::MapAccess;
 pub use backend::{MemoryBackend, PointBackend};
-pub use bacnet::BacnetBridge;
-pub use bridge::{Bridge, ForeignLocator, ForeignRaw, ForeignRef, MatterRaw, PointRef, ZigbeeRaw};
+pub use bacnet::{
+    BacnetBridge, BacnetDevice, BacnetEntry, BacnetMap, BacnetObjectType, BacnetPropKey,
+    BacnetPropValue, BacnetProperty, KETTLE_BACNET_MAP_YAML,
+};
+pub use bridge::{
+    BacnetRaw, Bridge, ForeignLocator, ForeignRaw, ForeignRef, MatterRaw, PointRef, ZigbeeRaw,
+};
 pub use error::Error;
 pub use matter::{
     AttrValueType, MatterAttrKey, MatterAttrValue, MatterBridge, MatterEntry, MatterFabric,
@@ -55,34 +63,14 @@ pub use modbus::{
 #[cfg(test)]
 mod stub_tests {
     use super::*;
-    use homecooked_schema::Value;
-
-    fn point() -> PointRef {
-        PointRef::new("dev-1", "trait.temperature.setpoint_c").unwrap()
-    }
-
-    fn assert_unsupported<B: Bridge>(mut bridge: B, fabric: &'static str) {
-        assert_eq!(bridge.fabric(), fabric);
-        let err = bridge.read_point(&point()).unwrap_err();
-        assert_eq!(err, Error::UnsupportedFabric { fabric });
-        let err = bridge.write_point(&point(), &Value::F32(20.0)).unwrap_err();
-        assert_eq!(err, Error::UnsupportedFabric { fabric });
-        let foreign = ForeignRef::holding("dev-1", 0).unwrap();
-        assert_eq!(
-            bridge.read_foreign(&foreign).unwrap_err(),
-            Error::UnsupportedFabric { fabric }
-        );
-        assert_eq!(
-            bridge
-                .write_foreign(&foreign, ForeignRaw::Register(1))
-                .unwrap_err(),
-            Error::UnsupportedFabric { fabric }
-        );
-    }
 
     #[test]
-    fn bacnet_stub_is_unsupported() {
-        assert_unsupported(BacnetBridge::new(), "bacnet");
+    fn bacnet_is_no_longer_a_stub() {
+        let bridge = BacnetBridge::kettle_example().unwrap();
+        assert_eq!(bridge.fabric(), "bacnet");
+        assert!(bridge
+            .read_point(&PointRef::new("kettle-lab-1", "trait.temperature.setpoint_c").unwrap())
+            .is_ok());
     }
 
     #[test]

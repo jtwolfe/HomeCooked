@@ -1,62 +1,62 @@
-//! [`ZigbeeBridge`]: map + in-memory network + HomeCooked backend.
+//! [`BacnetBridge`]: map + in-memory device + HomeCooked backend.
 
 use homecooked_schema::Value;
 
-use super::map::{ZigbeeEntry, ZigbeeMap};
-use super::store::{ZigbeeAttrKey, ZigbeeAttrValue, ZigbeeNetwork};
+use super::map::{BacnetEntry, BacnetMap};
+use super::store::{BacnetDevice, BacnetPropKey, BacnetPropValue};
 use crate::backend::{MemoryBackend, PointBackend};
 use crate::bridge::{Bridge, ForeignRaw, ForeignRef, PointRef};
 use crate::error::Error;
 
-/// Zigbee adapter with a mocked fabric (no zigbee2mqtt / ZCL SDK dependency).
+/// BACnet adapter with a mocked device (no BACnet/IP / MS/TP stack dependency).
 #[derive(Debug, Clone)]
-pub struct ZigbeeBridge<B> {
-    map: ZigbeeMap,
-    fabric: ZigbeeNetwork,
+pub struct BacnetBridge<B> {
+    map: BacnetMap,
+    device: BacnetDevice,
     backend: B,
 }
 
-impl ZigbeeBridge<MemoryBackend> {
-    pub fn with_memory(map: ZigbeeMap) -> Result<Self, Error> {
+impl BacnetBridge<MemoryBackend> {
+    pub fn with_memory(map: BacnetMap) -> Result<Self, Error> {
         Self::new(map, MemoryBackend::new())
     }
 
     pub fn kettle_example() -> Result<Self, Error> {
-        Self::with_memory(ZigbeeMap::kettle_example()?)
+        Self::with_memory(BacnetMap::kettle_example()?)
     }
 }
 
-impl<B: PointBackend> ZigbeeBridge<B> {
-    pub fn new(map: ZigbeeMap, mut backend: B) -> Result<Self, Error> {
+impl<B: PointBackend> BacnetBridge<B> {
+    pub fn new(map: BacnetMap, mut backend: B) -> Result<Self, Error> {
         map.validate()?;
-        let fabric = ZigbeeNetwork::from_map(&map)?;
+        let device = BacnetDevice::from_map(&map)?;
         for entry in &map.entries {
-            let key = ZigbeeAttrKey::new(entry.endpoint, entry.cluster_id, entry.attribute_id);
-            let attr = fabric
+            let key = BacnetPropKey::new(entry.object_type, entry.object_instance, entry.property);
+            let prop = device
                 .get(key)
                 .ok_or_else(|| Error::InvalidMap(format!("missing seed for {}", entry.point)))?;
-            let value = entry.decode_attr(attr)?;
+            let value = entry.decode_prop(prop)?;
             let point = PointRef::new(&map.device_id, &entry.point)?;
             backend.set(&point, value)?;
         }
         Ok(Self {
             map,
-            fabric,
+            device,
             backend,
         })
     }
 
-    pub fn map(&self) -> &ZigbeeMap {
+    pub fn map(&self) -> &BacnetMap {
         &self.map
     }
 
-    /// In-memory mock attribute store (not the [`Bridge::fabric`] token).
-    pub fn attr_store(&self) -> &ZigbeeNetwork {
-        &self.fabric
+    /// In-memory mock property store (not the [`Bridge::fabric`] token).
+    pub fn prop_store(&self) -> &BacnetDevice {
+        &self.device
     }
 
-    pub fn attr_store_mut(&mut self) -> &mut ZigbeeNetwork {
-        &mut self.fabric
+    pub fn prop_store_mut(&mut self) -> &mut BacnetDevice {
+        &mut self.device
     }
 
     pub fn backend(&self) -> &B {
@@ -77,7 +77,7 @@ impl<B: PointBackend> ZigbeeBridge<B> {
         Ok(())
     }
 
-    fn entry_for_point(&self, point: &PointRef) -> Result<&ZigbeeEntry, Error> {
+    fn entry_for_point(&self, point: &PointRef) -> Result<&BacnetEntry, Error> {
         self.require_device(&point.device_id)?;
         self.map
             .entry_for_point(&point.point_id)
@@ -87,60 +87,70 @@ impl<B: PointBackend> ZigbeeBridge<B> {
             })
     }
 
-    fn entry_for_foreign(&self, foreign: &ForeignRef) -> Result<&ZigbeeEntry, Error> {
+    fn entry_for_foreign(&self, foreign: &ForeignRef) -> Result<&BacnetEntry, Error> {
         self.require_device(&foreign.device_id)?;
-        let (endpoint, cluster_id, attribute_id) =
-            foreign.as_zigbee().ok_or_else(|| Error::LocatorMismatch {
-                expected: "zigbee",
+        let (device_instance, object_type, object_instance, property) =
+            foreign.as_bacnet().ok_or_else(|| Error::LocatorMismatch {
+                expected: "bacnet",
                 locator: foreign.locator.clone(),
             })?;
+        if device_instance != self.map.device_instance {
+            return Err(Error::DeviceMismatch {
+                expected: format!("device_instance {}", self.map.device_instance),
+                actual: format!("device_instance {device_instance}"),
+            });
+        }
         self.map
-            .entry_for_attr(endpoint, cluster_id, attribute_id)
-            .ok_or(Error::UnmappedZigbeeAttribute {
-                endpoint,
-                cluster_id,
-                attribute_id,
+            .entry_for_prop(object_type, object_instance, property)
+            .ok_or(Error::UnmappedBacnetProperty {
+                object_type: object_type.to_string(),
+                object_instance,
+                property: property.to_string(),
             })
     }
 
-    fn apply_attr(&mut self, entry: &ZigbeeEntry, attr: ZigbeeAttrValue) -> Result<Value, Error> {
-        self.fabric
-            .write(entry.endpoint, entry.cluster_id, entry.attribute_id, attr);
-        let value = entry.decode_attr(attr)?;
+    fn apply_prop(&mut self, entry: &BacnetEntry, prop: BacnetPropValue) -> Result<Value, Error> {
+        self.device.write(
+            entry.object_type,
+            entry.object_instance,
+            entry.property,
+            prop,
+        );
+        let value = entry.decode_prop(prop)?;
         let point = PointRef::new(&self.map.device_id, &entry.point)?;
         self.backend.set(&point, value.clone())?;
         Ok(value)
     }
 
-    fn raw_to_attr(entry: &ZigbeeEntry, raw: ForeignRaw) -> Result<ZigbeeAttrValue, Error> {
+    fn raw_to_prop(entry: &BacnetEntry, raw: ForeignRaw) -> Result<BacnetPropValue, Error> {
         match raw {
-            ForeignRaw::Zigbee(m) => entry.encode_raw(m),
+            ForeignRaw::Bacnet(m) => entry.encode_raw(m),
             ForeignRaw::Register(_)
             | ForeignRaw::Coil(_)
             | ForeignRaw::Matter(_)
-            | ForeignRaw::Bacnet(_) => Err(Error::InvalidRaw {
-                detail: "non-zigbee raw is not valid for zigbee bridge".into(),
+            | ForeignRaw::Zigbee(_) => Err(Error::InvalidRaw {
+                detail: "non-bacnet raw is not valid for bacnet bridge".into(),
             }),
         }
     }
 }
 
-impl<B: PointBackend> Bridge for ZigbeeBridge<B> {
+impl<B: PointBackend> Bridge for BacnetBridge<B> {
     fn fabric(&self) -> &'static str {
-        "zigbee"
+        "bacnet"
     }
 
     fn read_point(&self, point: &PointRef) -> Result<Value, Error> {
         let entry = self.entry_for_point(point)?;
-        let attr = self
-            .fabric
-            .read(entry.endpoint, entry.cluster_id, entry.attribute_id)
-            .ok_or(Error::UnmappedZigbeeAttribute {
-                endpoint: entry.endpoint,
-                cluster_id: entry.cluster_id,
-                attribute_id: entry.attribute_id,
+        let prop = self
+            .device
+            .read(entry.object_type, entry.object_instance, entry.property)
+            .ok_or(Error::UnmappedBacnetProperty {
+                object_type: entry.object_type.to_string(),
+                object_instance: entry.object_instance,
+                property: entry.property.to_string(),
             })?;
-        entry.decode_attr(attr)
+        entry.decode_prop(prop)
     }
 
     fn write_point(&mut self, point: &PointRef, value: &Value) -> Result<(), Error> {
@@ -150,38 +160,39 @@ impl<B: PointBackend> Bridge for ZigbeeBridge<B> {
                 point_id: entry.point.clone(),
             });
         }
-        let attr = entry.encode_value(value)?;
-        self.apply_attr(&entry, attr)?;
+        let prop = entry.encode_value(value)?;
+        self.apply_prop(&entry, prop)?;
         Ok(())
     }
 
     fn read_foreign(&self, foreign: &ForeignRef) -> Result<Value, Error> {
         let entry = self.entry_for_foreign(foreign)?;
-        let attr = self
-            .fabric
-            .read(entry.endpoint, entry.cluster_id, entry.attribute_id)
-            .ok_or(Error::UnmappedZigbeeAttribute {
-                endpoint: entry.endpoint,
-                cluster_id: entry.cluster_id,
-                attribute_id: entry.attribute_id,
+        let prop = self
+            .device
+            .read(entry.object_type, entry.object_instance, entry.property)
+            .ok_or(Error::UnmappedBacnetProperty {
+                object_type: entry.object_type.to_string(),
+                object_instance: entry.object_instance,
+                property: entry.property.to_string(),
             })?;
-        entry.decode_attr(attr)
+        entry.decode_prop(prop)
     }
 
     fn write_foreign(&mut self, foreign: &ForeignRef, raw: ForeignRaw) -> Result<Value, Error> {
         let entry = self.entry_for_foreign(foreign)?.clone();
-        let attr = Self::raw_to_attr(&entry, raw)?;
-        self.apply_attr(&entry, attr)
+        let prop = Self::raw_to_prop(&entry, raw)?;
+        self.apply_prop(&entry, prop)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bridge::ZigbeeRaw;
+    use crate::bacnet::{BacnetObjectType, BacnetProperty};
+    use crate::bridge::BacnetRaw;
 
-    fn kettle() -> ZigbeeBridge<MemoryBackend> {
-        ZigbeeBridge::kettle_example().unwrap()
+    fn kettle() -> BacnetBridge<MemoryBackend> {
+        BacnetBridge::kettle_example().unwrap()
     }
 
     fn point(id: &str) -> PointRef {
@@ -189,9 +200,9 @@ mod tests {
     }
 
     #[test]
-    fn seeds_backend_from_initial_attrs() {
+    fn seeds_backend_from_initial_props() {
         let bridge = kettle();
-        assert_eq!(Bridge::fabric(&bridge), "zigbee");
+        assert_eq!(Bridge::fabric(&bridge), "bacnet");
         assert_eq!(
             bridge
                 .backend()
@@ -213,11 +224,18 @@ mod tests {
     }
 
     #[test]
-    fn foreign_attr_write_updates_homecooked_backend() {
+    fn foreign_prop_write_updates_homecooked_backend() {
         let mut bridge = kettle();
-        let foreign = ForeignRef::zigbee("kettle-lab-1", 1, 0x0201, 0x0012).unwrap();
+        let foreign = ForeignRef::bacnet(
+            "kettle-lab-1",
+            1,
+            BacnetObjectType::AnalogValue,
+            1,
+            BacnetProperty::PresentValue,
+        )
+        .unwrap();
         let value = bridge
-            .write_foreign(&foreign, ForeignRaw::Zigbee(ZigbeeRaw::Int16(6500)))
+            .write_foreign(&foreign, ForeignRaw::Bacnet(BacnetRaw::Int16(6500)))
             .unwrap();
         assert_eq!(value, Value::F32(65.0));
         assert_eq!(
@@ -235,11 +253,18 @@ mod tests {
     }
 
     #[test]
-    fn foreign_onoff_write_updates_power_state() {
+    fn foreign_binary_write_updates_power_state() {
         let mut bridge = kettle();
-        let foreign = ForeignRef::zigbee("kettle-lab-1", 1, 0x0006, 0x0000).unwrap();
+        let foreign = ForeignRef::bacnet(
+            "kettle-lab-1",
+            1,
+            BacnetObjectType::BinaryValue,
+            1,
+            BacnetProperty::PresentValue,
+        )
+        .unwrap();
         let value = bridge
-            .write_foreign(&foreign, ForeignRaw::Zigbee(ZigbeeRaw::Bool(false)))
+            .write_foreign(&foreign, ForeignRaw::Bacnet(BacnetRaw::Bool(false)))
             .unwrap();
         assert_eq!(value, Value::Enum("off".into()));
         assert_eq!(
@@ -249,20 +274,28 @@ mod tests {
             Some(&Value::Enum("off".into()))
         );
         assert_eq!(
-            bridge.attr_store().read(1, 0x0006, 0x0000),
-            Some(ZigbeeAttrValue::Bool(false))
+            bridge.prop_store().read(
+                BacnetObjectType::BinaryValue,
+                1,
+                BacnetProperty::PresentValue
+            ),
+            Some(BacnetPropValue::Bool(false))
         );
     }
 
     #[test]
-    fn homecooked_write_updates_attribute() {
+    fn homecooked_write_updates_property() {
         let mut bridge = kettle();
         bridge
             .write_point(&point("trait.temperature.setpoint_c"), &Value::F32(90.0))
             .unwrap();
         assert_eq!(
-            bridge.attr_store().read(1, 0x0201, 0x0012),
-            Some(ZigbeeAttrValue::Int16(9000))
+            bridge.prop_store().read(
+                BacnetObjectType::AnalogValue,
+                1,
+                BacnetProperty::PresentValue
+            ),
+            Some(BacnetPropValue::Int16(9000))
         );
         assert_eq!(
             bridge
@@ -273,7 +306,7 @@ mod tests {
     }
 
     #[test]
-    fn homecooked_write_updates_onoff() {
+    fn homecooked_write_updates_binary() {
         let mut bridge = kettle();
         bridge
             .write_point(
@@ -282,15 +315,23 @@ mod tests {
             )
             .unwrap();
         assert_eq!(
-            bridge.attr_store().read(1, 0x0006, 0x0000),
-            Some(ZigbeeAttrValue::Bool(false))
+            bridge.prop_store().read(
+                BacnetObjectType::BinaryValue,
+                1,
+                BacnetProperty::PresentValue
+            ),
+            Some(BacnetPropValue::Bool(false))
         );
         bridge
             .write_point(&point("trait.power.power_state"), &Value::Enum("on".into()))
             .unwrap();
         assert_eq!(
-            bridge.attr_store().read(1, 0x0006, 0x0000),
-            Some(ZigbeeAttrValue::Bool(true))
+            bridge.prop_store().read(
+                BacnetObjectType::BinaryValue,
+                1,
+                BacnetProperty::PresentValue
+            ),
+            Some(BacnetPropValue::Bool(true))
         );
     }
 
@@ -302,13 +343,24 @@ mod tests {
             .unwrap_err();
         assert!(matches!(err, Error::NotWritable { .. }));
         assert_eq!(
-            bridge.attr_store().read(1, 0x0402, 0x0000),
-            Some(ZigbeeAttrValue::Int16(2500))
+            bridge.prop_store().read(
+                BacnetObjectType::AnalogInput,
+                1,
+                BacnetProperty::PresentValue
+            ),
+            Some(BacnetPropValue::Int16(2500))
         );
 
-        let foreign = ForeignRef::zigbee("kettle-lab-1", 1, 0x0402, 0x0000).unwrap();
+        let foreign = ForeignRef::bacnet(
+            "kettle-lab-1",
+            1,
+            BacnetObjectType::AnalogInput,
+            1,
+            BacnetProperty::PresentValue,
+        )
+        .unwrap();
         bridge
-            .write_foreign(&foreign, ForeignRaw::Zigbee(ZigbeeRaw::Int16(5120)))
+            .write_foreign(&foreign, ForeignRaw::Bacnet(BacnetRaw::Int16(5120)))
             .unwrap();
         assert_eq!(
             bridge
@@ -331,10 +383,17 @@ mod tests {
             bridge.read_point(&unknown),
             Err(Error::UnmappedPoint { .. })
         ));
-        let missing = ForeignRef::zigbee("kettle-lab-1", 1, 0x9999, 0).unwrap();
+        let missing = ForeignRef::bacnet(
+            "kettle-lab-1",
+            1,
+            BacnetObjectType::AnalogValue,
+            99,
+            BacnetProperty::PresentValue,
+        )
+        .unwrap();
         assert!(matches!(
-            bridge.write_foreign(&missing, ForeignRaw::Zigbee(ZigbeeRaw::Bool(true))),
-            Err(Error::UnmappedZigbeeAttribute { .. })
+            bridge.write_foreign(&missing, ForeignRaw::Bacnet(BacnetRaw::Bool(true))),
+            Err(Error::UnmappedBacnetProperty { .. })
         ));
         let modbus = ForeignRef::holding("kettle-lab-1", 0).unwrap();
         assert!(matches!(

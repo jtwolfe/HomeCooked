@@ -1,0 +1,47 @@
+# INFORMATIVE EXAMPLE — fake kettle BACnet map (not a certified product).
+#
+# Object types and property ids below are ILLUSTRATIVE LAB CONSTANTS chosen to
+# resemble common BACnet shapes (BinaryValue, AnalogInput, AnalogValue
+# present-value). They are NOT a claim of BACnet/IP or MS/TP compliance, or of
+# ASHRAE stack integration.
+#
+# Catalog points (see docs/catalog and crates/homecooked-schema):
+#   trait.power.power_state        enum off|standby|on|fault  (RE)
+#   trait.temperature.current_c    F32  °C   (RE)
+#   trait.temperature.setpoint_c   F32  °C   (RWE)
+#
+# There is no catalog bool `trait.power.on`; BinaryValue maps the on/off subset
+# of `trait.power.power_state`. Analog present-values are stored as int16
+# hundredths of a degree C (scale: 0.01).
+version: "0.1.0"
+class_id: kettle
+device_id: kettle-lab-1
+device_instance: 1
+entries:
+  - point: trait.power.power_state
+    object_type: binary_value
+    object_instance: 1
+    property: present_value
+    value_type: bool
+    true_token: on
+    false_token: off
+    access: rw
+    initial_bool: true
+
+  - point: trait.temperature.current_c
+    object_type: analog_input
+    object_instance: 1
+    property: present_value
+    value_type: int16
+    scale: 0.01
+    access: r
+    initial_int: 2500
+
+  - point: trait.temperature.setpoint_c
+    object_type: analog_value
+    object_instance: 1
+    property: present_value
+    value_type: int16
+    scale: 0.01
+    access: rw
+    initial_int: 8000
