@@ -2203,6 +2203,9 @@ const WATER_HEATER_MODE: &[&str] = &[
 ];
 const WATER_HEATER_FORM: &[&str] = &["tank", "tankless", "heat_pump"];
 
+/// Thin water_heater DHW surface (mode/temps/leak/dry_fire/recirc/form_factor).
+/// Depth points live in `WATER_HEATER_DEPTH` so optional Tier-A deepen does not
+/// rewrite the thermal-port / DHW-preheat core or Temperature setpoint.
 static WATER_HEATER_BASE: &[CatalogPoint] = &[
     s(
         "mode",
@@ -2263,7 +2266,75 @@ static WATER_HEATER_BASE: &[CatalogPoint] = &[
     ),
 ];
 
-const WATER_HEATER_MERGED: [CatalogPoint; 13] = concat2(WATER_HEATER_BASE, THERMAL_PORT_POINTS);
+/// Water_heater optional depth (Stream 7 undepened Tier-A). Boiler / kettle
+/// template (sabbath/eco/heater_on/alarms/timer). Reuses thin-table mode /
+/// inlet_c / outlet_c / hot_remaining_percent / leak / dry_fire / recirc_on /
+/// form_factor (not parallel holds). Do not duplicate Temperature setpoint or
+/// `thermal_port_*`. Mode enum already includes `vacation` — no parallel
+/// `vacation_mode` bool. `leak_alarm` is compact RE beside thin `leak` (salt_low
+/// / water_tank_empty pattern). Heater trait already typical (`heater_state`);
+/// class `heater_on` is compact RE telemetry like kettle / water_dispenser.
+static WATER_HEATER_DEPTH: &[CatalogPoint] = &[
+    s(
+        "sabbath_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    ),
+    s(
+        "eco_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "heater_on",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "high_temp_alarm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "low_temp_alarm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "leak_alarm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "timer_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 3600),
+        AccessMode::RWE,
+        false,
+    ),
+];
+
+const WATER_HEATER_MERGED: [CatalogPoint; 20] =
+    concat3(WATER_HEATER_BASE, WATER_HEATER_DEPTH, THERMAL_PORT_POINTS);
 const WATER_HEATER_POINTS: &[CatalogPoint] = &WATER_HEATER_MERGED;
 
 const HVAC_TRAITS: &[TraitId] = &[
