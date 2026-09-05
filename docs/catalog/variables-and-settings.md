@@ -1099,10 +1099,18 @@ Setpoint typically 200–450 °C.
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `plate_top_c` | f32 | celsius | | r/e | opt | |
-| `plate_bottom_c` | f32 | celsius | | r/e | opt | |
-| `sear` | bool | — | | r/w | opt | |
-| `grease_tray` | enum | — | `ok` `missing` `full` | r/e | opt | |
+| `plate_top_c` | f32 | celsius | | r/e | opt | Top contact plate temperature |
+| `plate_bottom_c` | f32 | celsius | | r/e | opt | Bottom contact plate temperature |
+| `sear` | bool | — | | r/w | opt | Sear / boost heat |
+| `grease_tray` | enum | — | `ok` `missing` `full` | r/e | opt | Grease tray status |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving heater duty |
+| `heater_on` | bool | — | | r/e | opt | Element / heater active |
+| `high_temp_alarm` | bool | — | | r/e | opt | Overtemp / too-hot |
+| `lid_open` | bool | — | | r/e | opt | Lid open / ajar bit |
+| `timer_s` | duration_s | second | 0–10800 | r/w/e | opt | Cook / countdown timer |
+
+Setpoint typically 100–250 °C.
 
 ---
 

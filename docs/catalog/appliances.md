@@ -779,8 +779,13 @@ sear boost.
 **Typical readable state:** plate temps (top/bottom), lid, grease tray missing,
 done.
 
-**Notes:** Outdoor gas grills with Wi-Fi probes may use this class plus vendor
-gas variables, or a vendor class if burners are the primary interface.
+**Notes:**
+
+- Outdoor gas grills with Wi-Fi probes may use this class plus vendor gas
+  variables, or a vendor class if burners are the primary interface.
+- Catalog depth: optional class points include `plate_top_c`, `plate_bottom_c`,
+  `sear`, `grease_tray`, sabbath, eco, `heater_on`, `high_temp_alarm`,
+  `lid_open`, and `timer_s` (see variables-and-settings).
 
 ### `electric_smoker`
 
