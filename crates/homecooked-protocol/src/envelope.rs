@@ -1,6 +1,7 @@
 //! Message envelope: version, ids, and kind-tagged body.
 
 use std::sync::atomic::{AtomicU64, Ordering};
+#[cfg(not(all(target_arch = "wasm32", not(target_os = "wasi"))))]
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use homecooked_schema::SemVer;
@@ -18,12 +19,20 @@ pub fn next_message_id() -> String {
 }
 
 /// Sender timestamp in milliseconds since Unix epoch. Returns 0 if the clock
-/// is before the epoch.
+/// is before the epoch, or on `wasm32-unknown-unknown` where `SystemTime`
+/// is not available.
 pub fn now_ms() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_millis() as u64)
-        .unwrap_or(0)
+    #[cfg(all(target_arch = "wasm32", not(target_os = "wasi")))]
+    {
+        0
+    }
+    #[cfg(not(all(target_arch = "wasm32", not(target_os = "wasi"))))]
+    {
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_millis() as u64)
+            .unwrap_or(0)
+    }
 }
 
 /// Every message on the wire (overview §6.2).

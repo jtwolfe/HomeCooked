@@ -21,20 +21,14 @@ of truth**; code must track `docs/catalog/` and `docs/standard/`.
 Cargo workspace. Schema and catalog versions are **0.1.0**. Protocol version
 is **0.1.0** (peers are rejected only on protocol **major** mismatch).
 
-| Crate | Path | Role |
-|-------|------|------|
+| Crate / app | Path | Role |
+|-------------|------|------|
 | `homecooked-schema` | [`crates/homecooked-schema`](crates/homecooked-schema) | Catalog-backed serde types, capability model, static tables, write validation |
 | `homecooked-protocol` | [`crates/homecooked-protocol`](crates/homecooked-protocol) | Envelope framing, request/response kinds, discovery, JSON, errors |
 | `homecooked-core` | [`crates/homecooked-core`](crates/homecooked-core) | Device registry, capability-enforced read/write, request handling |
 | `homecooked-sim` | [`crates/homecooked-sim`](crates/homecooked-sim) | In-memory devices for the nine static classes |
-
-WASM and the web simulator are **not** in this revision.
-
-```bash
-cargo test
-cargo clippy --all-targets -- -D warnings
-cargo fmt --all
-```
+| `homecooked-wasm` | [`crates/homecooked-wasm`](crates/homecooked-wasm) | wasm-bindgen JSON API over the simulator |
+| simulator-web | [`apps/simulator-web`](apps/simulator-web) | Static HTML/JS UI that loads the wasm-pack output |
 
 `list_all_class_ids` covers the full class index in
 `docs/catalog/appliances.md`. Static capability tables (and therefore
@@ -42,17 +36,47 @@ simulated devices) are provided for `washer`, `dryer`, `fridge`,
 `dishwasher`, `microwave`, `oven`, `induction_hob`, `kettle`, and
 `air_fryer`.
 
+## Tests
+
+```bash
+cargo test
+cargo clippy --workspace --all-targets -- -D warnings
+cargo fmt --all
+```
+
+CI on `main` (and PRs targeting `main`) runs rustfmt, clippy (`-D warnings`),
+`cargo test`, and a wasm-pack build.
+
+## Web simulator
+
+Requires `wasm-pack` and the `wasm32-unknown-unknown` target
+(`rustup target add wasm32-unknown-unknown`). `--out-dir` is relative to the
+wasm crate, not the repo root:
+
+```bash
+wasm-pack build crates/homecooked-wasm --target web --out-dir ../../apps/simulator-web/pkg
+cd apps/simulator-web
+python3 -m http.server 8080
+```
+
+Open <http://127.0.0.1:8080>. Do not open `index.html` as a `file://` URL;
+the browser will not load the ES module / WASM.
+
+See [`apps/simulator-web/README.md`](apps/simulator-web/README.md).
+
 ## Contributing
 
-- Work on **feature branches**; open **small, focused PRs** against `main`.
-- CI must pass on the PR (when workflows exist). Do not claim done without the
-  relevant tests / wasm build for code changes.
-- **Never force-push `main`.** Do not rewrite published history on default
-  branches.
-- Do not paste secrets into the repo or PR descriptions.
-- Catalog and standard docs land before or with the code that implements them.
-  Do not invent core class / trait / point ids in code that are missing from
-  `docs/catalog/`.
+1. Branch from **`main`** using a short prefix (`feat/…`, `fix/…`, `docs/…`).
+   Do not commit directly to `main`.
+2. Open a **small, focused PR** against `main`. One concern per PR when you can.
+3. CI must pass. For Rust changes run `cargo test` (and clippy/fmt). For wasm
+   or simulator-web changes also run the `wasm-pack build` command above.
+4. **Never force-push `main`.** Do not rewrite published history on default
+   branches.
+5. Do not paste secrets into the repo or PR descriptions.
+6. Catalog and standard docs land before or with the code that implements them.
+   Do not invent core class / trait / point ids in code that are missing from
+   `docs/catalog/`.
 
 ## License
 
