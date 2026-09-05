@@ -441,15 +441,22 @@ Refrigerated keg cabinet with optional CO₂ / dispense controls.
 **Typical traits:** `identity`, `power`, `connectivity`, `door_lid`,
 `temperature`, `dispense`, `lighting`, `fault`, `energy`.
 
-**Typical controllable settings:** beer temperature setpoint, light, maybe
-CO₂ solenoid enable (if instrumented).
+**Typical controllable settings:**
 
-**Typical readable state:** temperature, door, compressor, keg empty (if
-load-cell or flow), CO₂ pressure (optional).
+- Setpoint (typically 1–10 °C), lighting, eco, sabbath
 
-**Notes:** Gas pressure writes are vendor extensions unless a device advertises
-a calibrated `co2_pressure_kpa` setting. Uncontrolled party fridges are
-`beverage_cooler`.
+**Typical readable state:**
+
+- Temperature, door ajar, compressor, high/low temp alarms
+- CO₂ pressure (`co2_kpa`), keg level (`keg_percent` / `keg_empty`), energy
+
+**Notes:**
+
+- Gas pressure writes are vendor extensions unless a device advertises a
+  calibrated CO₂ setpoint. Uncontrolled party fridges are `beverage_cooler`.
+- Catalog depth: optional class points include sabbath, eco, compressor, temp
+  alarms, `door_ajar`, `co2_kpa`, `keg_percent`, and `keg_empty` (see
+  variables-and-settings).
 
 ---
 
