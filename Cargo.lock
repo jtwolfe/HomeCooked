@@ -167,6 +167,7 @@ dependencies = [
  "homecooked-core",
  "homecooked-schema",
  "homecooked-sim",
+ "homecooked-thermal",
  "serde",
  "serde_json",
 ]

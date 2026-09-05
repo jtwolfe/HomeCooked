@@ -12,5 +12,6 @@ readme = "README.md"
 homecooked-core = { path = "../homecooked-core" }
 homecooked-schema = { path = "../homecooked-schema" }
 homecooked-sim = { path = "../homecooked-sim" }
+homecooked-thermal = { path = "../homecooked-thermal" }
 serde = { workspace = true }
 serde_json = { workspace = true }

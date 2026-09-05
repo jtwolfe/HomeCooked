@@ -5,16 +5,18 @@ serde documents, structural (+ optional capability) validation, and a
 sequential runner.
 
 Aligns with [`docs/standard/procedures.md`](../../docs/standard/procedures.md)
-(§2–5). Parallel steps, expression-language guards, WASM/UI, thermal-plant,
-bridges, TCP transport, and HAL are out of scope for this crate.
+(§2–5). Parallel steps, expression-language guards, WASM/UI for thermal_wait,
+offer/negotiate-as-steps, bridges, TCP transport, and HAL remain out of scope
+or deferred for this crate.
 
 ## Document
 
 A procedure is an ordered list of steps. Each step is one of `read`,
-`write`, `command`, `wait`, or `assert` (the sketch’s `guard` op maps to
-`assert`). Simple comparison guards (`eq` / `ne` / `gt` / `gte` / `lt` /
-`lte`) may be AND-combined. Multi-device roles may appear in the document;
-the runner binds them through a role → device-id map.
+`write`, `command`, `wait`, `assert` (the sketch’s `guard` op maps to
+`assert`), or thin `thermal_wait` (alias `wait_reservoir`) on a plant
+reservoir temperature. Simple comparison guards (`eq` / `ne` / `gt` /
+`gte` / `lt` / `lte`) may be AND-combined. Multi-device roles may appear in
+the document; the runner binds them through a role → device-id map.
 
 Worked example (microwave-only Domino's reheat sketch):
 [`examples/reheat_dominos_microwave.json`](examples/reheat_dominos_microwave.json).
@@ -26,16 +28,22 @@ Coffee brew happy-path (power on + `espresso` + boiler heat wait):
 [`examples/coffee_brew_espresso.json`](examples/coffee_brew_espresso.json).
 
 Dishwasher companion to the fridge→DHW thermal demo (procedure leg only —
-thermal must run out-of-band first):
+thermal transfer still out-of-band):
 [`examples/dishwasher_dhw_preheat.json`](examples/dishwasher_dhw_preheat.json).
-See [`docs/standard/thermal-plant.md`](../../docs/standard/thermal-plant.md) §8.1.
+
+Thin procedure⇄thermal wait on DHW reservoir temp:
+[`examples/wait_dhw_reservoir.json`](examples/wait_dhw_reservoir.json)
+(`SimulatorBackend::with_plant`). See
+[`docs/standard/thermal-plant.md`](../../docs/standard/thermal-plant.md) §8.
 
 ## Runner
 
-`DeviceBackend` is `read` / `write` / `tick`. `Simulator` implements it so
-`Wait` advances **simulated** time (`tick`, default 1000 ms) instead of
-sleeping on the wall clock. Kettle/oven heat and cycle progress therefore move
-under the runner.
+`DeviceBackend` is `read` / `write` / `tick` plus optional
+`thermal_read_reservoir_temp` / `thermal_tick`. `Simulator` implements device
+I/O so `Wait` advances **simulated** time (`tick`, default 1000 ms) instead of
+sleeping on the wall clock. `SimulatorBackend` may hold a `ThermalPlant` for
+`thermal_wait`. Kettle/oven heat and cycle progress therefore move under the
+runner.
 
 ```bash
 cargo test -p homecooked-procedure

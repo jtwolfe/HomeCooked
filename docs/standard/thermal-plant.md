@@ -183,8 +183,8 @@ ordinary HomeCooked reads/writes on vendor or experimental points.
 
 ### 8.1 Dual-path demo (v0.1 executable)
 
-Procedures cannot call thermal APIs yet. The runnable dual-path demo therefore
-orchestrates **outside** the procedure JSON:
+The original dual-path demo orchestrates **outside** the procedure JSON
+(thermal transfer, then dishwasher settings). That path remains:
 
 1. **Thermal path** — `ThermalPlant::fridge_condenser_dhw_demo()`, negotiate
    fridge condenser → water_heater preheat, `step(3600)` → DHW rises
@@ -207,6 +207,35 @@ cargo test -p homecooked-conformance thermal_then_dishwasher
 cargo test -p homecooked-wasm run_thermal_then_dishwasher
 ```
 
+### 8.2 Thin procedure⇄thermal bridge (`thermal_wait`)
+
+Procedures can now **wait/assert on a plant reservoir temperature** without
+inventing parallel appliance classes:
+
+- Step action `thermal_wait` (alias `wait_reservoir`) with
+  `{ reservoir_id, cmp, temp_c, timeout_s }`.
+- `DeviceBackend::thermal_read_reservoir_temp` / `thermal_tick` (default:
+  unsupported / no-op). `SimulatorBackend` holds an optional `ThermalPlant`
+  and implements both.
+- Bundled fixture `wait_dhw_reservoir` waits until `dhw-tank` ≥ 36 °C.
+  Plant accepts are one-shot per `step`, so demos typically negotiate+step
+  (or otherwise seed the reservoir) **before** the wait; the wait loop still
+  polls + `thermal_tick` until the comparison holds or `timeout_s` elapses.
+
+| Surface | Entry |
+|---------|--------|
+| Procedure crate | `WAIT_DHW_RESERVOIR_JSON` + `SimulatorBackend::with_plant` |
+| Conformance | `procedure_thermal_wait_dhw` |
+
+```bash
+cargo test -p homecooked-procedure thermal_wait
+cargo test -p homecooked-conformance procedure_thermal_wait_dhw
+```
+
+**Still deferred:** offer/accept/negotiate as procedure steps; promoting plant
+types into schema; wasm/UI wiring for `thermal_wait` (dual-path orchestrator
+UI remains).
+
 ---
 
 ## 9. Document history
@@ -215,5 +244,6 @@ cargo test -p homecooked-wasm run_thermal_then_dishwasher
 |---------|--------|
 | 0.1.0 | Initial thermal / hydraulic coupling sketch |
 | 0.1.0+ | First executable plant slice in `homecooked-thermal` (types, registry, offer/accept, tick). Sketch text unchanged; types remain experimental / not catalog ids. |
-| 0.1.0+ | Dual-path demo: thermal fridge→DHW then `dishwasher_dhw_preheat` procedure (conformance + wasm). Procedures still cannot call thermal APIs directly. |
+| 0.1.0+ | Dual-path demo: thermal fridge→DHW then `dishwasher_dhw_preheat` procedure (conformance + wasm). |
 | 0.1.0+ | Catalog/sim device telemetry surface: optional `thermal_port_id` / `direction` / `media` / `max_power_w` / `attached_reservoir_id` (RW) on `water_heater`, `fridge`, `hvac`, and `dishwasher` (`inlet_preheat` sink). Plant types remain crate-local in `homecooked-thermal`. |
+| 0.1.0+ | Thin procedure⇄thermal: `thermal_wait` step + backend hooks + `wait_dhw_reservoir` fixture + conformance `procedure_thermal_wait_dhw`. Offer/negotiate-as-steps and wasm UI still deferred. |

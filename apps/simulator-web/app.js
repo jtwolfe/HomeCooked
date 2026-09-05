@@ -615,6 +615,11 @@ function listExampleProcedures() {
         name: "Brew espresso",
         class_hints: ["coffee_machine"],
       },
+      {
+        id: "wait_dhw_reservoir",
+        name: "Wait until DHW reservoir is warm",
+        class_hints: [],
+      },
     ];
   }
 }

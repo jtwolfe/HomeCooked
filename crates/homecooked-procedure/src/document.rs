@@ -27,6 +27,9 @@ pub const OVEN_BAKE_180_JSON: &str = include_str!("../examples/oven_bake_180.jso
 /// Coffee brew happy-path: power on, program espresso, wait until boiler ≥ 85 °C.
 pub const COFFEE_BREW_ESPRESSO_JSON: &str = include_str!("../examples/coffee_brew_espresso.json");
 
+/// Wait on plant DHW reservoir temperature (procedure⇄thermal thin bridge).
+pub const WAIT_DHW_RESERVOIR_JSON: &str = include_str!("../examples/wait_dhw_reservoir.json");
+
 /// Bundled example documents: `(id, json)`.
 pub const BUNDLED_EXAMPLE_PROCEDURES: &[(&str, &str)] = &[
     ("kettle_heat_80", KETTLE_HEAT_80_JSON),
@@ -35,6 +38,7 @@ pub const BUNDLED_EXAMPLE_PROCEDURES: &[(&str, &str)] = &[
     ("dishwasher_dhw_preheat", DISHWASHER_DHW_PREHEAT_JSON),
     ("oven_bake_180", OVEN_BAKE_180_JSON),
     ("coffee_brew_espresso", COFFEE_BREW_ESPRESSO_JSON),
+    ("wait_dhw_reservoir", WAIT_DHW_RESERVOIR_JSON),
 ];
 
 /// Ordered recipe / protocol document.
@@ -77,6 +81,31 @@ pub enum ClassHint {
     Any(Vec<ApplianceClassId>),
 }
 
+/// Comparison operator for [`StepAction::ThermalWait`] (numeric °C).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ThermalCmp {
+    Eq,
+    Ne,
+    Gt,
+    Gte,
+    Lt,
+    Lte,
+}
+
+impl ThermalCmp {
+    pub fn eval(self, got: f64, threshold: f64) -> bool {
+        match self {
+            Self::Eq => (got - threshold).abs() < 1e-6,
+            Self::Ne => (got - threshold).abs() >= 1e-6,
+            Self::Gt => got > threshold,
+            Self::Gte => got >= threshold,
+            Self::Lt => got < threshold,
+            Self::Lte => got <= threshold,
+        }
+    }
+}
+
 /// One sequential HomeCooked operation.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Step {
@@ -91,6 +120,15 @@ pub struct Step {
     pub guards: GuardSet,
     #[serde(default, alias = "timeout", skip_serializing_if = "Option::is_none")]
     pub timeout_s: Option<u32>,
+    /// Plant reservoir id for [`StepAction::ThermalWait`].
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reservoir_id: Option<String>,
+    /// Comparison for [`StepAction::ThermalWait`] (`gte`, `gt`, …).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cmp: Option<ThermalCmp>,
+    /// Threshold °C for [`StepAction::ThermalWait`].
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub temp_c: Option<f64>,
 }
 
 /// Executable ops. Sketch `guard` deserializes as [`StepAction::Assert`].
@@ -103,6 +141,9 @@ pub enum StepAction {
     Wait,
     #[serde(alias = "guard")]
     Assert,
+    /// Wait until a thermal plant reservoir temperature meets `cmp`/`temp_c`.
+    #[serde(alias = "wait_reservoir")]
+    ThermalWait,
 }
 
 /// Device binding plus optional qualified point id.
@@ -148,6 +189,10 @@ impl Step {
 
     pub fn guards(&self) -> &[Guard] {
         self.guards.as_slice()
+    }
+
+    pub fn reservoir_id(&self) -> Option<&str> {
+        self.reservoir_id.as_deref()
     }
 }
 

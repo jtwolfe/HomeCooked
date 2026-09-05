@@ -1,7 +1,7 @@
 {
   "id": "dishwasher_dhw_preheat",
   "name": "Dishwasher with DHW preheat available",
-  "description": "Companion to the fridge→DHW thermal plant demo. Procedures cannot call thermal APIs yet: run create_thermal_demo + transfer first (or the wasm/conformance dual-path helper), then this recipe. With warm DHW inlet available, write eco program and a moderate wash_temp_c (less electrical boost than intensive).",
+  "description": "Companion to the fridge→DHW thermal plant demo. Transfer still runs out-of-band (or use wait_dhw_reservoir / thermal_wait for the reservoir gate): run create_thermal_demo + transfer first (or the wasm/conformance dual-path helper), then this recipe. With warm DHW inlet available, write eco program and a moderate wash_temp_c (less electrical boost than intensive).",
   "catalog_version": "0.1.0",
   "protocol_version": "0.1.0",
   "devices": [

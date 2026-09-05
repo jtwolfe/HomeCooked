@@ -3,10 +3,15 @@ use std::collections::HashMap;
 use homecooked_schema::{typical_capability, ApplianceClassId, ErrorCode};
 use homecooked_sim::Simulator;
 
+use homecooked_thermal::{
+    PortRef, PowerBandW, ThermalPlant, TransferOffer, TransferReply, TransferTarget,
+};
+
 use crate::{
-    run, DeviceBindings, FailReason, Procedure, RunStatus, StepAction, COFFEE_BREW_ESPRESSO_JSON,
+    run, run_with_config, DeviceBindings, FailReason, Procedure, RunConfig, RunStatus,
+    SimulatorBackend, StepAction, ThermalCmp, COFFEE_BREW_ESPRESSO_JSON,
     DISHWASHER_DHW_PREHEAT_JSON, KETTLE_HEAT_80_JSON, OVEN_BAKE_180_JSON,
-    REHEAT_DOMINOS_MICROWAVE_JSON, WASH_THEN_DRY_JSON,
+    REHEAT_DOMINOS_MICROWAVE_JSON, WAIT_DHW_RESERVOIR_JSON, WASH_THEN_DRY_JSON,
 };
 
 fn kettle_bindings(sim: &mut Simulator) -> DeviceBindings {
@@ -57,6 +62,7 @@ fn bundled_example_constants_parse() {
             "dishwasher_dhw_preheat",
             "oven_bake_180",
             "coffee_brew_espresso",
+            "wait_dhw_reservoir",
         ]
     );
 }
@@ -583,4 +589,200 @@ fn dishwasher_dhw_preheat_completes_against_sim() {
         )
         .unwrap();
     assert_eq!(wash_temp, homecooked_schema::Value::F32(45.0));
+}
+
+fn demo_fridge_offer() -> TransferOffer {
+    TransferOffer::new(
+        PortRef::new("fridge-kitchen", "condenser").unwrap(),
+        TransferTarget::port("water-heater-plant", "preheat").unwrap(),
+        PowerBandW::new(80, 120).unwrap(),
+        None,
+        1,
+    )
+}
+
+#[test]
+fn parse_wait_dhw_reservoir_fixture() {
+    let doc = Procedure::load_json(WAIT_DHW_RESERVOIR_JSON).unwrap();
+    assert_eq!(doc.id, "wait_dhw_reservoir");
+    assert!(doc.devices.is_empty());
+    assert_eq!(doc.steps.len(), 1);
+    assert_eq!(doc.steps[0].action, StepAction::ThermalWait);
+    assert_eq!(doc.steps[0].reservoir_id(), Some("dhw-tank"));
+    assert_eq!(doc.steps[0].cmp, Some(ThermalCmp::Gte));
+    assert_eq!(doc.steps[0].temp_c, Some(36.0));
+    assert_eq!(doc.steps[0].timeout_s, Some(7200));
+}
+
+#[test]
+fn thermal_wait_alias_wait_reservoir_parses() {
+    let raw = r#"{
+      "id": "alias",
+      "name": "alias",
+      "steps": [{
+        "id": "w",
+        "op": "wait_reservoir",
+        "reservoir_id": "dhw-tank",
+        "cmp": "gte",
+        "temp_c": 36.0,
+        "timeout_s": 60
+      }]
+    }"#;
+    let doc = Procedure::load_json(raw).unwrap();
+    assert_eq!(doc.steps[0].action, StepAction::ThermalWait);
+}
+
+#[test]
+fn thermal_wait_validation_requires_fields() {
+    let missing = r#"{
+      "id": "bad",
+      "name": "bad",
+      "steps": [{ "id": "w", "action": "thermal_wait", "timeout_s": 10 }]
+    }"#;
+    let err = Procedure::from_json_str(missing)
+        .unwrap()
+        .validate()
+        .unwrap_err()
+        .to_string();
+    assert!(err.contains("reservoir_id"), "{err}");
+}
+
+#[test]
+fn thermal_wait_fails_without_plant_backend() {
+    let doc = Procedure::load_json(WAIT_DHW_RESERVOIR_JSON).unwrap();
+    let mut sim = Simulator::new();
+    let bindings = DeviceBindings::new();
+    let result = run(&doc, &mut sim, &bindings);
+    assert!(!result.is_completed());
+    match result.fail_reason() {
+        Some(FailReason::Backend { code, .. }) => {
+            assert_eq!(*code, ErrorCode::UnsupportedOperation);
+        }
+        other => panic!("expected backend unsupported, got {other:?}"),
+    }
+}
+
+#[test]
+fn thermal_wait_succeeds_when_preseeded() {
+    let doc = Procedure::load_json(WAIT_DHW_RESERVOIR_JSON).unwrap();
+    let mut plant = ThermalPlant::fridge_condenser_dhw_demo().unwrap();
+    match plant.negotiate(demo_fridge_offer()) {
+        TransferReply::Accept(_) => {}
+        other => panic!("expected Accept, got {other:?}"),
+    }
+    plant.step(3_600.0).unwrap();
+    let end = plant.get_reservoir("dhw-tank").unwrap().temp_c.unwrap();
+    assert!((end - 36.2).abs() < 1e-3, "end={end}");
+
+    let mut backend = SimulatorBackend::with_plant(Simulator::new(), plant);
+    let result = run(&doc, &mut backend, &DeviceBindings::new());
+    assert!(
+        result.is_completed(),
+        "expected completed, got {:?}",
+        result.status
+    );
+    assert_eq!(result.outcomes.len(), 1);
+    assert!(result.outcomes[0].ok);
+    let got = result.outcomes[0]
+        .read_value
+        .as_ref()
+        .and_then(|v| v.as_f64())
+        .unwrap();
+    assert!(got >= 36.0, "got={got}");
+}
+
+/// Plant accepts are applied once per `step` (not continuous). The wait loop
+/// itself is covered here with a tiny rising-temp backend; real plant
+/// integration uses the pre-seeded fixture test above.
+struct RisingTempBackend {
+    temp_c: f64,
+    tick_delta: f64,
+}
+
+impl crate::DeviceBackend for RisingTempBackend {
+    fn read(
+        &mut self,
+        _device_id: &str,
+        _point_id: &str,
+    ) -> Result<homecooked_schema::Value, crate::Error> {
+        Err(crate::Error::Backend {
+            code: ErrorCode::UnsupportedOperation,
+            message: "device I/O unused".into(),
+            point_id: None,
+        })
+    }
+
+    fn write(
+        &mut self,
+        _device_id: &str,
+        _point_id: &str,
+        _value: &homecooked_schema::Value,
+    ) -> Result<(), crate::Error> {
+        Err(crate::Error::Backend {
+            code: ErrorCode::UnsupportedOperation,
+            message: "device I/O unused".into(),
+            point_id: None,
+        })
+    }
+
+    fn thermal_read_reservoir_temp(&mut self, reservoir_id: &str) -> Result<f64, crate::Error> {
+        assert_eq!(reservoir_id, "dhw-tank");
+        Ok(self.temp_c)
+    }
+
+    fn thermal_tick(&mut self, _dt_ms: u64) -> Result<(), crate::Error> {
+        self.temp_c += self.tick_delta;
+        Ok(())
+    }
+}
+
+#[test]
+fn thermal_wait_polls_until_cmp_via_thermal_tick() {
+    let doc = Procedure::load_json(WAIT_DHW_RESERVOIR_JSON).unwrap();
+    let mut backend = RisingTempBackend {
+        temp_c: 35.0,
+        tick_delta: 0.5,
+    };
+    let config = RunConfig {
+        poll_interval_ms: 1_000,
+    };
+    let result = run_with_config(&doc, &mut backend, &DeviceBindings::new(), &config);
+    assert!(
+        result.is_completed(),
+        "expected completed, got {:?}",
+        result.status
+    );
+    assert!(backend.temp_c >= 36.0, "temp={}", backend.temp_c);
+}
+
+#[test]
+fn thermal_wait_times_out_if_plant_idle() {
+    let doc = Procedure::load_json(
+        r#"{
+      "id": "wait_hot",
+      "name": "wait",
+      "steps": [{
+        "id": "w",
+        "action": "thermal_wait",
+        "reservoir_id": "dhw-tank",
+        "cmp": "gte",
+        "temp_c": 50.0,
+        "timeout_s": 5
+      }]
+    }"#,
+    )
+    .unwrap();
+    let plant = ThermalPlant::fridge_condenser_dhw_demo().unwrap();
+    let mut backend = SimulatorBackend::with_plant(Simulator::new(), plant);
+    let config = RunConfig {
+        poll_interval_ms: 1_000,
+    };
+    let result = run_with_config(&doc, &mut backend, &DeviceBindings::new(), &config);
+    assert_eq!(
+        result.status,
+        RunStatus::Failed {
+            step_id: "w".into(),
+            reason: FailReason::Timeout,
+        }
+    );
 }
