@@ -1469,11 +1469,20 @@ Fan uses `trait.fan`. Filter uses `trait.filter`. Multi-head: `trait.zone`.
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `tank_full` | bool | — | | r/e | opt | |
-| `pump_mode` | bool | — | | r/w | opt | Continuous drain |
-| `defrost` | bool | — | | r/e | opt | |
+| `tank_full` | bool | — | | r/e | opt | Condensate tank full / stop compressor |
+| `pump_mode` | bool | — | | r/w | opt | Continuous drain pump enabled |
+| `defrost` | bool | — | | r/e | opt | Coil defrost active |
+| `compressor_on` | bool | — | | r/e | opt | Compressor running |
+| `high_rh_alarm` | bool | — | | r/e | opt | Room RH above high alarm |
+| `low_rh_alarm` | bool | — | | r/e | opt | Room RH below low alarm |
+| `continuous_mode` | bool | — | | r/w | opt | Ignore RH setpoint; run continuous |
+| `quiet_mode` | bool | — | | r/w | opt | Reduced fan / sleep noise mode |
+| `bucket_removed` | bool | — | | r/e | opt | Condensate bucket not seated |
+| `filter_dirty` | bool | — | | r/e | opt | Filter dirty indicator light |
+| `delayed_start_s` | duration_s | second | 0–86400 | r/w | opt | Delayed start countdown |
 
-Humidity setpoint via `trait.humidity.setpoint_rh`.
+Humidity setpoint via `trait.humidity.setpoint_rh`; fan speed via
+`trait.fan.fan_speed`.
 
 ---
 

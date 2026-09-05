@@ -235,6 +235,10 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             ApplianceClassId::ToasterOven => Value::U8(4),
             _ => Value::U8(int_min(point, 0) as u8),
         },
+        "fan_speed" => match ctx.identity.class_id {
+            ApplianceClassId::Dehumidifier => Value::U8(2),
+            _ => Value::U8(int_min(point, 0) as u8),
+        },
         "water_temp_c" => match ctx.identity.class_id {
             ApplianceClassId::IceMaker => Value::F32(12.0),
             _ => Value::F32(numeric_default(point)),
@@ -249,10 +253,12 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
         },
         "current_rh" => match ctx.identity.class_id {
             ApplianceClassId::WineCooler => Value::Percent(60.0),
+            ApplianceClassId::Dehumidifier => Value::Percent(55.0),
             _ => Value::Percent(0.0),
         },
         "setpoint_rh" => match ctx.identity.class_id {
             ApplianceClassId::WineCooler => Value::Percent(60.0),
+            ApplianceClassId::Dehumidifier => Value::Percent(45.0),
             _ => Value::Percent(0.0),
         },
         "spin_rpm" => Value::U16(800),
