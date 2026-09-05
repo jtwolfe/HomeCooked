@@ -80,14 +80,18 @@ impl SeedCtx {
             ApplianceClassId::Freezer => (-18.0, -18.0, "on"),
             ApplianceClassId::FridgeFreezer => (4.0, 4.0, "on"),
             ApplianceClassId::WineCooler => (12.0, 12.0, "on"),
-            ApplianceClassId::Oven => (20.0, 180.0, "on"),
+            ApplianceClassId::Oven
+            | ApplianceClassId::SteamOven
+            | ApplianceClassId::ToasterOven
+            | ApplianceClassId::Range => (20.0, 180.0, "on"),
             ApplianceClassId::AirFryer => (20.0, 180.0, "on"),
             ApplianceClassId::Microwave => (20.0, 20.0, "standby"),
-            ApplianceClassId::InductionHob => (20.0, 20.0, "on"),
+            ApplianceClassId::InductionHob | ApplianceClassId::Cooktop => (20.0, 20.0, "on"),
             ApplianceClassId::WaterHeater => (60.0, 60.0, "on"),
             ApplianceClassId::Hvac => (21.0, 21.0, "on"),
             ApplianceClassId::SousVide => (20.0, 55.0, "standby"),
-            ApplianceClassId::SteamOven | ApplianceClassId::ToasterOven => (20.0, 180.0, "on"),
+            ApplianceClassId::CoffeeMachine => (90.0, 92.0, "standby"),
+            ApplianceClassId::MultiCooker => (20.0, 80.0, "on"),
             _ => (20.0, 40.0, "on"),
         };
         Self {
@@ -106,9 +110,10 @@ fn clamp_to_typical(class_id: ApplianceClassId, setpoint: f32) -> f32 {
         ApplianceClassId::Freezer => setpoint.clamp(-24.0, -12.0),
         ApplianceClassId::FridgeFreezer => setpoint.clamp(-24.0, 7.0),
         ApplianceClassId::WineCooler => setpoint.clamp(5.0, 20.0),
-        ApplianceClassId::Oven | ApplianceClassId::SteamOven | ApplianceClassId::ToasterOven => {
-            setpoint.clamp(50.0, 250.0)
-        }
+        ApplianceClassId::Oven
+        | ApplianceClassId::SteamOven
+        | ApplianceClassId::ToasterOven
+        | ApplianceClassId::Range => setpoint.clamp(50.0, 250.0),
         ApplianceClassId::AirFryer => setpoint.clamp(80.0, 200.0),
         ApplianceClassId::WaterHeater => setpoint.clamp(40.0, 70.0),
         ApplianceClassId::SousVide => setpoint.clamp(20.0, 95.0),
