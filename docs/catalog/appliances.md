@@ -1010,6 +1010,10 @@ done, jam / overtemp.
 
 **Notes:** No cavity temperature. Toaster ovens are `toaster_oven`. Lift-to-
 cancel is a command (`cancel`) plus state `carriage`.
+- Catalog depth: optional class points include `bagel`, `frozen`, `single_side`,
+  `carriage`, sabbath, eco, `heater_on`, `high_temp_alarm`, `timer_s`,
+  `crumb_tray_full`, and `slots` (see variables-and-settings). Required `shade`
+  remains the primary darkness control.
 
 ### `blender`
 

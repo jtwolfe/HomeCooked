@@ -233,6 +233,14 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             ApplianceClassId::WaterDispenser => Value::F32(8.0),
             _ => Value::F32(numeric_default(point)),
         },
+        "slots" => match ctx.identity.class_id {
+            ApplianceClassId::Toaster => Value::U8(2),
+            _ => Value::U8(int_min(point, 0) as u8),
+        },
+        "shade" => match ctx.identity.class_id {
+            ApplianceClassId::Toaster | ApplianceClassId::WaffleMaker => Value::U8(4),
+            _ => Value::U8(int_min(point, 0) as u8),
+        },
         "boiler_c" => Value::F32(20.0),
         "heat_level" => Value::Enum("low".into()),
         "water_empty" => Value::Bool(false),

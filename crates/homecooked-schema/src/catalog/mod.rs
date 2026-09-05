@@ -637,6 +637,23 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "water_tank_empty"
         );
     }
+    // Stream 7 catalog depth: toaster optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::Toaster {
+        return matches!(
+            point.id,
+            "bagel"
+                | "frozen"
+                | "single_side"
+                | "carriage"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "heater_on"
+                | "high_temp_alarm"
+                | "timer_s"
+                | "crumb_tray_full"
+                | "slots"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -2469,6 +2486,64 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.water_dispenser.water_tank_empty", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn toaster_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::Toaster).unwrap();
+        for id in [
+            "class.toaster.shade",
+            "class.toaster.bagel",
+            "class.toaster.frozen",
+            "class.toaster.single_side",
+            "class.toaster.carriage",
+            "class.toaster.sabbath_mode",
+            "class.toaster.eco_mode",
+            "class.toaster.heater_on",
+            "class.toaster.high_temp_alarm",
+            "class.toaster.timer_s",
+            "class.toaster.crumb_tray_full",
+            "class.toaster.slots",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical toaster"
+            );
+        }
+        cap.validate_write("class.toaster.shade", &Value::U8(4))
+            .unwrap();
+        cap.validate_write("class.toaster.bagel", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.toaster.frozen", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.toaster.single_side", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.toaster.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.toaster.eco_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.toaster.timer_s", &Value::DurationS(180))
+            .unwrap();
+        let err = cap
+            .validate_write("class.toaster.carriage", &Value::Enum("down".into()))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.toaster.heater_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.toaster.high_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.toaster.crumb_tray_full", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.toaster.slots", &Value::U8(4))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }

@@ -3410,6 +3410,135 @@ mod tests {
     }
 
     #[test]
+    fn toaster_optional_depth_points_read_and_write() {
+        let mut sim = Simulator::new();
+        let toaster = sim.spawn(ApplianceClassId::Toaster).unwrap();
+
+        assert_eq!(
+            sim.read_value(&toaster, "class.toaster.shade").unwrap(),
+            Value::U8(4)
+        );
+        assert_eq!(
+            sim.read_value(&toaster, "class.toaster.bagel").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&toaster, "class.toaster.frozen").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&toaster, "class.toaster.single_side")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&toaster, "class.toaster.carriage").unwrap(),
+            Value::Enum("up".into())
+        );
+        assert_eq!(
+            sim.read_value(&toaster, "class.toaster.sabbath_mode")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&toaster, "class.toaster.eco_mode").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&toaster, "class.toaster.heater_on").unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&toaster, "class.toaster.high_temp_alarm")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&toaster, "class.toaster.timer_s").unwrap(),
+            Value::DurationS(0)
+        );
+        assert_eq!(
+            sim.read_value(&toaster, "class.toaster.crumb_tray_full")
+                .unwrap(),
+            Value::Bool(false)
+        );
+        assert_eq!(
+            sim.read_value(&toaster, "class.toaster.slots").unwrap(),
+            Value::U8(2)
+        );
+
+        sim.write(&toaster, "class.toaster.shade", Value::U8(6))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&toaster, "class.toaster.shade").unwrap(),
+            Value::U8(6)
+        );
+        sim.write(&toaster, "class.toaster.bagel", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&toaster, "class.toaster.bagel").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&toaster, "class.toaster.frozen", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&toaster, "class.toaster.frozen").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&toaster, "class.toaster.single_side", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&toaster, "class.toaster.single_side")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&toaster, "class.toaster.sabbath_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&toaster, "class.toaster.sabbath_mode")
+                .unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&toaster, "class.toaster.eco_mode", Value::Bool(true))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&toaster, "class.toaster.eco_mode").unwrap(),
+            Value::Bool(true)
+        );
+        sim.write(&toaster, "class.toaster.timer_s", Value::DurationS(120))
+            .unwrap();
+        assert_eq!(
+            sim.read_value(&toaster, "class.toaster.timer_s").unwrap(),
+            Value::DurationS(120)
+        );
+
+        let err = sim
+            .write(
+                &toaster,
+                "class.toaster.carriage",
+                Value::Enum("down".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&toaster, "class.toaster.heater_on", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&toaster, "class.toaster.high_temp_alarm", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&toaster, "class.toaster.crumb_tray_full", Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = sim
+            .write(&toaster, "class.toaster.slots", Value::U8(4))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
     fn spawn_cooking_tier_a_classes_identity_power_and_writes() {
         let mut sim = Simulator::new();
         for class in TIER_A_CLASS_IDS {

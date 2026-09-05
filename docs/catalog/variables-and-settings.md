@@ -1286,11 +1286,18 @@ Filter life via `trait.filter.life_percent`. Hot-water lock via
 
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
-| `shade` | u8 | — | 1–7 | r/w | req | |
-| `bagel` | bool | — | | r/w | opt | |
-| `frozen` | bool | — | | r/w | opt | |
-| `single_side` | bool | — | | r/w | opt | |
-| `carriage` | enum | — | `up` `down` | r/e | opt | |
+| `shade` | u8 | — | 1–7 | r/w | req | Toast darkness |
+| `bagel` | bool | — | | r/w | opt | Bagel / one-side preference |
+| `frozen` | bool | — | | r/w | opt | Frozen / defrost assist |
+| `single_side` | bool | — | | r/w | opt | Heat one side only |
+| `carriage` | enum | — | `up` `down` | r/e | opt | Carriage position |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving heater duty |
+| `heater_on` | bool | — | | r/e | opt | Elements energized |
+| `high_temp_alarm` | bool | — | | r/e | opt | Overtemp / jam heat alarm |
+| `timer_s` | duration_s | second | 0–3600 | r/w/e | opt | Optional countdown / remaining |
+| `crumb_tray_full` | bool | — | | r/e | opt | Crumb tray needs emptying |
+| `slots` | u8 | — | 1–4 | r | opt | Hardware slot count |
 
 ---
 
