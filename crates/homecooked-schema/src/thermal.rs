@@ -195,30 +195,30 @@ impl fmt::Display for TempBandC {
     }
 }
 
-/// Static descriptor for a device heat port (future ClassTable field).
+/// Static descriptor for a device heat port on [`crate::ClassTable`].
 ///
-/// Type-only for now — not wired into every [`crate::ClassTable`]. Vocabulary
-/// aligns with optional `thermal_port_*` catalog points.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+/// Advertisement metadata only — catalog `thermal_port_*` points remain the
+/// device RW surface. Vocabulary aligns with those optional points / sim seeds.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct HeatPortSpec {
-    pub port_id: String,
+    pub port_id: &'static str,
     pub direction: PortDirection,
     pub media: Media,
     pub max_power_w: u32,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub usable_temp_c: Option<TempBandC>,
 }
 
 impl HeatPortSpec {
-    pub fn new(
-        port_id: impl Into<String>,
+    pub const fn new(
+        port_id: &'static str,
         direction: PortDirection,
         media: Media,
         max_power_w: u32,
         usable_temp_c: Option<TempBandC>,
     ) -> Self {
         Self {
-            port_id: port_id.into(),
+            port_id,
             direction,
             media,
             max_power_w,
@@ -317,8 +317,13 @@ mod tests {
             Some(band),
         );
         let json = serde_json::to_string(&spec).unwrap();
-        let back: HeatPortSpec = serde_json::from_str(&json).unwrap();
-        assert_eq!(back, spec);
-        assert_eq!(back.port_id, "condenser");
+        let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(v["port_id"], "condenser");
+        assert_eq!(v["direction"], "source");
+        assert_eq!(v["media"], "water");
+        assert_eq!(v["max_power_w"], 120);
+        assert_eq!(v["usable_temp_c"]["min"], -5.0);
+        assert_eq!(v["usable_temp_c"]["max"], 40.0);
+        assert_eq!(spec.port_id, "condenser");
     }
 }

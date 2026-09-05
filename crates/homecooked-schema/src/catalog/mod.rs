@@ -80,6 +80,10 @@ pub struct ClassTable {
     pub typical_setpoint_c: Option<(f32, f32)>,
     /// Default zone ids advertised when the class uses `trait.zone`.
     pub typical_zones: &'static [&'static str],
+    /// Static heat-port advertisement metadata (`HeatPortSpec`). Empty for
+    /// classes without a thermal-port surface; catalog `thermal_port_*` points
+    /// remain the device RW surface when present.
+    pub thermal_ports: &'static [crate::HeatPortSpec],
 }
 
 impl ClassTable {
@@ -445,6 +449,90 @@ mod tests {
         );
         for (token, dir) in THERMAL_PORT_DIRECTION_TOKENS.iter().zip(PortDirection::ALL) {
             assert_eq!(*token, dir.as_str());
+        }
+    }
+
+    #[test]
+    fn thermal_port_classes_advertise_heat_port_specs() {
+        use crate::{HeatPortSpec, Media, PortDirection};
+
+        let expected: &[(ApplianceClassId, HeatPortSpec)] = &[
+            (
+                ApplianceClassId::WaterHeater,
+                HeatPortSpec::new("preheat", PortDirection::Sink, Media::Water, 2_000, None),
+            ),
+            (
+                ApplianceClassId::Fridge,
+                HeatPortSpec::new("condenser", PortDirection::Source, Media::Water, 120, None),
+            ),
+            (
+                ApplianceClassId::Hvac,
+                HeatPortSpec::new("coil", PortDirection::Sink, Media::Water, 5_000, None),
+            ),
+            (
+                ApplianceClassId::Dishwasher,
+                HeatPortSpec::new(
+                    "inlet_preheat",
+                    PortDirection::Sink,
+                    Media::Water,
+                    1_800,
+                    None,
+                ),
+            ),
+            (
+                ApplianceClassId::Dryer,
+                HeatPortSpec::new("exhaust", PortDirection::Source, Media::Air, 2_000, None),
+            ),
+        ];
+
+        for (class_id, want) in expected {
+            let table = class_table(*class_id).expect("static table");
+            assert!(
+                !table.thermal_ports.is_empty(),
+                "{class_id} should advertise HeatPortSpec"
+            );
+            assert_eq!(table.thermal_ports.len(), 1);
+            let got = &table.thermal_ports[0];
+            assert_eq!(got.port_id, want.port_id, "{class_id} port_id");
+            assert_eq!(got.direction, want.direction, "{class_id} direction");
+            assert_eq!(got.media, want.media, "{class_id} media");
+            assert_eq!(got.max_power_w, want.max_power_w, "{class_id} max_power_w");
+            // Spec port_id / direction / media align with catalog thermal_port_* surface.
+            assert!(
+                table.class_point("thermal_port_id").is_some(),
+                "{class_id} keeps thermal_port_id point"
+            );
+            assert!(
+                table.class_point("thermal_port_direction").is_some(),
+                "{class_id} keeps thermal_port_direction point"
+            );
+            assert!(
+                table.class_point("thermal_port_media").is_some(),
+                "{class_id} keeps thermal_port_media point"
+            );
+            assert!(
+                table.class_point("thermal_port_max_power_w").is_some(),
+                "{class_id} keeps thermal_port_max_power_w point"
+            );
+        }
+
+        // Other static classes default to empty specs.
+        for table in static_class_tables() {
+            let is_thermal = matches!(
+                table.class_id,
+                ApplianceClassId::WaterHeater
+                    | ApplianceClassId::Fridge
+                    | ApplianceClassId::Hvac
+                    | ApplianceClassId::Dishwasher
+                    | ApplianceClassId::Dryer
+            );
+            if !is_thermal {
+                assert!(
+                    table.thermal_ports.is_empty(),
+                    "{} should have empty thermal_ports",
+                    table.class_id
+                );
+            }
         }
     }
 

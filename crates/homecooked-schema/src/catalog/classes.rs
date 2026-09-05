@@ -6,6 +6,7 @@
 use crate::access::AccessMode;
 use crate::ids::{ApplianceClassId, TraitId};
 use crate::spec::{CatalogPoint, CatalogRange};
+use crate::thermal::{HeatPortSpec, Media, PortDirection};
 use crate::types::{Unit, ValueType};
 
 use super::ClassTable;
@@ -518,6 +519,44 @@ static THERMAL_PORT_POINTS: &[CatalogPoint] = &[
         false,
     ),
 ];
+
+/// Static heat-port advertisement metadata matching sim / catalog seeds.
+/// Catalog `thermal_port_*` points remain the device RW surface.
+const WATER_HEATER_THERMAL_PORTS: &[HeatPortSpec] = &[HeatPortSpec::new(
+    "preheat",
+    PortDirection::Sink,
+    Media::Water,
+    2_000,
+    None,
+)];
+const FRIDGE_THERMAL_PORTS: &[HeatPortSpec] = &[HeatPortSpec::new(
+    "condenser",
+    PortDirection::Source,
+    Media::Water,
+    120,
+    None,
+)];
+const HVAC_THERMAL_PORTS: &[HeatPortSpec] = &[HeatPortSpec::new(
+    "coil",
+    PortDirection::Sink,
+    Media::Water,
+    5_000,
+    None,
+)];
+const DISHWASHER_THERMAL_PORTS: &[HeatPortSpec] = &[HeatPortSpec::new(
+    "inlet_preheat",
+    PortDirection::Sink,
+    Media::Water,
+    1_800,
+    None,
+)];
+const DRYER_THERMAL_PORTS: &[HeatPortSpec] = &[HeatPortSpec::new(
+    "exhaust",
+    PortDirection::Source,
+    Media::Air,
+    2_000,
+    None,
+)];
 
 const DRYER_MERGED: [CatalogPoint; 14] = concat2(DRYER_BASE, THERMAL_PORT_POINTS);
 const DRYER_POINTS: &[CatalogPoint] = &DRYER_MERGED;
@@ -3480,6 +3519,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: WASHER_PHASES,
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::Dryer,
@@ -3490,6 +3530,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: DRYER_PHASES,
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: DRYER_THERMAL_PORTS,
     },
     ClassTable {
         class_id: ApplianceClassId::Fridge,
@@ -3500,6 +3541,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: Some((1.0, 7.0)),
         typical_zones: FRIDGE_ZONES,
+        thermal_ports: FRIDGE_THERMAL_PORTS,
     },
     ClassTable {
         class_id: ApplianceClassId::Dishwasher,
@@ -3510,6 +3552,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: DISHWASHER_PHASES,
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: DISHWASHER_THERMAL_PORTS,
     },
     ClassTable {
         class_id: ApplianceClassId::Microwave,
@@ -3520,6 +3563,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::Oven,
@@ -3530,6 +3574,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: Some((50.0, 250.0)),
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::InductionHob,
@@ -3540,6 +3585,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: HOB_ZONES,
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::Kettle,
@@ -3550,6 +3596,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: Some((40.0, 100.0)),
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::AirFryer,
@@ -3560,6 +3607,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: Some((80.0, 200.0)),
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::WasherDryer,
@@ -3570,6 +3618,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: WASHER_DRYER_PHASES,
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::Freezer,
@@ -3580,6 +3629,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: Some((-24.0, -12.0)),
         typical_zones: FREEZER_ZONES,
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::FridgeFreezer,
@@ -3590,6 +3640,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: Some((-24.0, 7.0)),
         typical_zones: FRIDGE_FREEZER_ZONES,
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::WineCooler,
@@ -3600,6 +3651,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: Some((5.0, 20.0)),
         typical_zones: WINE_COOLER_ZONES,
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::IceMaker,
@@ -3610,6 +3662,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::WaterHeater,
@@ -3620,6 +3673,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: Some((40.0, 70.0)),
         typical_zones: &[],
+        thermal_ports: WATER_HEATER_THERMAL_PORTS,
     },
     ClassTable {
         class_id: ApplianceClassId::Hvac,
@@ -3630,6 +3684,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: HVAC_THERMAL_PORTS,
     },
     ClassTable {
         class_id: ApplianceClassId::Dehumidifier,
@@ -3640,6 +3695,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::RangeHood,
@@ -3650,6 +3706,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::SteamOven,
@@ -3660,6 +3717,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: Some((50.0, 250.0)),
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::Range,
@@ -3670,6 +3728,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: Some((50.0, 250.0)),
         typical_zones: RANGE_ZONES,
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::Cooktop,
@@ -3680,6 +3739,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: HOB_ZONES,
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::ToasterOven,
@@ -3690,6 +3750,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: Some((50.0, 250.0)),
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::CoffeeMachine,
@@ -3700,6 +3761,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::SousVide,
@@ -3710,6 +3772,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: Some((20.0, 95.0)),
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::MultiCooker,
@@ -3720,6 +3783,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: MULTI_COOKER_PHASES,
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::BeverageCooler,
@@ -3730,6 +3794,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: Some((1.0, 10.0)),
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::Kegerator,
@@ -3740,6 +3805,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: Some((1.0, 10.0)),
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::WarmingDrawer,
@@ -3750,6 +3816,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: Some((40.0, 90.0)),
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::PizzaOven,
@@ -3760,6 +3827,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: Some((200.0, 450.0)),
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::ElectricGrill,
@@ -3770,6 +3838,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: Some((100.0, 250.0)),
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::ElectricSmoker,
@@ -3780,6 +3849,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: Some((50.0, 150.0)),
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::EspressoMachine,
@@ -3790,6 +3860,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::DripCoffeeMaker,
@@ -3800,6 +3871,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::CoffeeGrinder,
@@ -3810,6 +3882,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::WaterDispenser,
@@ -3820,6 +3893,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::Toaster,
@@ -3830,6 +3904,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::Blender,
@@ -3840,6 +3915,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::FoodProcessor,
@@ -3850,6 +3926,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::StandMixer,
@@ -3860,6 +3937,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::Juicer,
@@ -3870,6 +3948,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::RiceCooker,
@@ -3880,6 +3959,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::SlowCooker,
@@ -3890,6 +3970,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::BreadMaker,
@@ -3900,6 +3981,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: BREAD_PHASES,
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::Dehydrator,
@@ -3910,6 +3992,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: Some((30.0, 75.0)),
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::VacuumSealer,
@@ -3920,6 +4003,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: VACUUM_PHASES,
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::IceCreamMaker,
@@ -3930,6 +4014,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::YogurtMaker,
@@ -3940,6 +4025,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: Some((35.0, 50.0)),
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::WaffleMaker,
@@ -3950,6 +4036,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: Some((150.0, 220.0)),
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::PastaMaker,
@@ -3960,6 +4047,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::SteamCooker,
@@ -3970,6 +4058,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::GarbageDisposal,
@@ -3980,6 +4069,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::TrashCompactor,
@@ -3990,6 +4080,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::Boiler,
@@ -4000,6 +4091,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::WaterSoftener,
@@ -4010,6 +4102,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::WaterFilter,
@@ -4020,6 +4113,7 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
     ClassTable {
         class_id: ApplianceClassId::Humidifier,
@@ -4030,5 +4124,6 @@ pub const STATIC_CLASS_TABLES: &[ClassTable] = &[
         cycle_phase_tokens: &[],
         typical_setpoint_c: None,
         typical_zones: &[],
+        thermal_ports: &[],
     },
 ];

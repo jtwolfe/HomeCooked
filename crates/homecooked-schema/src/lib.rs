@@ -4,7 +4,9 @@
 //! `docs/catalog` and `docs/standard/overview.md`. Schema and catalog
 //! versions are both **0.1.0**. Shared thermal vocabulary (`Media`,
 //! `PortDirection`, `TempBandC`, `HeatPortSpec`) aligns with catalog
-//! `thermal_port_*` tokens; full plant runtime stays in `homecooked-thermal`.
+//! `thermal_port_*` tokens; `ClassTable.thermal_ports` carries static
+//! `HeatPortSpec` advertisement metadata. Full plant runtime stays in
+//! `homecooked-thermal`.
 
 mod access;
 mod capability;
