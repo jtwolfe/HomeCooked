@@ -58,6 +58,16 @@ h2 {
   font-weight: 700;
 }
 
+#device-class {
+  display: inline-block;
+  letter-spacing: 0.08em;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid #f3d5b0;
+  border-radius: 999px;
+  background: #fff7ed;
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
 .lede,
 .muted {
   color: var(--muted);
@@ -224,6 +234,38 @@ button.cmd {
   align-items: flex-start;
   flex-wrap: wrap;
   margin-bottom: 1rem;
+}
+
+.highlights {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.65rem 0 0;
+  padding: 0;
+}
+
+.highlights li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 6.5rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.highlights .hl-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.highlights .hl-value {
+  font-size: 0.95rem;
+  font-weight: 600;
 }
 
 .tick-bar {

@@ -11,6 +11,7 @@ const deviceView = document.getElementById("device-view");
 const deviceClass = document.getElementById("device-class");
 const deviceTitle = document.getElementById("device-title");
 const deviceIdEl = document.getElementById("device-id");
+const deviceHighlights = document.getElementById("device-highlights");
 const pointGroups = document.getElementById("point-groups");
 const rawState = document.getElementById("raw-state");
 const dtInput = document.getElementById("dt-ms");
@@ -90,7 +91,7 @@ function renderDevices(devices) {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = dev.device_id === selectedId ? "active" : "";
-    btn.innerHTML = `<strong>${dev.display_name || dev.class_id}</strong><span class="id">${dev.device_id}</span>`;
+    btn.innerHTML = `<strong>${dev.display_name || dev.class_id}</strong><span class="id">${dev.class_id} · ${dev.device_id}</span>`;
     btn.addEventListener("click", () => selectDevice(dev.device_id));
     li.appendChild(btn);
     deviceList.appendChild(li);
@@ -170,12 +171,82 @@ function controlFor(point) {
   return wrap;
 }
 
+function highlightLabel(id) {
+  const [base, zone] = id.split("#");
+  const leaf = base.split(".").pop().replaceAll("_", " ");
+  return zone ? `${leaf} (${zone})` : leaf;
+}
+
+function highlightRows(state) {
+  const preferred = [
+    "trait.power.power_state",
+    "trait.temperature.current_c",
+    "trait.temperature.setpoint_c",
+    "trait.cycle.cycle_state",
+  ];
+  const rows = [];
+  const seen = new Set();
+  for (const id of preferred) {
+    if (state && state[id] != null) {
+      rows.push({ id, value: state[id] });
+      seen.add(id);
+    }
+  }
+  for (const id of Object.keys(state || {})) {
+    if (seen.has(id)) continue;
+    if (
+      id.startsWith("trait.temperature.current_c") ||
+      id.startsWith("trait.temperature.setpoint_c")
+    ) {
+      rows.push({ id, value: state[id] });
+      seen.add(id);
+    }
+    if (rows.length >= 6) break;
+  }
+  return rows;
+}
+
+function renderHighlights(state) {
+  const rows = highlightRows(state);
+  deviceHighlights.innerHTML = "";
+  deviceHighlights.hidden = rows.length === 0;
+  for (const row of rows) {
+    const li = document.createElement("li");
+    li.innerHTML = `<span class="hl-label">${highlightLabel(row.id)}</span><span class="hl-value">${displayValue(row.value)}</span>`;
+    deviceHighlights.appendChild(li);
+  }
+}
+
+function fillClassSelect(classes) {
+  classSelect.innerHTML = "";
+  let currentGroup = null;
+  let optgroup = null;
+  for (const cls of classes) {
+    const group = cls.group || "Other";
+    if (group !== currentGroup) {
+      currentGroup = group;
+      optgroup = document.createElement("optgroup");
+      optgroup.label = group;
+      classSelect.appendChild(optgroup);
+    }
+    const opt = document.createElement("option");
+    opt.value = cls.id;
+    opt.textContent = `${cls.label} (${cls.id})`;
+    optgroup.appendChild(opt);
+  }
+  if (classes.some((c) => c.id === "kettle")) {
+    classSelect.value = "kettle";
+  }
+}
+
 function renderDevice(desc, state) {
   describeDoc = desc;
-  const name = desc.identity.display_name || desc.identity.class_id;
-  deviceClass.textContent = desc.identity.class_id;
-  deviceTitle.textContent = name;
+  const classId = desc.identity.class_id;
+  const name = desc.identity.display_name || classId;
+  deviceClass.textContent = classId;
+  deviceTitle.textContent = `${name} · ${classId}`;
   deviceIdEl.textContent = desc.identity.device_id;
+  renderHighlights(state);
   rawState.textContent = JSON.stringify(state, null, 2);
 
   const rows = expandPoints(desc.points || [], state);
@@ -292,14 +363,7 @@ async function boot() {
   }
 
   const classes = JSON.parse(wasm.list_appliance_classes());
-  classSelect.innerHTML = "";
-  for (const cls of classes) {
-    const opt = document.createElement("option");
-    opt.value = cls.id;
-    opt.textContent = cls.label;
-    classSelect.appendChild(opt);
-  }
-  classSelect.value = "kettle";
+  fillClassSelect(classes);
 
   appEl.hidden = false;
   setStatus("Simulator ready");

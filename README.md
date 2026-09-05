@@ -82,7 +82,9 @@ python3 -m http.server 8080
 Open <http://127.0.0.1:8080>. Do not open `index.html` as a `file://` URL;
 the browser will not load the ES module / WASM.
 
-See [`apps/simulator-web/README.md`](apps/simulator-web/README.md).
+See [`apps/simulator-web/README.md`](apps/simulator-web/README.md) (grouped
+Tier-A picker, rebuild/serve commands, manual smoke) and
+[`docs/ROADMAP.md`](docs/ROADMAP.md) Stream 7.
 
 ## Contributing
 

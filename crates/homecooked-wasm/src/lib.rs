@@ -38,7 +38,8 @@ pub fn start() {
     console_error_panic_hook::set_once();
 }
 
-/// JSON array of spawnable classes: `[{"id":"kettle","label":"Kettle"}, ...]`.
+/// JSON array of spawnable Tier-A classes:
+/// `[{"id":"kettle","label":"Kettle","group":"Beverage"}, ...]`.
 #[wasm_bindgen]
 pub fn list_appliance_classes() -> String {
     WasmApi::list_appliance_classes()
@@ -96,5 +97,9 @@ mod tests {
         let from_api = WasmApi::list_appliance_classes();
         assert_eq!(from_fn, from_api);
         assert!(from_fn.contains("\"kettle\""));
+        assert!(from_fn.contains("\"group\""));
+        assert!(from_fn.contains("\"wine_cooler\""));
+        assert!(from_fn.contains("\"hvac\""));
+        assert!(from_fn.contains("\"steam_oven\""));
     }
 }
