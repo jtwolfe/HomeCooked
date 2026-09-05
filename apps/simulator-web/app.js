@@ -401,23 +401,34 @@ function syncAutoTick() {
 
 async function boot() {
   try {
-    // Cache-bust the bindgen module URL. Browsers (and automation) stick to the
-    // previous ES module graph across rebuilds if the specifier is unchanged —
-    // which left parse_procedure / create_thermal_demo as "not a function"
-    // while older exports like list_appliance_classes still worked.
-    const wasmUrl = new URL("./pkg/homecooked_wasm.js", import.meta.url);
-    const pkgMeta = await fetch(new URL("./pkg/package.json", import.meta.url), {
-      cache: "no-store",
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .catch(() => null);
-    wasmUrl.searchParams.set(
-      "v",
-      (pkgMeta && (pkgMeta.version || pkgMeta.files && pkgMeta.files.join(","))) ||
-        String(Date.now()),
+    // Nuclear cache-bust: fetch bindgen JS with cache:no-store, rewrite the
+    // .wasm URL to an absolute no-store URL, then import via blob:. Query-string
+    // imports alone still left some Chromium sessions on a stale module graph
+    // where parse_procedure / create_thermal_demo were missing.
+    const pkgJs = new URL("./pkg/homecooked_wasm.js", import.meta.url);
+    const pkgWasm = new URL("./pkg/homecooked_wasm_bg.wasm", import.meta.url);
+    pkgWasm.searchParams.set("t", String(Date.now()));
+    let source = await fetch(pkgJs, { cache: "no-store" }).then((r) => {
+      if (!r.ok) throw new Error(`failed to fetch ${pkgJs}: ${r.status}`);
+      return r.text();
+    });
+    source = source.replace(
+      /new URL\('homecooked_wasm_bg\.wasm', import\.meta\.url\)/g,
+      `new URL(${JSON.stringify(pkgWasm.href)})`,
     );
-    wasm = await import(wasmUrl.href);
-    await wasm.default();
+    source = source.replace(
+      /"homecooked_wasm_bg\.wasm"/g,
+      JSON.stringify(pkgWasm.href),
+    );
+    const blobUrl = URL.createObjectURL(
+      new Blob([source], { type: "text/javascript" }),
+    );
+    try {
+      wasm = await import(blobUrl);
+      await wasm.default(pkgWasm.href);
+    } finally {
+      URL.revokeObjectURL(blobUrl);
+    }
   } catch (err) {
     bootError.hidden = false;
     bootDetail.textContent = String(err);
@@ -428,10 +439,14 @@ async function boot() {
   const required = [
     "list_appliance_classes",
     "list_example_procedures",
+    "get_example_procedure",
     "parse_procedure",
     "run_procedure",
     "create_thermal_demo",
     "thermal_state",
+    "thermal_negotiate_demo",
+    "thermal_tick",
+    "thermal_demo_transfer",
   ];
   const missing = required.filter((name) => typeof wasm[name] !== "function");
   if (missing.length) {
@@ -439,7 +454,8 @@ async function boot() {
     bootDetail.textContent =
       "WASM module missing exports: " +
       missing.join(", ") +
-      ". Hard-refresh or rebuild pkg/ (wasm-pack).";
+      " · keys: " +
+      Object.keys(wasm).sort().join(", ");
     setStatus("WASM exports incomplete", true);
     return;
   }
@@ -448,7 +464,6 @@ async function boot() {
   fillClassSelect(classes);
   fillProcedureSelect(listExampleProcedures());
   await loadSelectedProcedure();
-  // Don't call thermal_state before Load demo — empty plant is expected.
 
   appEl.hidden = false;
   setStatus("Simulator ready");
