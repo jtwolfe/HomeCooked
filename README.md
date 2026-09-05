@@ -27,7 +27,7 @@ of truth**; code must track `docs/catalog/` and `docs/standard/`.
   universal control computer (HAL, I/O map, interlocks, cycle runtime);
   path from catalog semantics to real HV hardware (design sketch)
 - [`docs/standard/examples/washer-dryer-io.md`](docs/standard/examples/washer-dryer-io.md)
-  — washer and dryer I/O inventory, sample I/O map, `cotton` cycle outline
+  — washer and dryer I/O inventory, sample maps, washer/dryer `cotton` cycle outlines
 
 ## Workspace
 
@@ -45,7 +45,7 @@ is **0.1.0** (peers are rejected only on protocol **major** mismatch).
 | `homecooked-interlock` | [`crates/homecooked-interlock`](crates/homecooked-interlock) | Declarative interlock rules |
 | `homecooked-hal` | [`crates/homecooked-hal`](crates/homecooked-hal) | Firmware HAL surface sketch + host `MockHal` ([control-system.md](docs/standard/control-system.md) §4.3) |
 | `homecooked-procedure` | [`crates/homecooked-procedure`](crates/homecooked-procedure) | Procedure / recipe documents, validation, sequential runner ([procedures.md](docs/standard/procedures.md)) |
-| `homecooked-controller` | [`crates/homecooked-controller`](crates/homecooked-controller) | Host controller sim: IoMap + MockHal + interlocks + washer cotton cycle ([control-system.md](docs/standard/control-system.md)) |
+| `homecooked-controller` | [`crates/homecooked-controller`](crates/homecooked-controller) | Host controller sim: IoMap + MockHal + interlocks + washer cotton / dryer cycles ([control-system.md](docs/standard/control-system.md)) |
 | `homecooked-thermal` | [`crates/homecooked-thermal`](crates/homecooked-thermal) | Thermal plant slice: reservoirs, heat ports, offer/accept, tick transfer ([thermal-plant.md](docs/standard/thermal-plant.md)) |
 | `homecooked-bridge` | [`crates/homecooked-bridge`](crates/homecooked-bridge) | Fabric bridges: Modbus + Matter + Zigbee + BACnet mock adapters ([bridges.md](docs/standard/bridges.md)) |
 | `homecooked-transport` | [`crates/homecooked-transport`](crates/homecooked-transport) | Lab TCP transport for protocol envelopes (length-prefixed JSON); sim-backed server + client ([overview.md](docs/standard/overview.md) §6) |

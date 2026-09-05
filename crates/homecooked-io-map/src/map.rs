@@ -11,6 +11,9 @@ use crate::kind::{channel_prefix, IoKind};
 /// Washer fragment from `docs/standard/examples/washer-dryer-io.md` §5.
 pub const WASHER_FRAGMENT_YAML: &str = include_str!("../examples/washer-fragment.yaml");
 
+/// Dryer fragment from `docs/standard/examples/washer-dryer-io.md` §3 / §5.
+pub const DRYER_FRAGMENT_YAML: &str = include_str!("../examples/dryer-fragment.yaml");
+
 /// Per-chassis HAL bindings (`chassis.io_map.yaml`).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct IoMap {
@@ -213,6 +216,22 @@ mod tests {
             .unwrap();
         assert_eq!(level.scale.as_ref().unwrap()["full"], 4000);
         assert_eq!(level.scale.as_ref().unwrap()["to"], "percent");
+    }
+
+    #[test]
+    fn load_dryer_fragment() {
+        let map = IoMap::from_yaml_str(DRYER_FRAGMENT_YAML).unwrap();
+        assert_eq!(map.version, "0.1.0");
+        assert_eq!(map.class_id.as_deref(), Some("dryer"));
+        assert_eq!(map.bindings.len(), 10);
+        assert!(map.bindings.iter().any(|b| b.channel == "aout.blower"));
+        assert!(map.bindings.iter().any(|b| b.channel == "ain.humidity_rh"));
+        let heater = map
+            .bindings
+            .iter()
+            .find(|b| b.channel == "aout.heater_enable")
+            .unwrap();
+        assert_eq!(heater.gated_by, Some(serde_json::json!(["il.heater"])));
     }
 
     #[test]

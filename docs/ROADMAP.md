@@ -24,11 +24,11 @@ What exists on `main` today:
 | `homecooked-core` | Device registry, capability-enforced read/write |
 | `homecooked-sim` | In-memory devices for the 25 Tier-A static classes |
 | `homecooked-wasm` + `apps/simulator-web` | wasm-bindgen JSON API; simulator-web grouped Tier-A picker (25 classes) + procedure runner + thermal plant panel |
-| `homecooked-io-map` | Chassis I/O map serde + validate |
-| `homecooked-interlock` | Declarative interlock rules (washer heater/spin) |
+| `homecooked-io-map` | Chassis I/O map serde + validate (washer + dryer fragments) |
+| `homecooked-interlock` | Declarative interlock rules (washer heater/spin; dryer heater/motor) |
 | `homecooked-hal` | Firmware HAL sketch + host `MockHal` |
 | `homecooked-procedure` | Procedure documents + sequential runner |
-| `homecooked-controller` | Host controller sim: IoMap + MockHal + interlocks + washer cotton cycle |
+| `homecooked-controller` | Host controller sim: IoMap + MockHal + interlocks + washer cotton / dryer cycles |
 | `homecooked-thermal` | First executable thermal plant slice (types, registry, offer/accept, tick) |
 | `homecooked-bridge` | Bridge slice: Modbus + Matter + Zigbee + BACnet mock maps |
 | `homecooked-transport` | Lab TCP: length-prefixed JSON envelopes; sim-backed server + client smoke |
@@ -140,16 +140,18 @@ multiple small PRs.
    `motor` / …) as types, not a real board driver.~~ **Done** —
    `homecooked-hal` + `MockHal`.
 2. ~~Controller-sim: bind an I/O map + interlocks + washer cycle runtime.~~
-   **Done (host API)** — `homecooked-controller` runs washer `cotton` on
-   MockHal with interlocks; protocol device-role registration left thin /
-   tests drive `Controller` directly.
+   **Done (host API)** — `homecooked-controller` runs washer `cotton` and
+   dryer Idle→Heat/Dry→Cool→Done on MockHal with class interlocks
+   (`washer_rules` / `dryer_rules`); protocol device-role registration left
+   thin / tests drive `Controller` directly.
 3. ~~TCP transport for the existing protocol envelope (one peer = one sim
    controller).~~ **Done (lab smoke)** — `homecooked-transport`: length-prefixed
    JSON framing, sim-backed TCP server + client, integration tests for
    describe / read / write (kettle + washer). **Auth / TLS still out of
    scope.** Full controller-sim-over-TCP (interlock-gated actuator via wire)
    remains a thin follow-up; host controller unit tests already cover cotton
-   cycle + interlock denies.
+   and dryer cycles + interlock denies (incl. dryer heat blocked when door
+   unlocked).
 
 **Definition of done**
 
@@ -270,7 +272,7 @@ devices:
 | Id | Notes |
 |----|--------|
 | `washer` | Already tabled; deepen with I/O / interlock examples |
-| `dryer` | Already tabled |
+| `dryer` | Controller-sim cycle + `DRYER_FRAGMENT_YAML` / `dryer_rules` (host); catalog/sim still tabled |
 | `washer_dryer` | Composition of laundry traits |
 | `fridge` | Already tabled |
 | `freezer` | |
@@ -336,4 +338,5 @@ the code that implements them.
 | 0.1.4 | Stream 6 Matter mock bridge (`homecooked-bridge` kettle map; no CHIP SDK) |
 | 0.1.5 | Stream 6 Zigbee mock bridge + microwave sim cook-time advance |
 | 0.1.6 | Stream 6 BACnet mock bridge (`homecooked-bridge` kettle map; no BACnet stack) |
+| 0.1.7 | Stream 4 dryer cotton cycle (`homecooked-controller` + dryer io_map/interlocks) |
 | 0.1.5 | Stream 7 thermal plant UI (`homecooked-wasm` + simulator-web thermal panel) |

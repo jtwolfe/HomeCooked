@@ -1,7 +1,7 @@
 //! Deterministic laundry plant model for the host controller sim.
 //!
 //! Updates sensor channels from actuator state each tick. Not physics —
-//! just enough feedback for the cotton state machine and interlocks.
+//! just enough feedback for washer/dryer cotton state machines and interlocks.
 
 use homecooked_hal::{bridge, ChannelId, Hal, HalValue, MockHal};
 
@@ -22,7 +22,19 @@ pub const HEAT_RATE_C: f64 = 15.0;
 /// Ambient cool-down when heater is off (°C per tick).
 pub const COOL_RATE_C: f64 = 1.0;
 
-/// Advance the fake plant one tick from current actuator outputs.
+/// Ambient drum temperature (°C) used as the cool floor.
+pub const DRYER_AMBIENT_C: f64 = 20.0;
+
+/// °C added per tick while dryer heater + blower are on.
+pub const DRYER_HEAT_RATE_C: f64 = 12.0;
+
+/// °C removed per tick while cooler (heater off, blower on).
+pub const DRYER_COOL_RATE_C: f64 = 8.0;
+
+/// RH percent removed per tick while heating with blower.
+pub const DRYER_DRY_RATE_RH: f64 = 15.0;
+
+/// Advance the fake washer plant one tick from current actuator outputs.
 pub fn step_plant(hal: &mut MockHal) -> Result<(), Error> {
     let inlet_on = read_aout_bool(hal, "aout.cold_inlet")?;
     let drain_on = read_aout_bool(hal, "aout.drain_pump")?;
@@ -79,6 +91,56 @@ pub fn refresh_derived(hal: &mut MockHal) -> Result<(), Error> {
     // Prefer feedback; fall back to command for the tick before plant runs.
     let door_locked = lock_fb || lock_cmd;
     hal.set_derived("door_locked", door_locked);
+    Ok(())
+}
+
+/// Advance the fake dryer plant one tick from current actuator outputs.
+pub fn step_dryer_plant(hal: &mut MockHal) -> Result<(), Error> {
+    let heater_on = read_aout_bool(hal, "aout.heater_enable")?;
+    let blower_on = read_aout_bool(hal, "aout.blower")?;
+    let lock_cmd = read_aout_bool(hal, "aout.door_lock")?;
+
+    let temp_id = ChannelId::new("ain.drum_temp_c")?;
+    let mut temp = hal.read_ai(&temp_id).unwrap_or(DRYER_AMBIENT_C);
+    if heater_on && blower_on {
+        temp += DRYER_HEAT_RATE_C;
+    } else if blower_on && temp > DRYER_AMBIENT_C {
+        temp = (temp - DRYER_COOL_RATE_C).max(DRYER_AMBIENT_C);
+    } else if temp > DRYER_AMBIENT_C {
+        temp = (temp - COOL_RATE_C).max(DRYER_AMBIENT_C);
+    }
+    hal.inject(&temp_id, temp)?;
+
+    let rh_id = ChannelId::new("ain.humidity_rh")?;
+    let mut rh = hal.read_ai(&rh_id).unwrap_or(60.0);
+    if heater_on && blower_on {
+        rh = (rh - DRYER_DRY_RATE_RH).max(5.0);
+    }
+    hal.inject(&rh_id, rh)?;
+
+    let fb = ChannelId::new("din.door_lock_fb")?;
+    hal.inject(&fb, lock_cmd)?;
+
+    let enable = read_motor_bool(hal, "motor.enable")?;
+    let rpm_cmd = read_motor_number(hal, "motor.speed_rpm_cmd")?;
+    let rpm_id = ChannelId::new("ain.drum_rpm")?;
+    let measured = if enable { rpm_cmd } else { 0.0 };
+    hal.inject(&rpm_id, measured)?;
+
+    Ok(())
+}
+
+/// Refresh derived dryer interlock keys (`door_locked`, `blower_on`).
+pub fn refresh_dryer_derived(hal: &mut MockHal) -> Result<(), Error> {
+    let lock_fb = bridge::read_channel(hal, "din.door_lock_fb")?
+        .as_bool()
+        .unwrap_or(false);
+    let lock_cmd = read_aout_bool(hal, "aout.door_lock")?;
+    let door_locked = lock_fb || lock_cmd;
+    hal.set_derived("door_locked", door_locked);
+
+    let blower = read_aout_bool(hal, "aout.blower")?;
+    hal.set_derived("blower_on", blower);
     Ok(())
 }
 

@@ -12,4 +12,4 @@ mod map;
 
 pub use error::Error;
 pub use kind::{channel_prefix, IoKind};
-pub use map::{Binding, IoMap, WASHER_FRAGMENT_YAML};
+pub use map::{Binding, IoMap, DRYER_FRAGMENT_YAML, WASHER_FRAGMENT_YAML};

@@ -1,7 +1,10 @@
 use homecooked_hal::{bridge, ChannelId, HalValue};
-use homecooked_io_map::WASHER_FRAGMENT_YAML;
+use homecooked_io_map::{DRYER_FRAGMENT_YAML, WASHER_FRAGMENT_YAML};
 
-use crate::{Controller, CottonOptions, CyclePhase, CycleState, WasherState};
+use crate::{
+    Controller, CottonOptions, CyclePhase, CycleState, DryOptions, DryerController, DryerState,
+    WasherState,
+};
 
 #[test]
 fn loads_washer_fragment_io_map() {
@@ -13,6 +16,18 @@ fn loads_washer_fragment_io_map() {
     );
     // Fragment YAML constant still parses standalone.
     let _ = homecooked_io_map::IoMap::from_yaml_str(WASHER_FRAGMENT_YAML).unwrap();
+}
+
+#[test]
+fn loads_dryer_fragment_io_map() {
+    let ctrl = DryerController::dryer_cotton_demo().expect("demo");
+    assert_eq!(ctrl.io_map().class_id.as_deref(), Some("dryer"));
+    assert!(ctrl
+        .io_map()
+        .bindings
+        .iter()
+        .any(|b| b.channel == "aout.blower"));
+    let _ = homecooked_io_map::IoMap::from_yaml_str(DRYER_FRAGMENT_YAML).unwrap();
 }
 
 #[test]
@@ -53,6 +68,47 @@ fn cotton_cycle_reaches_done() {
 }
 
 #[test]
+fn dryer_cycle_reaches_done() {
+    let mut ctrl = DryerController::dryer_cotton_demo().unwrap();
+    let door = ChannelId::new("din.door_closed").unwrap();
+    ctrl.hal_mut().inject(&door, true).unwrap();
+
+    let opts = DryOptions {
+        target_temp_c: 45.0,
+        target_humidity_rh: 30.0,
+        cool_temp_c: 28.0,
+        tumble_rpm: 50.0,
+        max_dry_ticks: 15,
+        max_cool_ticks: 15,
+    };
+    ctrl.start_dry(opts).unwrap();
+    assert_eq!(ctrl.cycle_state(), CycleState::Running);
+    assert_eq!(ctrl.dryer_state(), DryerState::Lock);
+
+    ctrl.run_until_done(200)
+        .expect("dryer cotton should complete");
+    assert_eq!(ctrl.cycle_state(), CycleState::Complete);
+    assert_eq!(ctrl.dryer_state(), DryerState::Done);
+    assert_eq!(ctrl.phase(), CyclePhase::Complete);
+
+    let rpm = bridge::read_channel(ctrl.hal(), "ain.drum_rpm")
+        .unwrap()
+        .as_number()
+        .unwrap();
+    assert_eq!(rpm, 0.0);
+    let lock = ctrl
+        .hal()
+        .get(&ChannelId::new("aout.door_lock").unwrap())
+        .unwrap();
+    assert_eq!(lock, &HalValue::Bool(false));
+    let heater = ctrl
+        .hal()
+        .get(&ChannelId::new("aout.heater_enable").unwrap())
+        .unwrap();
+    assert_eq!(heater, &HalValue::Bool(false));
+}
+
+#[test]
 fn heater_blocked_without_water() {
     let mut ctrl = Controller::washer_cotton_demo().unwrap();
     // Door locked path for heater require; water absent.
@@ -68,6 +124,28 @@ fn heater_blocked_without_water() {
     let msg = err.to_string();
     assert!(
         msg.contains("interlock") || msg.contains("water_present"),
+        "unexpected err: {msg}"
+    );
+    assert!(ctrl.hal().last_command("aout.heater_enable").is_none());
+}
+
+#[test]
+fn dryer_heat_blocked_if_unlocked() {
+    let mut ctrl = DryerController::dryer_cotton_demo().unwrap();
+    // Blower on so the only failing require is the door lock.
+    bridge::write_channel(ctrl.hal_mut(), "aout.blower", true).unwrap();
+    bridge::write_channel(ctrl.hal_mut(), "aout.door_lock", false).unwrap();
+    let lock_fb = ChannelId::new("din.door_lock_fb").unwrap();
+    ctrl.hal_mut().inject(&lock_fb, false).unwrap();
+    ctrl.hal_mut().set_derived("door_locked", false);
+    ctrl.hal_mut().set_derived("blower_on", true);
+
+    let err = ctrl
+        .try_heater_on()
+        .expect_err("heater must deny when unlocked");
+    let msg = err.to_string();
+    assert!(
+        msg.contains("interlock") || msg.contains("door"),
         "unexpected err: {msg}"
     );
     assert!(ctrl.hal().last_command("aout.heater_enable").is_none());

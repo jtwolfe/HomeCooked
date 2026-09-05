@@ -257,7 +257,7 @@ auditable reason. Both must agree to energize.
 
 ### 4.6 Cycle / procedure runtime
 
-Host sketch: crate [`homecooked-controller`](../../crates/homecooked-controller) runs a washer `cotton` cycle against `MockHal` + washer interlocks (no GPIO / no TCP in that crate yet).
+Host sketch: crate [`homecooked-controller`](../../crates/homecooked-controller) runs washer `cotton` and dryer Idle→Heat/Dry→Cool→Done against `MockHal` + class interlocks (no GPIO / no TCP in that crate yet).
 
 A state machine that executes:
 

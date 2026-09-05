@@ -281,8 +281,38 @@ writable, which v1 washers typically do not.
 
 ---
 
-## 7. Document history
+## 7. Minimal cycle outline — dryer `cotton`
+
+Catalog program token: `trait.program.program` = `cotton`
+([`variables-and-settings.md`](../../catalog/variables-and-settings.md)
+class `dryer`). Client may also write `class.dryer.dryness` /
+`class.dryer.timed_s` / `class.dryer.heat_level` **before**
+`trait.cycle.start`.
+
+Advertised `trait.cycle.cycle_phase` tokens stay in the catalog set:
+`heating` `drying` `cooling` `anti_crease` `complete`. Host sim collapses
+heat + tumble into an internal **Dry** state that reports `drying` on the
+wire (lock prelude may briefly report `heating`).
+
+Every line that names an `aout.*` or `motor.*` is a HAL request. The
+interlock engine may refuse it; the runtime then faults or waits, it does
+not poke GPIO. **Dryer heater** requires door lock feedback (and blower /
+airflow when the SKU requires it) — not washer `water_present`.
+
+| Internal state | `cycle_phase` | HAL (sketch) | Guards |
+|----------------|---------------|--------------|--------|
+| idle | — (`cycle_state=idle`) | none | Door closed to accept `start` if required |
+| lock | `heating` | `aout.door_lock` | `din.door_closed`; wait for `din.door_lock_fb` |
+| dry / heat | `drying` | `aout.blower` then `aout.heater_enable`; tumble `motor.*` until humidity / temp target | **il.heater**: lock fb AND blower; **il.motor**: lock fb |
+| cool | `cooling` | heater off; blower + tumble until cool temp | Door remains locked |
+| complete | `complete` | motor / blower / heater off; unlock; buzzer | — |
+
+Host sketch: [`homecooked-controller`](../../../crates/homecooked-controller)
+`DryerController` against `MockHal` + `dryer_rules` + `DRYER_FRAGMENT_YAML`.
+
+## 8. Document history
 
 | Version | Notes |
 |---------|--------|
 | 0.1.0 | Initial washer / dryer I/O inventory, sample map, `cotton` outline |
+| 0.1.1 | Dryer `cotton` cycle outline; host controller-sim + dryer_rules |
