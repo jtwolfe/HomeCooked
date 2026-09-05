@@ -1,0 +1,38 @@
+{
+  "id": "kettle_heat_80",
+  "name": "Heat kettle to 80C",
+  "description": "Write setpoint 80 °C, start heat, wait until current_c ≥ 75 °C, then assert.",
+  "catalog_version": "0.1.0",
+  "devices": [
+    { "role": "kettle", "class_id": "kettle" }
+  ],
+  "steps": [
+    {
+      "id": "setpoint",
+      "action": "write",
+      "target": { "role": "kettle", "point": "trait.temperature.setpoint_c" },
+      "value": { "type": "f32", "value": 80.0 }
+    },
+    {
+      "id": "start",
+      "action": "command",
+      "target": { "role": "kettle", "point": "trait.cycle.start" },
+      "value": { "type": "void" }
+    },
+    {
+      "id": "wait_heat",
+      "action": "wait",
+      "target": { "role": "kettle" },
+      "timeout_s": 20,
+      "guards": [
+        { "point": "trait.temperature.current_c", "gte": { "type": "f32", "value": 75.0 } }
+      ]
+    },
+    {
+      "id": "assert_temp",
+      "op": "guard",
+      "target": { "role": "kettle" },
+      "guard": { "point": "trait.temperature.current_c", "gte": { "type": "f32", "value": 75.0 } }
+    }
+  ]
+}

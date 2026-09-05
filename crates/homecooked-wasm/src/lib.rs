@@ -87,6 +87,30 @@ pub fn get_state(device_id: &str) -> Result<String, JsError> {
     with_api(|api| api.get_state(device_id)).map_err(js_err)
 }
 
+/// JSON array of bundled examples: `{id, name, description?, class_hints?}`.
+#[wasm_bindgen]
+pub fn list_example_procedures() -> String {
+    WasmApi::list_example_procedures()
+}
+
+/// Full procedure JSON for a bundled example id.
+#[wasm_bindgen]
+pub fn get_example_procedure(id: &str) -> Result<String, JsError> {
+    WasmApi::get_example_procedure(id).map_err(js_err)
+}
+
+/// Parse + validate procedure JSON. Returns a summary or `ApiError` JSON.
+#[wasm_bindgen]
+pub fn parse_procedure(json: &str) -> Result<String, JsError> {
+    WasmApi::parse_procedure(json).map_err(js_err)
+}
+
+/// Auto-bind / spawn sim devices by role, then run the procedure.
+#[wasm_bindgen]
+pub fn run_procedure(json: &str) -> Result<String, JsError> {
+    with_api_mut(|api| api.run_procedure(json)).map_err(js_err)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -101,5 +125,14 @@ mod tests {
         assert!(from_fn.contains("\"wine_cooler\""));
         assert!(from_fn.contains("\"hvac\""));
         assert!(from_fn.contains("\"steam_oven\""));
+    }
+
+    #[test]
+    fn bindgen_list_example_procedures_matches_api() {
+        let from_fn = list_example_procedures();
+        let from_api = WasmApi::list_example_procedures();
+        assert_eq!(from_fn, from_api);
+        assert!(from_fn.contains("\"kettle_heat_80\""));
+        assert!(from_fn.contains("\"reheat_dominos_microwave\""));
     }
 }

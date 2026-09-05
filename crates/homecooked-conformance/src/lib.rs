@@ -10,7 +10,7 @@ use homecooked_bridge::{Bridge, ForeignRaw, ForeignRef, ModbusBridge, PointRef};
 use homecooked_controller::{Controller, CottonOptions, CyclePhase, CycleState, WasherState};
 use homecooked_core::DeviceId;
 use homecooked_hal::ChannelId;
-use homecooked_procedure::{run, DeviceBindings, Procedure};
+use homecooked_procedure::{run, DeviceBindings, Procedure, KETTLE_HEAT_80_JSON};
 use homecooked_protocol::{Envelope, Payload, WriteOp};
 use homecooked_schema::{
     typical_capability, ApplianceClassId, QualifiedPointId, Value, TIER_A_CLASS_IDS,
@@ -165,47 +165,10 @@ pub fn washer_cotton_controller() -> ScenarioResult {
     Ok(())
 }
 
-const KETTLE_HEAT_JSON: &str = r#"
-{
-  "id": "kettle_heat_80",
-  "name": "Heat kettle to 80C",
-  "catalog_version": "0.1.0",
-  "steps": [
-    {
-      "id": "setpoint",
-      "action": "write",
-      "target": { "role": "kettle", "point": "trait.temperature.setpoint_c" },
-      "value": { "type": "f32", "value": 80.0 }
-    },
-    {
-      "id": "start",
-      "action": "command",
-      "target": { "role": "kettle", "point": "trait.cycle.start" },
-      "value": { "type": "void" }
-    },
-    {
-      "id": "wait_heat",
-      "action": "wait",
-      "target": { "role": "kettle" },
-      "timeout_s": 20,
-      "guards": [
-        { "point": "trait.temperature.current_c", "gte": { "type": "f32", "value": 75.0 } }
-      ]
-    },
-    {
-      "id": "assert_temp",
-      "op": "guard",
-      "target": { "role": "kettle" },
-      "guard": { "point": "trait.temperature.current_c", "gte": { "type": "f32", "value": 75.0 } }
-    }
-  ]
-}
-"#;
-
 /// (3) Procedure kettle happy path via homecooked-procedure.
 pub fn procedure_kettle_happy_path() -> ScenarioResult {
     const NAME: &str = "procedure_kettle_happy_path";
-    let doc = Procedure::load_json(KETTLE_HEAT_JSON)
+    let doc = Procedure::load_json(KETTLE_HEAT_80_JSON)
         .map_err(|e| err(NAME, format!("load procedure: {e}")))?;
     let mut sim = Simulator::new();
     let id = sim

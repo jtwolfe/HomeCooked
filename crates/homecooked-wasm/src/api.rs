@@ -1,7 +1,13 @@
 //! JSON-string API over [`homecooked_sim::Simulator`], shared by wasm-bindgen
 //! wrappers and native tests.
 
+use std::collections::HashSet;
+
 use homecooked_core::{CoreError, DeviceId};
+use homecooked_procedure::{
+    run, ClassHint, DeviceBindings, DeviceRef, FailReason, Procedure, RunResult, RunStatus,
+    StepAction, BUNDLED_EXAMPLE_PROCEDURES,
+};
 use homecooked_schema::{
     catalog_group, AccessMode, ApplianceClassId, DeviceIdentity, ErrorCode, Unit, Value,
     ValueRange, ValueType, TIER_A_CLASS_IDS,
@@ -48,6 +54,37 @@ impl ApiError {
         serde_json::to_string(self).unwrap_or_else(|_| {
             r#"{"code":"internal","message":"failed to serialize error"}"#.to_string()
         })
+    }
+}
+
+impl From<homecooked_procedure::Error> for ApiError {
+    fn from(err: homecooked_procedure::Error) -> Self {
+        match err {
+            homecooked_procedure::Error::Json(message) => Self::invalid_request(message),
+            homecooked_procedure::Error::Invalid { step_id, message } => {
+                let message = match step_id {
+                    Some(id) => format!("step {id}: {message}"),
+                    None => message,
+                };
+                Self::invalid_request(message)
+            }
+            homecooked_procedure::Error::Capability(v) => Self {
+                code: v.code,
+                message: v.message,
+                point_id: v.point_id,
+                expected: v.expected,
+            },
+            homecooked_procedure::Error::Backend {
+                code,
+                message,
+                point_id,
+            } => Self {
+                code,
+                message,
+                point_id,
+                expected: None,
+            },
+        }
     }
 }
 
@@ -109,6 +146,80 @@ pub struct DescribeOut {
     pub identity: DeviceIdentity,
     pub capability: homecooked_schema::CapabilityModel,
     pub points: Vec<PointView>,
+}
+
+/// Bundled example listing entry for the simulator-web picker.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExampleProcedureInfo {
+    pub id: String,
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub class_hints: Vec<String>,
+}
+
+/// Summary returned by [`WasmApi::parse_procedure`].
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProcedureSummary {
+    pub id: String,
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub class_hints: Vec<String>,
+    pub step_count: usize,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub devices: Vec<ProcedureDeviceSummary>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProcedureDeviceSummary {
+    pub role: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub class_hints: Vec<String>,
+    pub optional: bool,
+}
+
+/// JS-facing run result (maps [`RunStatus`] / [`StepOutcome`] / [`FailReason`]).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProcedureRunOut {
+    pub status: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub failed_step_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fail_reason: Option<FailReasonOut>,
+    pub outcomes: Vec<StepOutcomeOut>,
+    pub bindings: Vec<BindingOut>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FailReasonOut {
+    pub kind: String,
+    pub message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub role: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub code: Option<ErrorCode>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StepOutcomeOut {
+    pub step_id: String,
+    pub action: StepAction,
+    pub ok: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub read_value: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BindingOut {
+    pub role: String,
+    pub device_id: String,
+    pub class_id: ApplianceClassId,
+    pub spawned: bool,
 }
 
 impl WasmApi {
@@ -260,6 +371,254 @@ impl WasmApi {
         serde_json::to_string(&serde_json::Value::Object(map))
             .map_err(|e| ApiError::internal(e.to_string()))
     }
+
+    /// JSON array of bundled examples (`id`, `name`, `description`, `class_hints`).
+    pub fn list_example_procedures() -> String {
+        let items: Vec<ExampleProcedureInfo> = BUNDLED_EXAMPLE_PROCEDURES
+            .iter()
+            .filter_map(|(id, json)| {
+                let doc = Procedure::load_json(json).ok()?;
+                Some(ExampleProcedureInfo {
+                    id: (*id).to_string(),
+                    name: doc.name,
+                    description: doc.description,
+                    class_hints: class_hints_of(&doc.devices),
+                })
+            })
+            .collect();
+        serde_json::to_string(&items).expect("ExampleProcedureInfo serializes")
+    }
+
+    /// Full JSON for a bundled example id (`kettle_heat_80`, `reheat_dominos_microwave`).
+    pub fn get_example_procedure(id: &str) -> Result<String, ApiError> {
+        BUNDLED_EXAMPLE_PROCEDURES
+            .iter()
+            .find(|(known, _)| *known == id)
+            .map(|(_, json)| (*json).to_string())
+            .ok_or_else(|| ApiError::invalid_request(format!("unknown example procedure {id:?}")))
+    }
+
+    /// Parse + structurally validate a procedure document.
+    pub fn parse_procedure(json: &str) -> Result<String, ApiError> {
+        let doc = Procedure::load_json(json)?;
+        let summary = ProcedureSummary {
+            id: doc.id.clone(),
+            name: doc.name.clone(),
+            description: doc.description.clone(),
+            class_hints: class_hints_of(&doc.devices),
+            step_count: doc.steps.len(),
+            devices: doc
+                .devices
+                .iter()
+                .map(|d| ProcedureDeviceSummary {
+                    role: d.role.clone(),
+                    class_hints: class_ids_of(d.class_id.as_ref()),
+                    optional: d.optional,
+                })
+                .collect(),
+        };
+        serde_json::to_string(&summary).map_err(|e| ApiError::internal(e.to_string()))
+    }
+
+    /// Auto-bind / spawn devices by role, then run the procedure against the sim.
+    pub fn run_procedure(&mut self, json: &str) -> Result<String, ApiError> {
+        let doc = Procedure::load_json(json)?;
+        let (bindings, binding_out) = self.bind_procedure_devices(&doc)?;
+        let result = run(&doc, &mut self.sim, &bindings);
+        let out = ProcedureRunOut::from_run(result, binding_out);
+        serde_json::to_string(&out).map_err(|e| ApiError::internal(e.to_string()))
+    }
+
+    fn bind_procedure_devices(
+        &mut self,
+        procedure: &Procedure,
+    ) -> Result<(DeviceBindings, Vec<BindingOut>), ApiError> {
+        let mut bindings = DeviceBindings::new();
+        let mut used: HashSet<String> = HashSet::new();
+        let mut out = Vec::new();
+
+        for dev_ref in collect_role_refs(procedure) {
+            if let Some(bound) = self.try_bind_existing(&dev_ref, &used) {
+                used.insert(bound.device_id.clone());
+                bindings.insert(&dev_ref.role, &bound.device_id);
+                out.push(bound);
+                continue;
+            }
+            if dev_ref.optional {
+                continue;
+            }
+            let class = first_spawn_class(&dev_ref).ok_or_else(|| {
+                ApiError::invalid_request(format!(
+                    "cannot bind required role {:?}: no class hint and no matching device",
+                    dev_ref.role
+                ))
+            })?;
+            let id = self.sim.spawn(class)?;
+            used.insert(id.as_str().to_string());
+            bindings.insert(&dev_ref.role, id.as_str());
+            out.push(BindingOut {
+                role: dev_ref.role,
+                device_id: id.as_str().to_string(),
+                class_id: class,
+                spawned: true,
+            });
+        }
+
+        Ok((bindings, out))
+    }
+
+    fn try_bind_existing(&self, dev_ref: &DeviceRef, used: &HashSet<String>) -> Option<BindingOut> {
+        if let Some(id) = dev_ref.device_id.as_deref() {
+            if let Some(dev) = self.sim.hub().registry.get(&DeviceId::new(id)) {
+                return Some(BindingOut {
+                    role: dev_ref.role.clone(),
+                    device_id: id.to_string(),
+                    class_id: dev.identity.class_id,
+                    spawned: false,
+                });
+            }
+        }
+        let classes = class_ids_enum(dev_ref);
+        self.sim
+            .hub()
+            .registry
+            .list()
+            .into_iter()
+            .find(|dev| {
+                !used.contains(&dev.identity.device_id) && classes.contains(&dev.identity.class_id)
+            })
+            .map(|dev| BindingOut {
+                role: dev_ref.role.clone(),
+                device_id: dev.identity.device_id.clone(),
+                class_id: dev.identity.class_id,
+                spawned: false,
+            })
+    }
+}
+
+impl ProcedureRunOut {
+    fn from_run(result: RunResult, bindings: Vec<BindingOut>) -> Self {
+        let (status, failed_step_id, fail_reason) = match result.status {
+            RunStatus::Completed => ("completed".to_string(), None, None),
+            RunStatus::Failed { step_id, reason } => (
+                "failed".to_string(),
+                Some(step_id),
+                Some(FailReasonOut::from(reason)),
+            ),
+        };
+        Self {
+            status,
+            failed_step_id,
+            fail_reason,
+            outcomes: result
+                .outcomes
+                .into_iter()
+                .map(|o| StepOutcomeOut {
+                    step_id: o.step_id,
+                    action: o.action,
+                    ok: o.ok,
+                    read_value: o.read_value,
+                    message: o.message,
+                })
+                .collect(),
+            bindings,
+        }
+    }
+}
+
+impl From<FailReason> for FailReasonOut {
+    fn from(reason: FailReason) -> Self {
+        match reason {
+            FailReason::Validation(message) => Self {
+                kind: "validation".into(),
+                message,
+                role: None,
+                code: None,
+            },
+            FailReason::GuardFailed(message) => Self {
+                kind: "guard_failed".into(),
+                message,
+                role: None,
+                code: None,
+            },
+            FailReason::Timeout => Self {
+                kind: "timeout".into(),
+                message: "timeout".into(),
+                role: None,
+                code: Some(ErrorCode::Timeout),
+            },
+            FailReason::UnboundDevice { role } => Self {
+                kind: "unbound_device".into(),
+                message: match &role {
+                    Some(r) => format!("unbound device role {r}"),
+                    None => "unbound device".into(),
+                },
+                role,
+                code: None,
+            },
+            FailReason::Backend { code, message } => Self {
+                kind: "backend".into(),
+                message,
+                role: None,
+                code: Some(code),
+            },
+        }
+    }
+}
+
+fn class_ids_of(hint: Option<&ClassHint>) -> Vec<String> {
+    hint.map(|h| {
+        h.as_slice()
+            .iter()
+            .map(|c| c.as_str().to_string())
+            .collect()
+    })
+    .unwrap_or_default()
+}
+
+fn class_hints_of(devices: &[DeviceRef]) -> Vec<String> {
+    let mut seen = HashSet::new();
+    let mut out = Vec::new();
+    for dev in devices {
+        for id in class_ids_of(dev.class_id.as_ref()) {
+            if seen.insert(id.clone()) {
+                out.push(id);
+            }
+        }
+    }
+    out
+}
+
+fn class_ids_enum(dev_ref: &DeviceRef) -> Vec<ApplianceClassId> {
+    if let Some(hint) = &dev_ref.class_id {
+        return hint.as_slice().to_vec();
+    }
+    ApplianceClassId::from_str_id(&dev_ref.role)
+        .into_iter()
+        .collect()
+}
+
+fn first_spawn_class(dev_ref: &DeviceRef) -> Option<ApplianceClassId> {
+    class_ids_enum(dev_ref).into_iter().next()
+}
+
+/// Declared `devices` plus any step roles that were omitted from the document.
+fn collect_role_refs(procedure: &Procedure) -> Vec<DeviceRef> {
+    let mut refs = procedure.devices.clone();
+    let mut seen: HashSet<String> = refs.iter().map(|d| d.role.clone()).collect();
+    for step in &procedure.steps {
+        if let Some(role) = step.role() {
+            if seen.insert(role.to_string()) {
+                refs.push(DeviceRef {
+                    role: role.to_string(),
+                    class_id: ApplianceClassId::from_str_id(role).map(ClassHint::One),
+                    device_id: None,
+                    optional: false,
+                });
+            }
+        }
+    }
+    refs
 }
 
 fn class_label(id: ApplianceClassId) -> String {
@@ -600,5 +959,90 @@ mod tests {
         let state = api.get_state(&id).unwrap();
         assert_eq!(all, state);
         assert!(state.contains("trait.temperature.setpoint_c"));
+    }
+
+    #[test]
+    fn list_example_procedures_includes_kettle_and_dominos() {
+        let items: Vec<ExampleProcedureInfo> =
+            serde_json::from_str(&WasmApi::list_example_procedures()).unwrap();
+        assert_eq!(items.len(), 2);
+        assert_eq!(items[0].id, "kettle_heat_80");
+        assert_eq!(items[0].name, "Heat kettle to 80C");
+        assert!(items[0].class_hints.iter().any(|c| c == "kettle"));
+        assert_eq!(items[1].id, "reheat_dominos_microwave");
+        assert!(items[1].class_hints.iter().any(|c| c == "microwave"));
+    }
+
+    #[test]
+    fn get_and_parse_example_procedures() {
+        let kettle = WasmApi::get_example_procedure("kettle_heat_80").unwrap();
+        let summary: ProcedureSummary =
+            serde_json::from_str(&WasmApi::parse_procedure(&kettle).unwrap()).unwrap();
+        assert_eq!(summary.id, "kettle_heat_80");
+        assert_eq!(summary.step_count, 4);
+        assert_eq!(summary.devices[0].role, "kettle");
+
+        let mw = WasmApi::get_example_procedure("reheat_dominos_microwave").unwrap();
+        let summary: ProcedureSummary =
+            serde_json::from_str(&WasmApi::parse_procedure(&mw).unwrap()).unwrap();
+        assert_eq!(summary.id, "reheat_dominos_microwave");
+        assert_eq!(summary.step_count, 5);
+
+        let err = WasmApi::get_example_procedure("not_a_recipe").unwrap_err();
+        assert_eq!(err.code, ErrorCode::InvalidRequest);
+
+        let err = WasmApi::parse_procedure("{").unwrap_err();
+        assert_eq!(err.code, ErrorCode::InvalidRequest);
+    }
+
+    #[test]
+    fn run_kettle_procedure_auto_spawns_and_completes() {
+        let mut api = WasmApi::new();
+        let json = WasmApi::get_example_procedure("kettle_heat_80").unwrap();
+        let raw = api.run_procedure(&json).unwrap();
+        let result: ProcedureRunOut = serde_json::from_str(&raw).unwrap();
+
+        assert_eq!(result.status, "completed");
+        assert!(result.failed_step_id.is_none());
+        assert!(result.fail_reason.is_none());
+        assert_eq!(result.outcomes.len(), 4);
+        assert!(result.outcomes.iter().all(|o| o.ok));
+        assert_eq!(result.outcomes[0].step_id, "setpoint");
+        assert_eq!(result.outcomes[1].step_id, "start");
+        assert_eq!(result.outcomes[2].step_id, "wait_heat");
+        assert_eq!(result.outcomes[3].step_id, "assert_temp");
+
+        assert_eq!(result.bindings.len(), 1);
+        assert_eq!(result.bindings[0].role, "kettle");
+        assert_eq!(result.bindings[0].class_id, ApplianceClassId::Kettle);
+        assert!(result.bindings[0].spawned);
+        assert!(result.bindings[0].device_id.starts_with("sim-kettle-"));
+
+        let devices: Vec<DeviceInfo> = serde_json::from_str(&api.list_devices()).unwrap();
+        assert_eq!(devices.len(), 1);
+        assert_eq!(devices[0].device_id, result.bindings[0].device_id);
+
+        let state: serde_json::Value =
+            serde_json::from_str(&api.get_state(&result.bindings[0].device_id).unwrap()).unwrap();
+        assert!(f32_of(&state, "trait.temperature.current_c") >= 75.0);
+    }
+
+    #[test]
+    fn run_kettle_reuses_existing_matching_device() {
+        let mut api = WasmApi::new();
+        let existing = api.create_device("kettle").unwrap();
+        let json = WasmApi::get_example_procedure("kettle_heat_80").unwrap();
+        let result: ProcedureRunOut =
+            serde_json::from_str(&api.run_procedure(&json).unwrap()).unwrap();
+        assert_eq!(result.status, "completed");
+        assert_eq!(result.bindings.len(), 1);
+        assert_eq!(result.bindings[0].device_id, existing);
+        assert!(!result.bindings[0].spawned);
+        assert_eq!(
+            serde_json::from_str::<Vec<DeviceInfo>>(&api.list_devices())
+                .unwrap()
+                .len(),
+            1
+        );
     }
 }

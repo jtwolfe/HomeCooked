@@ -57,8 +57,33 @@ Open <http://127.0.0.1:8080>.
 Writes that fail capability checks (`out_of_range`, `not_writable`, …) show
 an error banner and leave device state unchanged.
 
-Procedure / thermal-plant UI is **not** in this page yet (see ROADMAP
-Stream 3 / Stream 5 / Stream 7 remaining work).
+## Procedure panel
+
+The lower **Procedure** panel loads a bundled recipe or accepts pasted
+procedure JSON, then runs it through `homecooked-procedure` against the
+current simulator world.
+
+1. Pick a sample (**Heat kettle to 80C** or the Domino’s microwave fixture)
+   or paste JSON.
+2. **Load sample** fills the editor (WASM `get_example_procedure`, with a
+   fetch fallback to `procedures/*.json`).
+3. **Parse** validates the document (`parse_procedure`) and shows a short
+   summary.
+4. **Run** auto-binds each required role to an existing sim device of a
+   matching class, or **spawns** that class if none is present. Optional
+   roles bind only when a match already exists. After the run, the device
+   list refreshes so spawned appliances appear.
+
+Results show completed/failed status, role bindings, and per-step ok/fail
+(with messages / fail reason). Static copies of the fixtures live in
+[`procedures/`](procedures/) and stay in sync with
+`crates/homecooked-procedure/examples/`.
+
+The kettle sample is the happy-path demo (sim heats ~5 °C/s). The microwave
+fixture parses and writes cook settings; the sim does not yet advance
+`trait.cycle.elapsed_s` for microwave, so the wait step will time out.
+
+Thermal-port UI is still out of scope (ROADMAP Stream 5 / Stream 7).
 
 ## Manual smoke (after wasm-pack)
 

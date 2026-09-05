@@ -14,6 +14,7 @@ crate-type = ["cdylib", "rlib"]
 console_error_panic_hook = "0.1"
 getrandom = { version = "0.2", features = ["js"] }
 homecooked-core = { path = "../homecooked-core" }
+homecooked-procedure = { path = "../homecooked-procedure" }
 homecooked-schema = { path = "../homecooked-schema" }
 homecooked-sim = { path = "../homecooked-sim" }
 serde = { workspace = true }

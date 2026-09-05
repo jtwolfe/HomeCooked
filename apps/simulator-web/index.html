@@ -16,8 +16,10 @@
         <p class="eyebrow">HomeCooked · catalog 0.1.0</p>
         <h1>Appliance simulator</h1>
         <p class="lede">
-          Spawn any Tier-A catalog class (grouped picker), write settings, and
-          tick simulated time. WASM wraps <code>homecooked-sim</code>.
+          Spawn any Tier-A catalog class (grouped picker), write settings, tick
+          simulated time, or run a procedure / recipe against sim devices.
+          WASM wraps <code>homecooked-sim</code> and
+          <code>homecooked-procedure</code>.
         </p>
       </div>
       <p id="status" class="status" role="status">Loading WASM…</p>
@@ -36,7 +38,8 @@ python3 -m http.server 8080</pre>
       <p id="boot-error-detail" class="muted"></p>
     </div>
 
-    <div id="app" class="layout" hidden>
+    <div id="app" hidden>
+      <div class="layout">
       <aside class="panel">
         <h2>Devices</h2>
         <label class="field">
@@ -87,6 +90,47 @@ python3 -m http.server 8080</pre>
           </details>
         </section>
       </main>
+    </div>
+
+      <section class="panel procedure-panel">
+        <h2>Procedure</h2>
+        <p class="muted procedure-lede">
+          Pick a bundled recipe or paste procedure JSON. Run auto-binds roles
+          to existing sim devices (and spawns missing required classes).
+        </p>
+        <div class="procedure-toolbar">
+          <label class="field compact grow">
+            <span>Sample procedure</span>
+            <select id="procedure-select"></select>
+          </label>
+          <button id="load-procedure-btn" type="button" class="secondary">
+            Load sample
+          </button>
+          <button id="parse-procedure-btn" type="button" class="secondary">
+            Parse
+          </button>
+          <button id="run-procedure-btn" type="button">Run</button>
+        </div>
+        <label class="field">
+          <span>Procedure JSON</span>
+          <textarea
+            id="procedure-json"
+            rows="12"
+            spellcheck="false"
+            placeholder='{ "id": "…", "name": "…", "steps": [ … ] }'
+          ></textarea>
+        </label>
+        <p id="procedure-error" class="banner error compact" hidden></p>
+        <div id="procedure-summary" class="procedure-summary" hidden></div>
+        <div id="procedure-result" hidden>
+          <div class="procedure-result-head">
+            <p id="procedure-status" class="procedure-status"></p>
+            <p id="procedure-fail" class="muted"></p>
+          </div>
+          <ul id="procedure-bindings" class="procedure-bindings" hidden></ul>
+          <ol id="procedure-steps" class="step-outcomes"></ol>
+        </div>
+      </section>
     </div>
 
     <script type="module" src="./app.js"></script>

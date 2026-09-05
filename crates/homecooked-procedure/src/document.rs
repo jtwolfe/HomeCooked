@@ -7,9 +7,18 @@ use homecooked_schema::{ApplianceClassId, SemVer, Value};
 use crate::error::Error;
 use crate::guard::{Guard, GuardSet};
 
+/// Kettle happy-path fixture: setpoint 80 °C, start, wait until ≥ 75 °C.
+pub const KETTLE_HEAT_80_JSON: &str = include_str!("../examples/kettle_heat_80.json");
+
 /// Microwave-only Domino's reheat sketch from `docs/standard/procedures.md` §4.
 pub const REHEAT_DOMINOS_MICROWAVE_JSON: &str =
     include_str!("../examples/reheat_dominos_microwave.json");
+
+/// Bundled example documents: `(id, json)`.
+pub const BUNDLED_EXAMPLE_PROCEDURES: &[(&str, &str)] = &[
+    ("kettle_heat_80", KETTLE_HEAT_80_JSON),
+    ("reheat_dominos_microwave", REHEAT_DOMINOS_MICROWAVE_JSON),
+];
 
 /// Ordered recipe / protocol document.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
