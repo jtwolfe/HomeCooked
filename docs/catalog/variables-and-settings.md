@@ -1049,6 +1049,14 @@ emits `pan_missing`.
 |----|------|------|--------------|--------|-----|-------------|
 | `level` | enum | — | `low` `medium` `high` | r/w | opt | Alternate to `setpoint_c` |
 | `moist` | bool | — | | r/w | opt | Vent / humidity |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving heater duty |
+| `heater_on` | bool | — | | r/e | opt | Element / heater active |
+| `high_temp_alarm` | bool | — | | r/e | opt | Overtemp / too-hot |
+| `door_ajar` | bool | — | | r/e | opt | Drawer ajar bit |
+| `timer_s` | duration_s | second | 0–10800 | r/w/e | opt | Hold / countdown timer |
+
+Setpoint typically 40–90 °C when using °C instead of `level`.
 
 ---
 
