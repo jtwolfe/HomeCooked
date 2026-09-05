@@ -4791,14 +4791,80 @@ const YOGURT_MAKER_TRAITS: &[TraitId] = &[
 
 const YOGURT_PROGRAMS: &[&str] = &["yogurt", "greek", "proof"];
 
-static YOGURT_MAKER_POINTS: &[CatalogPoint] = &[s(
-    "incubate_s",
-    ValueType::DurationS,
-    Some(Unit::Second),
-    int(3600, 86400),
-    AccessMode::RW,
-    true,
-)];
+static YOGURT_MAKER_POINTS: &[CatalogPoint] = &[
+    s(
+        "incubate_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(3600, 86400),
+        AccessMode::RW,
+        true,
+    ),
+    s(
+        "sabbath_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RWE,
+        false,
+    ),
+    s(
+        "eco_mode",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RW,
+        false,
+    ),
+    v(
+        "heater_on",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "high_temp_alarm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "low_temp_alarm",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "lid_open",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    v(
+        "jar_present",
+        ValueType::Bool,
+        None,
+        None,
+        AccessMode::RE,
+        false,
+    ),
+    s(
+        "timer_s",
+        ValueType::DurationS,
+        Some(Unit::Second),
+        int(0, 86400),
+        AccessMode::RWE,
+        false,
+    ),
+];
 
 const WAFFLE_MAKER_TRAITS: &[TraitId] = &[
     TraitId::Identity,

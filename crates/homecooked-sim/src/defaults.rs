@@ -246,7 +246,7 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
             _ => Value::U8(int_min(point, 0) as u8),
         },
         "jar_present" => match ctx.identity.class_id {
-            ApplianceClassId::Blender => Value::Bool(true),
+            ApplianceClassId::Blender | ApplianceClassId::YogurtMaker => Value::Bool(true),
             _ => Value::Bool(false),
         },
         "jug_present" => match ctx.identity.class_id {

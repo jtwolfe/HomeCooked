@@ -1269,11 +1269,16 @@ Yogurt (and sometimes cheese) fermenter.
 `heater`, `time_schedule`, `fault`, `energy`.
 
 **Typical controllable settings:** incubation temp and time, program (`yogurt`,
-`greek`, `proof`).
+`greek`, `proof`); sabbath / eco; delay timer.
 
-**Typical readable state:** temp, remaining, done.
+**Typical readable state:** temp, remaining, heater on, jar present, lid open,
+high/low-temp alarm, done.
 
-**Notes:** Yogurt mode on `multi_cooker` stays on that class.
+**Notes:**
+- Yogurt mode on `multi_cooker` stays on that class.
+- Catalog depth: optional class points include sabbath, eco, `heater_on`,
+  `high_temp_alarm`, `low_temp_alarm`, `lid_open`, `jar_present`, and `timer_s`,
+  plus required `incubate_s` (see variables-and-settings).
 
 ### `waffle_maker`
 
