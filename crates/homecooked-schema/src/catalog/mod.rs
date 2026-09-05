@@ -193,10 +193,13 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
     {
         return true;
     }
-    // Stream 5: device-facing thermal-port surface on Tier-A water_heater / fridge / hvac.
+    // Stream 5: device-facing thermal-port surface on Tier-A water_heater / fridge / hvac / dishwasher.
     matches!(
         table.class_id,
-        ApplianceClassId::WaterHeater | ApplianceClassId::Fridge | ApplianceClassId::Hvac
+        ApplianceClassId::WaterHeater
+            | ApplianceClassId::Fridge
+            | ApplianceClassId::Hvac
+            | ApplianceClassId::Dishwasher
     ) && point.id.starts_with("thermal_port_")
 }
 
@@ -427,7 +430,7 @@ mod tests {
     }
 
     #[test]
-    fn water_heater_fridge_and_hvac_thermal_port_points() {
+    fn water_heater_fridge_hvac_and_dishwasher_thermal_port_points() {
         let wh = typical_capability(ApplianceClassId::WaterHeater).unwrap();
         assert!(wh
             .class_points
@@ -471,6 +474,28 @@ mod tests {
         let err = hvac
             .validate_write(
                 "class.hvac.thermal_port_direction",
+                &Value::Enum("source".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+
+        let dw = typical_capability(ApplianceClassId::Dishwasher).unwrap();
+        assert!(dw
+            .class_points
+            .iter()
+            .any(|p| p.id == "class.dishwasher.thermal_port_attached_reservoir_id"));
+        assert!(dw
+            .class_points
+            .iter()
+            .any(|p| p.id == "class.dishwasher.thermal_port_id"));
+        dw.validate_write(
+            "class.dishwasher.thermal_port_attached_reservoir_id",
+            &Value::String("dhw-tank".into()),
+        )
+        .unwrap();
+        let err = dw
+            .validate_write(
+                "class.dishwasher.thermal_port_direction",
                 &Value::Enum("source".into()),
             )
             .unwrap_err();

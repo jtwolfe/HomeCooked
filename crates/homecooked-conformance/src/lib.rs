@@ -1294,7 +1294,7 @@ pub fn hub_lab_set_discover_describe() -> ScenarioResult {
     Ok(())
 }
 
-/// (4c) Catalog/sim thermal-port surface on water_heater / fridge / hvac (Stream 5).
+/// (4c) Catalog/sim thermal-port surface on water_heater / fridge / hvac / dishwasher (Stream 5).
 pub fn water_heater_thermal_ports() -> ScenarioResult {
     const NAME: &str = "water_heater_thermal_ports";
     let mut sim = Simulator::new();
@@ -1419,6 +1419,71 @@ pub fn water_heater_thermal_ports() -> ScenarioResult {
         return Err(err(
             NAME,
             format!("hvac attached={hvac_attached:?}, expected chw-buffer"),
+        ));
+    }
+
+    // Dishwasher: DHW inlet preheat sink seeds + attach write (closes fridge→DHW→dishwasher surface).
+    let dw = sim
+        .spawn(ApplianceClassId::Dishwasher)
+        .map_err(|e| err(NAME, format!("spawn dishwasher: {e}")))?;
+    let dw_id = sim
+        .read_value(&dw, "class.dishwasher.thermal_port_id")
+        .map_err(|e| err(NAME, format!("read dishwasher port_id: {e}")))?;
+    if dw_id != Value::String("inlet_preheat".into()) {
+        return Err(err(
+            NAME,
+            format!("dishwasher port_id={dw_id:?}, expected inlet_preheat"),
+        ));
+    }
+    let dw_dir = sim
+        .read_value(&dw, "class.dishwasher.thermal_port_direction")
+        .map_err(|e| err(NAME, format!("read dishwasher direction: {e}")))?;
+    if dw_dir != Value::Enum("sink".into()) {
+        return Err(err(
+            NAME,
+            format!("dishwasher direction={dw_dir:?}, expected sink"),
+        ));
+    }
+    let dw_media = sim
+        .read_value(&dw, "class.dishwasher.thermal_port_media")
+        .map_err(|e| err(NAME, format!("read dishwasher media: {e}")))?;
+    if dw_media != Value::Enum("water".into()) {
+        return Err(err(
+            NAME,
+            format!("dishwasher media={dw_media:?}, expected water"),
+        ));
+    }
+    let dw_max = sim
+        .read_value(&dw, "class.dishwasher.thermal_port_max_power_w")
+        .map_err(|e| err(NAME, format!("read dishwasher max_power: {e}")))?;
+    if dw_max != Value::F32(1_800.0) {
+        return Err(err(
+            NAME,
+            format!("dishwasher max_power_w={dw_max:?}, expected 1800"),
+        ));
+    }
+    let dw_attached_empty = sim
+        .read_value(&dw, "class.dishwasher.thermal_port_attached_reservoir_id")
+        .map_err(|e| err(NAME, format!("read dishwasher attached empty: {e}")))?;
+    if dw_attached_empty != Value::String(String::new()) {
+        return Err(err(
+            NAME,
+            format!("dishwasher attached default={dw_attached_empty:?}, expected empty"),
+        ));
+    }
+    sim.write(
+        &dw,
+        "class.dishwasher.thermal_port_attached_reservoir_id",
+        Value::String("dhw-tank".into()),
+    )
+    .map_err(|e| err(NAME, format!("write dishwasher attached_reservoir_id: {e}")))?;
+    let dw_attached = sim
+        .read_value(&dw, "class.dishwasher.thermal_port_attached_reservoir_id")
+        .map_err(|e| err(NAME, format!("read dishwasher attached: {e}")))?;
+    if dw_attached != Value::String("dhw-tank".into()) {
+        return Err(err(
+            NAME,
+            format!("dishwasher attached={dw_attached:?}, expected dhw-tank"),
         ));
     }
     Ok(())

@@ -609,4 +609,54 @@ mod tests {
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }
+
+    #[test]
+    fn dishwasher_thermal_port_read_write() {
+        let mut sim = Simulator::new();
+        let id = sim.spawn(ApplianceClassId::Dishwasher).unwrap();
+        assert_eq!(
+            sim.read_value(&id, "class.dishwasher.thermal_port_id")
+                .unwrap(),
+            Value::String("inlet_preheat".into())
+        );
+        assert_eq!(
+            sim.read_value(&id, "class.dishwasher.thermal_port_direction")
+                .unwrap(),
+            Value::Enum("sink".into())
+        );
+        assert_eq!(
+            sim.read_value(&id, "class.dishwasher.thermal_port_media")
+                .unwrap(),
+            Value::Enum("water".into())
+        );
+        assert_eq!(
+            sim.read_value(&id, "class.dishwasher.thermal_port_max_power_w")
+                .unwrap(),
+            Value::F32(1_800.0)
+        );
+        assert_eq!(
+            sim.read_value(&id, "class.dishwasher.thermal_port_attached_reservoir_id")
+                .unwrap(),
+            Value::String(String::new())
+        );
+        sim.write(
+            &id,
+            "class.dishwasher.thermal_port_attached_reservoir_id",
+            Value::String("dhw-tank".into()),
+        )
+        .unwrap();
+        assert_eq!(
+            sim.read_value(&id, "class.dishwasher.thermal_port_attached_reservoir_id")
+                .unwrap(),
+            Value::String("dhw-tank".into())
+        );
+        let err = sim
+            .write(
+                &id,
+                "class.dishwasher.thermal_port_direction",
+                Value::Enum("source".into()),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
 }

@@ -97,7 +97,7 @@ Direction is from the appliance's point of view on each **heat port**.
 |---------|------------|--------------|
 | Appliance class | Washer, fridge, HPWH, HVAC, … | `docs/catalog/appliances.md` |
 | Plant object | Reservoir, loop segment, plant controller | Future plant catalog / this sketch |
-| Heat port | Advertised attachment on an appliance | Optional class points (`thermal_port_*`) on `water_heater` / `fridge` / `hvac`; plant objects still in `homecooked-thermal` |
+| Heat port | Advertised attachment on an appliance | Optional class points (`thermal_port_*`) on `water_heater` / `fridge` / `hvac` / `dishwasher`; plant objects still in `homecooked-thermal` |
 
 **Rule:** do not invent parallel "thermal washer" classes. A `dryer` stays a
 `dryer`. If it can export condenser heat, it advertises a heat port that
@@ -216,4 +216,4 @@ cargo test -p homecooked-wasm run_thermal_then_dishwasher
 | 0.1.0 | Initial thermal / hydraulic coupling sketch |
 | 0.1.0+ | First executable plant slice in `homecooked-thermal` (types, registry, offer/accept, tick). Sketch text unchanged; types remain experimental / not catalog ids. |
 | 0.1.0+ | Dual-path demo: thermal fridge→DHW then `dishwasher_dhw_preheat` procedure (conformance + wasm). Procedures still cannot call thermal APIs directly. |
-| 0.1.0+ | Catalog/sim device telemetry surface: optional `thermal_port_id` / `direction` / `media` / `max_power_w` / `attached_reservoir_id` (RW) on `water_heater`, `fridge`, and `hvac`. Plant types remain crate-local in `homecooked-thermal`. |
+| 0.1.0+ | Catalog/sim device telemetry surface: optional `thermal_port_id` / `direction` / `media` / `max_power_w` / `attached_reservoir_id` (RW) on `water_heater`, `fridge`, `hvac`, and `dishwasher` (`inlet_preheat` sink). Plant types remain crate-local in `homecooked-thermal`. |
