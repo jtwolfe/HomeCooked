@@ -1,4 +1,4 @@
-//! Simple per-class simulation: kettle/oven heat, washer/dryer/microwave cycle progress.
+//! Simple per-class simulation: kettle/oven/coffee heat, washer/dryer/microwave cycle progress.
 
 use homecooked_core::{DeviceState, RegisteredDevice};
 use homecooked_protocol::WriteOp;
@@ -14,6 +14,10 @@ pub const DRYER_CYCLE_S: u32 = 30;
 pub const DEFAULT_MICROWAVE_COOK_S: u32 = 60;
 /// Degrees celsius per simulated second while the oven bake cycle is running.
 pub const OVEN_HEAT_RATE_C_PER_S: f32 = 10.0;
+/// Degrees celsius per simulated second while the coffee machine brew cycle is running.
+pub const COFFEE_BOILER_HEAT_RATE_C_PER_S: f32 = 10.0;
+/// Target boiler temperature (°C) while brewing espresso in the stub sim.
+pub const COFFEE_BOILER_TARGET_C: f32 = 92.0;
 
 pub fn apply_writes(dev: &mut RegisteredDevice, writes: &[WriteOp]) {
     for op in writes {
@@ -80,6 +84,10 @@ fn start_cycle(dev: &mut RegisteredDevice) {
             set_enum(&mut dev.state, "trait.heater.heater_state", "on");
             set_string(&mut dev.state, "trait.cycle.cycle_phase", "heating");
         }
+        ApplianceClassId::CoffeeMachine => {
+            set_enum(&mut dev.state, "trait.power.power_state", "on");
+            set_string(&mut dev.state, "trait.cycle.cycle_phase", "brewing");
+        }
         _ => {}
     }
 }
@@ -116,6 +124,7 @@ pub fn tick_device(dev: &mut RegisteredDevice, dt_ms: u64) {
         ApplianceClassId::Dryer => tick_dryer(&mut dev.state, dt_ms),
         ApplianceClassId::Microwave => tick_microwave(&mut dev.state, dt_ms),
         ApplianceClassId::Oven => tick_oven(&mut dev.state, dt_ms),
+        ApplianceClassId::CoffeeMachine => tick_coffee(&mut dev.state, dt_ms),
         _ => {}
     }
 }
@@ -253,6 +262,39 @@ fn tick_oven(state: &mut DeviceState, dt_ms: u64) {
         set_duration(state, "trait.cycle.remaining_s", remaining);
         let span = (setpoint - 20.0).max(1.0);
         let progress = ((current - 20.0) / span * 100.0).clamp(0.0, 99.0);
+        set_percent(state, "trait.cycle.progress_percent", progress);
+    }
+}
+
+fn tick_coffee(state: &mut DeviceState, dt_ms: u64) {
+    if !enum_is(state, "trait.cycle.cycle_state", "running") {
+        return;
+    }
+    let mut boiler = f32_of(state, "class.coffee_machine.boiler_c").unwrap_or(20.0);
+    let target = f32_of(state, "trait.temperature.setpoint_c").unwrap_or(COFFEE_BOILER_TARGET_C);
+    let dt_s = dt_ms as f32 / 1000.0;
+    boiler = (boiler + COFFEE_BOILER_HEAT_RATE_C_PER_S * dt_s).min(target);
+    state.insert("class.coffee_machine.boiler_c", Value::F32(boiler));
+    // Stub brew pressure once the boiler is hot enough for espresso.
+    if boiler >= 80.0 {
+        state.insert("class.coffee_machine.brew_pressure_bar", Value::F32(9.0));
+    }
+    let add_s = (dt_ms / 1000) as u32;
+    if add_s > 0 {
+        let elapsed = duration_of(state, "trait.cycle.elapsed_s").saturating_add(add_s);
+        set_duration(state, "trait.cycle.elapsed_s", elapsed);
+    }
+    if boiler >= target {
+        set_enum(state, "trait.cycle.cycle_state", "complete");
+        set_percent(state, "trait.cycle.progress_percent", 100.0);
+        set_duration(state, "trait.cycle.remaining_s", 0);
+        set_string(state, "trait.cycle.cycle_phase", "complete");
+    } else {
+        set_string(state, "trait.cycle.cycle_phase", "brewing");
+        let remaining = ((target - boiler) / COFFEE_BOILER_HEAT_RATE_C_PER_S).ceil() as u32;
+        set_duration(state, "trait.cycle.remaining_s", remaining);
+        let span = (target - 20.0).max(1.0);
+        let progress = ((boiler - 20.0) / span * 100.0).clamp(0.0, 99.0);
         set_percent(state, "trait.cycle.progress_percent", progress);
     }
 }

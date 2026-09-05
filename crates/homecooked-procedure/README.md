@@ -22,6 +22,9 @@ Worked example (microwave-only Domino's reheat sketch):
 Oven bake happy-path (`program` + setpoint + heat wait):
 [`examples/oven_bake_180.json`](examples/oven_bake_180.json).
 
+Coffee brew happy-path (power on + `espresso` + boiler heat wait):
+[`examples/coffee_brew_espresso.json`](examples/coffee_brew_espresso.json).
+
 Dishwasher companion to the fridge→DHW thermal demo (procedure leg only —
 thermal must run out-of-band first):
 [`examples/dishwasher_dhw_preheat.json`](examples/dishwasher_dhw_preheat.json).

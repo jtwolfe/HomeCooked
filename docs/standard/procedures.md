@@ -222,7 +222,7 @@ AI-generated protocols:
 
 ## 6. Relation to named programs
 
-Bundled oven example `oven_bake_180` writes `trait.program.program = bake` then a cavity setpoint before `start`.
+Bundled oven example `oven_bake_180` writes `trait.program.program = bake` then a cavity setpoint before `start`. Bundled coffee example `coffee_brew_espresso` powers on, selects `espresso`, then waits on `class.coffee_machine.boiler_c`.
 
 A procedure step may **select** a named program (`trait.program.program = eco`)
 and then `start`, or it may drive fine-grained setpoints when the device
@@ -246,3 +246,4 @@ exposes them and the recipe needs them (pizza crisp finish).
 |---------|--------|
 | 0.1.0 | Initial procedures sketch; recipes as procedures |
 | 0.1.1 | Bundled `oven_bake_180` example (program + setpoint + sim heat wait) |
+| 0.1.2 | Bundled `coffee_brew_espresso` example (program espresso + sim boiler heat wait) |

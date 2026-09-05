@@ -383,6 +383,33 @@ mod tests {
     }
 
     #[test]
+    fn coffee_boiler_heats_toward_target_when_cycle_running() {
+        let mut sim = Simulator::new();
+        let id = sim.spawn(ApplianceClassId::CoffeeMachine).unwrap();
+        sim.write(&id, "trait.program.program", Value::Enum("espresso".into()))
+            .unwrap();
+        sim.write(&id, "trait.cycle.start", Value::Void).unwrap();
+        assert_eq!(
+            sim.read_value(&id, "trait.cycle.cycle_state").unwrap(),
+            Value::Enum("running".into())
+        );
+        // 10 °C/s from 20 → 85 needs 6.5 s; use 7 s of sim time.
+        sim.tick(&id, 7_000).unwrap();
+        let boiler = f32_val(
+            &sim.read_value(&id, "class.coffee_machine.boiler_c")
+                .unwrap(),
+        );
+        assert!(
+            boiler >= 85.0,
+            "boiler_c={boiler}, expected >= 85 after 7s at 10 C/s"
+        );
+        assert_eq!(
+            sim.read_value(&id, "trait.program.program").unwrap(),
+            Value::Enum("espresso".into())
+        );
+    }
+
+    #[test]
     fn microwave_cook_advances_elapsed_toward_cook_s() {
         let mut sim = Simulator::new();
         let id = sim.spawn(ApplianceClassId::Microwave).unwrap();

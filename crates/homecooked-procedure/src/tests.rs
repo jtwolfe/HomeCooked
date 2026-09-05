@@ -4,8 +4,9 @@ use homecooked_schema::{typical_capability, ApplianceClassId, ErrorCode};
 use homecooked_sim::Simulator;
 
 use crate::{
-    run, DeviceBindings, FailReason, Procedure, RunStatus, StepAction, DISHWASHER_DHW_PREHEAT_JSON,
-    KETTLE_HEAT_80_JSON, OVEN_BAKE_180_JSON, REHEAT_DOMINOS_MICROWAVE_JSON, WASH_THEN_DRY_JSON,
+    run, DeviceBindings, FailReason, Procedure, RunStatus, StepAction, COFFEE_BREW_ESPRESSO_JSON,
+    DISHWASHER_DHW_PREHEAT_JSON, KETTLE_HEAT_80_JSON, OVEN_BAKE_180_JSON,
+    REHEAT_DOMINOS_MICROWAVE_JSON, WASH_THEN_DRY_JSON,
 };
 
 fn kettle_bindings(sim: &mut Simulator) -> DeviceBindings {
@@ -21,6 +22,11 @@ fn microwave_bindings(sim: &mut Simulator) -> DeviceBindings {
 fn oven_bindings(sim: &mut Simulator) -> DeviceBindings {
     let id = sim.spawn(ApplianceClassId::Oven).unwrap();
     DeviceBindings::new().bind("oven", id.as_str())
+}
+
+fn coffee_bindings(sim: &mut Simulator) -> DeviceBindings {
+    let id = sim.spawn(ApplianceClassId::CoffeeMachine).unwrap();
+    DeviceBindings::new().bind("coffee_machine", id.as_str())
 }
 
 fn laundry_bindings(sim: &mut Simulator) -> DeviceBindings {
@@ -50,6 +56,7 @@ fn bundled_example_constants_parse() {
             "wash_then_dry",
             "dishwasher_dhw_preheat",
             "oven_bake_180",
+            "coffee_brew_espresso",
         ]
     );
 }
@@ -131,6 +138,55 @@ fn oven_bake_180_happy_path_against_sim() {
         )
         .unwrap();
     assert_eq!(program, homecooked_schema::Value::Enum("bake".into()));
+}
+
+#[test]
+fn parse_coffee_brew_espresso_fixture() {
+    let doc = Procedure::load_json(COFFEE_BREW_ESPRESSO_JSON).unwrap();
+    assert_eq!(doc.id, "coffee_brew_espresso");
+    assert_eq!(doc.name, "Brew espresso");
+    assert_eq!(doc.devices.len(), 1);
+    assert_eq!(doc.devices[0].role, "coffee_machine");
+    assert_eq!(doc.steps.len(), 5);
+    assert_eq!(doc.steps[0].id, "power");
+    assert_eq!(doc.steps[0].point(), Some("trait.power.power_on"));
+    assert_eq!(doc.steps[1].id, "program");
+    assert_eq!(doc.steps[1].point(), Some("trait.program.program"));
+    assert_eq!(doc.steps[2].action, StepAction::Command);
+    assert_eq!(doc.steps[3].action, StepAction::Wait);
+    assert_eq!(doc.steps[4].action, StepAction::Assert);
+}
+
+#[test]
+fn coffee_brew_espresso_happy_path_against_sim() {
+    let doc = Procedure::load_json(COFFEE_BREW_ESPRESSO_JSON).unwrap();
+    let mut sim = Simulator::new();
+    let bindings = coffee_bindings(&mut sim);
+    let result = run(&doc, &mut sim, &bindings);
+    assert!(
+        result.is_completed(),
+        "expected completed, got {:?}",
+        result.status
+    );
+    assert_eq!(result.outcomes.len(), 5);
+    assert!(result.outcomes.iter().all(|o| o.ok));
+
+    let coffee = bindings.get("coffee_machine").unwrap();
+    let boiler = sim
+        .read_value(
+            &homecooked_core::DeviceId::new(coffee),
+            "class.coffee_machine.boiler_c",
+        )
+        .unwrap();
+    let c = boiler.as_f64().expect("boiler_c numeric");
+    assert!(c >= 85.0, "boiler_c={c}");
+    let program = sim
+        .read_value(
+            &homecooked_core::DeviceId::new(coffee),
+            "trait.program.program",
+        )
+        .unwrap();
+    assert_eq!(program, homecooked_schema::Value::Enum("espresso".into()));
 }
 
 #[test]

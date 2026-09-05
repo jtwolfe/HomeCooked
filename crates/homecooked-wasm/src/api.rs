@@ -440,7 +440,7 @@ impl WasmApi {
         serde_json::to_string(&items).expect("ExampleProcedureInfo serializes")
     }
 
-    /// Full JSON for a bundled example id (`kettle_heat_80`, `reheat_dominos_microwave`, `wash_then_dry`, `dishwasher_dhw_preheat`, `oven_bake_180`).
+    /// Full JSON for a bundled example id (`kettle_heat_80`, `reheat_dominos_microwave`, `wash_then_dry`, `dishwasher_dhw_preheat`, `oven_bake_180`, `coffee_brew_espresso`).
     pub fn get_example_procedure(id: &str) -> Result<String, ApiError> {
         BUNDLED_EXAMPLE_PROCEDURES
             .iter()
@@ -1163,10 +1163,10 @@ mod tests {
     }
 
     #[test]
-    fn list_example_procedures_includes_kettle_dominos_laundry_dishwasher_and_oven() {
+    fn list_example_procedures_includes_kettle_dominos_laundry_dishwasher_oven_and_coffee() {
         let items: Vec<ExampleProcedureInfo> =
             serde_json::from_str(&WasmApi::list_example_procedures()).unwrap();
-        assert_eq!(items.len(), 5);
+        assert_eq!(items.len(), 6);
         assert_eq!(items[0].id, "kettle_heat_80");
         assert_eq!(items[0].name, "Heat kettle to 80C");
         assert!(items[0].class_hints.iter().any(|c| c == "kettle"));
@@ -1180,6 +1180,9 @@ mod tests {
         assert_eq!(items[4].id, "oven_bake_180");
         assert_eq!(items[4].name, "Oven bake at 180C");
         assert!(items[4].class_hints.iter().any(|c| c == "oven"));
+        assert_eq!(items[5].id, "coffee_brew_espresso");
+        assert_eq!(items[5].name, "Brew espresso");
+        assert!(items[5].class_hints.iter().any(|c| c == "coffee_machine"));
     }
 
     #[test]
@@ -1219,6 +1222,13 @@ mod tests {
         assert_eq!(summary.id, "oven_bake_180");
         assert_eq!(summary.step_count, 5);
         assert_eq!(summary.devices[0].role, "oven");
+
+        let coffee = WasmApi::get_example_procedure("coffee_brew_espresso").unwrap();
+        let summary: ProcedureSummary =
+            serde_json::from_str(&WasmApi::parse_procedure(&coffee).unwrap()).unwrap();
+        assert_eq!(summary.id, "coffee_brew_espresso");
+        assert_eq!(summary.step_count, 5);
+        assert_eq!(summary.devices[0].role, "coffee_machine");
 
         let err = WasmApi::get_example_procedure("not_a_recipe").unwrap_err();
         assert_eq!(err.code, ErrorCode::InvalidRequest);
@@ -1328,6 +1338,42 @@ mod tests {
         assert!(f32_of(&state, "trait.temperature.current_c") >= 170.0);
         assert_eq!(state["trait.program.program"]["value"], "bake");
         assert!((f32_of(&state, "trait.temperature.setpoint_c") - 180.0).abs() < 0.05);
+    }
+
+    #[test]
+    fn run_coffee_brew_espresso_procedure_auto_spawns_and_completes() {
+        let mut api = WasmApi::new();
+        let json = WasmApi::get_example_procedure("coffee_brew_espresso").unwrap();
+        let raw = api.run_procedure(&json).unwrap();
+        let result: ProcedureRunOut = serde_json::from_str(&raw).unwrap();
+
+        assert_eq!(
+            result.status, "completed",
+            "coffee_brew_espresso run failed: {:?}",
+            result.fail_reason
+        );
+        assert!(result.failed_step_id.is_none());
+        assert!(result.fail_reason.is_none());
+        assert_eq!(result.outcomes.len(), 5);
+        assert!(result.outcomes.iter().all(|o| o.ok));
+        assert_eq!(result.outcomes[0].step_id, "power");
+        assert_eq!(result.outcomes[1].step_id, "program");
+        assert_eq!(result.outcomes[2].step_id, "start");
+        assert_eq!(result.outcomes[3].step_id, "wait_boiler");
+        assert_eq!(result.outcomes[4].step_id, "assert_boiler");
+
+        assert_eq!(result.bindings.len(), 1);
+        assert_eq!(result.bindings[0].role, "coffee_machine");
+        assert_eq!(result.bindings[0].class_id, ApplianceClassId::CoffeeMachine);
+        assert!(result.bindings[0].spawned);
+        assert!(result.bindings[0]
+            .device_id
+            .starts_with("sim-coffee_machine-"));
+
+        let state: serde_json::Value =
+            serde_json::from_str(&api.get_state(&result.bindings[0].device_id).unwrap()).unwrap();
+        assert!(f32_of(&state, "class.coffee_machine.boiler_c") >= 85.0);
+        assert_eq!(state["trait.program.program"]["value"], "espresso");
     }
 
     #[test]

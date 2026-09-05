@@ -69,7 +69,7 @@ The lower **Procedure** panel loads a bundled recipe or accepts pasted
 procedure JSON, then runs it through `homecooked-procedure` against the
 current simulator world.
 
-1. Pick a sample (**Heat kettle to 80C**, Domino’s microwave, **Wash then dry**, or **Oven bake at 180C**)
+1. Pick a sample (**Heat kettle to 80C**, Domino’s microwave, **Wash then dry**, **Oven bake at 180C**, or **Brew espresso**)
    or paste JSON.
 2. **Load sample** fills the editor (WASM `get_example_procedure`, with a
    fetch fallback to `procedures/*.json`).
@@ -89,6 +89,7 @@ The kettle sample is the happy-path demo (sim heats ~5 °C/s). The microwave
 fixture writes cook settings and starts a cycle; sim ticks advance
 `trait.cycle.elapsed_s` toward `class.microwave.cook_s` so the wait step can complete.
 The oven bake sample sets `bake` + 180 °C; sim heats ~10 °C/s while the cycle runs.
+The coffee brew sample powers on, selects `espresso`, and waits on boiler heat (~10 °C/s).
 
 ## Thermal plant panel
 

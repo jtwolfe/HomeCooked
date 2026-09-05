@@ -187,6 +187,12 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
     if table.class_id == ApplianceClassId::Dishwasher && point.id == "wash_temp_c" {
         return true;
     }
+    // Stream 3: coffee brew procedure waits on boiler telemetry.
+    if table.class_id == ApplianceClassId::CoffeeMachine
+        && matches!(point.id, "boiler_c" | "brew_pressure_bar")
+    {
+        return true;
+    }
     // Stream 5: device-facing thermal-port surface on Tier-A water_heater / fridge / hvac.
     matches!(
         table.class_id,

@@ -610,6 +610,11 @@ function listExampleProcedures() {
         name: "Oven bake at 180C",
         class_hints: ["oven"],
       },
+      {
+        id: "coffee_brew_espresso",
+        name: "Brew espresso",
+        class_hints: ["coffee_machine"],
+      },
     ];
   }
 }

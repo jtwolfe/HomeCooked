@@ -19,8 +19,8 @@ use homecooked_core::DeviceId;
 use homecooked_hal::ChannelId;
 use homecooked_hub::{LabHub, LAB_KETTLE_ID};
 use homecooked_procedure::{
-    run, DeviceBindings, Procedure, DISHWASHER_DHW_PREHEAT_JSON, KETTLE_HEAT_80_JSON,
-    OVEN_BAKE_180_JSON, WASH_THEN_DRY_JSON,
+    run, DeviceBindings, Procedure, COFFEE_BREW_ESPRESSO_JSON, DISHWASHER_DHW_PREHEAT_JSON,
+    KETTLE_HEAT_80_JSON, OVEN_BAKE_180_JSON, WASH_THEN_DRY_JSON,
 };
 use homecooked_protocol::{Envelope, Payload, PingBody, WriteOp};
 use homecooked_schema::{
@@ -296,6 +296,41 @@ pub fn procedure_oven_bake_180() -> ScenarioResult {
         .map_err(|e| err(NAME, format!("read program: {e}")))?;
     if program != Value::Enum("bake".into()) {
         return Err(err(NAME, format!("program={program:?}, expected bake")));
+    }
+    Ok(())
+}
+
+/// (3d) Coffee brew espresso procedure happy path + sim boiler heat tick.
+pub fn procedure_coffee_brew_espresso() -> ScenarioResult {
+    const NAME: &str = "procedure_coffee_brew_espresso";
+    let doc = Procedure::load_json(COFFEE_BREW_ESPRESSO_JSON)
+        .map_err(|e| err(NAME, format!("load procedure: {e}")))?;
+    let mut sim = Simulator::new();
+    let id = sim
+        .spawn(ApplianceClassId::CoffeeMachine)
+        .map_err(|e| err(NAME, format!("spawn coffee_machine: {e}")))?;
+    let bindings = DeviceBindings::new().bind("coffee_machine", id.as_str());
+    let result = run(&doc, &mut sim, &bindings);
+    if !result.is_completed() {
+        return Err(err(
+            NAME,
+            format!("expected completed, got {:?}", result.status),
+        ));
+    }
+    let boiler = sim
+        .read_value(&DeviceId::new(id.as_str()), "class.coffee_machine.boiler_c")
+        .map_err(|e| err(NAME, format!("read boiler_c: {e}")))?;
+    let c = boiler
+        .as_f64()
+        .ok_or_else(|| err(NAME, format!("boiler_c not numeric: {boiler:?}")))?;
+    if c < 85.0 {
+        return Err(err(NAME, format!("boiler_c={c}, expected >= 85")));
+    }
+    let program = sim
+        .read_value(&DeviceId::new(id.as_str()), "trait.program.program")
+        .map_err(|e| err(NAME, format!("read program: {e}")))?;
+    if program != Value::Enum("espresso".into()) {
+        return Err(err(NAME, format!("program={program:?}, expected espresso")));
     }
     Ok(())
 }
@@ -1568,6 +1603,10 @@ pub fn all_scenarios() -> &'static [(&'static str, ScenarioFn)] {
         ("washer_cotton_controller", washer_cotton_controller),
         ("procedure_kettle_happy_path", procedure_kettle_happy_path),
         ("procedure_oven_bake_180", procedure_oven_bake_180),
+        (
+            "procedure_coffee_brew_espresso",
+            procedure_coffee_brew_espresso,
+        ),
         ("procedure_wash_then_dry", procedure_wash_then_dry),
         ("thermal_fridge_dhw_demo", thermal_fridge_dhw_demo),
         (

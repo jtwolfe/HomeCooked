@@ -187,6 +187,7 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
         "flow_c" => Value::F32(55.0),
         "pressure_bar" => Value::F32(1.5),
         "brew_setpoint_c" => Value::F32(93.0),
+        "boiler_c" => Value::F32(20.0),
         "heat_level" => Value::Enum("low".into()),
         "water_empty" => Value::Bool(false),
         "incubate_s" => Value::DurationS(28800),
