@@ -43,6 +43,7 @@ is **0.1.0** (peers are rejected only on protocol **major** mismatch).
 | `homecooked-wasm` | [`crates/homecooked-wasm`](crates/homecooked-wasm) | wasm-bindgen JSON API over the simulator |
 | `homecooked-io-map` | [`crates/homecooked-io-map`](crates/homecooked-io-map) | Chassis I/O map serde+validate |
 | `homecooked-interlock` | [`crates/homecooked-interlock`](crates/homecooked-interlock) | Declarative interlock rules |
+| `homecooked-hal` | [`crates/homecooked-hal`](crates/homecooked-hal) | Firmware HAL surface sketch + host `MockHal` ([control-system.md](docs/standard/control-system.md) §4.3) |
 | simulator-web | [`apps/simulator-web`](apps/simulator-web) | Static HTML/JS UI that loads the wasm-pack output |
 
 `list_all_class_ids` covers the full class index in
