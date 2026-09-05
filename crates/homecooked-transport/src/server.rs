@@ -1,4 +1,5 @@
-//! TCP host server: accept connections, dispatch via [`homecooked_sim::Simulator`].
+//! TCP host server: accept connections, dispatch via [`homecooked_sim::Simulator`]
+//! or any [`crate::RequestHandler`].
 
 use std::io::{BufReader, ErrorKind};
 use std::net::{SocketAddr, TcpListener, TcpStream, ToSocketAddrs};
@@ -11,10 +12,14 @@ use homecooked_sim::Simulator;
 
 use crate::error::TransportError;
 use crate::frame::{read_envelope, write_envelope};
+use crate::handler::RequestHandler;
 use crate::psk::{server_handshake, ServerConfig};
 
 /// Shared simulator hub behind the TCP server.
 pub type SharedSim = Arc<Mutex<Simulator>>;
+
+/// Shared pluggable request handler behind the TCP server.
+pub type SharedHandler = Arc<Mutex<dyn RequestHandler>>;
 
 /// Result of [`spawn_server`]: bind address, shared sim, accept-loop join handle.
 pub type SpawnedServer = (
@@ -23,9 +28,21 @@ pub type SpawnedServer = (
     JoinHandle<Result<(), TransportError>>,
 );
 
+/// Result of [`spawn_handler_server`]: bind address, shared handler, join handle.
+pub type SpawnedHandlerServer = (
+    SocketAddr,
+    SharedHandler,
+    JoinHandle<Result<(), TransportError>>,
+);
+
 /// Wrap a [`Simulator`] for concurrent connection handlers.
 pub fn shared_sim(sim: Simulator) -> SharedSim {
     Arc::new(Mutex::new(sim))
+}
+
+/// Wrap any [`RequestHandler`] for concurrent connection handlers.
+pub fn shared_handler(handler: impl RequestHandler + 'static) -> SharedHandler {
+    Arc::new(Mutex::new(handler))
 }
 
 /// Bind a TCP listener (typically `127.0.0.1:0` in tests).
@@ -44,6 +61,15 @@ pub fn bind(addr: impl ToSocketAddrs) -> Result<TcpListener, TransportError> {
 pub fn serve_connection(
     stream: TcpStream,
     sim: &SharedSim,
+    config: &ServerConfig,
+) -> Result<(), TransportError> {
+    serve_handler_connection(stream, &sim_as_handler(sim), config)
+}
+
+/// Like [`serve_connection`], but dispatches through any [`RequestHandler`].
+pub fn serve_handler_connection(
+    stream: TcpStream,
+    handler: &SharedHandler,
     config: &ServerConfig,
 ) -> Result<(), TransportError> {
     stream.set_nodelay(true)?;
@@ -74,20 +100,44 @@ pub fn serve_connection(
                 return Err(e);
             }
         };
-        let response = dispatch(&request, sim);
+        let response = dispatch_handler(&request, handler);
         write_envelope(&mut writer, &response)?;
     }
 }
 
-fn dispatch(request: &Envelope, sim: &SharedSim) -> Envelope {
-    let mut guard = match sim.lock() {
+fn sim_as_handler(sim: &SharedSim) -> SharedHandler {
+    // Clone the Arc<Mutex<Simulator>> into a trait object by wrapping a
+    // thin adapter that locks the same mutex. We cannot coerce
+    // Arc<Mutex<Simulator>> to Arc<Mutex<dyn RequestHandler>> directly.
+    Arc::new(Mutex::new(SimHandlerProxy {
+        inner: Arc::clone(sim),
+    }))
+}
+
+/// Forwards [`RequestHandler`] calls into a shared [`Simulator`] mutex.
+struct SimHandlerProxy {
+    inner: SharedSim,
+}
+
+impl RequestHandler for SimHandlerProxy {
+    fn handle(&mut self, request: Envelope) -> Envelope {
+        let mut guard = match self.inner.lock() {
+            Ok(g) => g,
+            Err(poisoned) => poisoned.into_inner(),
+        };
+        guard.handle(request)
+    }
+}
+
+fn dispatch_handler(request: &Envelope, handler: &SharedHandler) -> Envelope {
+    let mut guard = match handler.lock() {
         Ok(g) => g,
         Err(poisoned) => poisoned.into_inner(),
     };
     guard.handle(request.clone())
 }
 
-/// Accept loop: one OS thread per connection.
+/// Accept loop: one OS thread per connection (sim-backed).
 ///
 /// Returns when the listener is dropped / accept fails with a non-temporary error.
 pub fn accept_loop(
@@ -102,6 +152,30 @@ pub fn accept_loop(
                 let config = config.clone();
                 thread::spawn(move || {
                     if let Err(e) = serve_connection(stream, &sim, &config) {
+                        eprintln!("homecooked-transport: connection error: {e}");
+                    }
+                });
+            }
+            Err(e) if e.kind() == ErrorKind::Interrupted => continue,
+            Err(e) => return Err(e.into()),
+        }
+    }
+    Ok(())
+}
+
+/// Accept loop for a pluggable [`RequestHandler`].
+pub fn accept_handler_loop(
+    listener: TcpListener,
+    handler: SharedHandler,
+    config: ServerConfig,
+) -> Result<(), TransportError> {
+    for conn in listener.incoming() {
+        match conn {
+            Ok(stream) => {
+                let handler = Arc::clone(&handler);
+                let config = config.clone();
+                thread::spawn(move || {
+                    if let Err(e) = serve_handler_connection(stream, &handler, &config) {
                         eprintln!("homecooked-transport: connection error: {e}");
                     }
                 });
@@ -134,6 +208,28 @@ pub fn spawn_server_with_config(
     let shared = shared_sim(sim);
     let sim_for_loop = Arc::clone(&shared);
     let handle = thread::spawn(move || accept_loop(listener, sim_for_loop, config));
+    Ok((local, shared, handle))
+}
+
+/// Spawn accept loop for any [`RequestHandler`] (open lab: no PSK).
+pub fn spawn_handler_server(
+    addr: impl ToSocketAddrs,
+    handler: impl RequestHandler + 'static,
+) -> Result<SpawnedHandlerServer, TransportError> {
+    spawn_handler_server_with_config(addr, handler, ServerConfig::open())
+}
+
+/// Spawn accept loop for any [`RequestHandler`] with optional lab PSK.
+pub fn spawn_handler_server_with_config(
+    addr: impl ToSocketAddrs,
+    handler: impl RequestHandler + 'static,
+    config: ServerConfig,
+) -> Result<SpawnedHandlerServer, TransportError> {
+    let listener = bind(addr)?;
+    let local = listener.local_addr()?;
+    let shared = shared_handler(handler);
+    let handler_for_loop = Arc::clone(&shared);
+    let handle = thread::spawn(move || accept_handler_loop(listener, handler_for_loop, config));
     Ok((local, shared, handle))
 }
 
