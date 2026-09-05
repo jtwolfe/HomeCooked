@@ -111,7 +111,10 @@ impl DryerController {
 
     /// Start the dryer cotton program. Requires door closed when that channel exists.
     pub fn start_dry(&mut self, opts: DryOptions) -> Result<(), Error> {
-        if self.cycle_state == CycleState::Running {
+        if matches!(
+            self.cycle_state,
+            CycleState::Running | CycleState::Paused | CycleState::Canceling
+        ) {
             return Err(Error::Cycle("cycle already running".into()));
         }
         if let Ok(closed) = bridge::read_channel(&self.hal, "din.door_closed") {
@@ -126,6 +129,44 @@ impl DryerController {
         Ok(())
     }
 
+    /// Pause a running cycle. Heater / motor stop; blower off; door stays locked
+    /// if locked. Idempotent when already paused.
+    pub fn pause(&mut self) -> Result<(), Error> {
+        match self.cycle_state {
+            CycleState::Running => {
+                self.hold_actuators_safe()?;
+                self.cycle_state = CycleState::Paused;
+                Ok(())
+            }
+            CycleState::Paused => Ok(()),
+            _ => Err(Error::Cycle("cycle not running".into())),
+        }
+    }
+
+    /// Resume a paused cycle.
+    pub fn resume(&mut self) -> Result<(), Error> {
+        match self.cycle_state {
+            CycleState::Paused => {
+                self.cycle_state = CycleState::Running;
+                Ok(())
+            }
+            _ => Err(Error::Cycle("cycle not paused".into())),
+        }
+    }
+
+    /// Abort the cycle: enter [`CycleState::Canceling`], cool / stop heat, then
+    /// unlock → [`CycleState::Idle`]. Idempotent while already canceling.
+    pub fn cancel(&mut self) -> Result<(), Error> {
+        match self.cycle_state {
+            CycleState::Running | CycleState::Paused => {
+                self.enter_cancel()?;
+                Ok(())
+            }
+            CycleState::Canceling => Ok(()),
+            _ => Err(Error::Cycle("no active cycle to cancel".into())),
+        }
+    }
+
     /// One sim step: plant feedback → derived keys → cycle commands → plant again.
     pub fn tick(&mut self) -> Result<(), Error> {
         self.tick = self.tick.saturating_add(1);
@@ -134,10 +175,21 @@ impl DryerController {
         plant::step_dryer_plant(&mut self.hal)?;
         plant::refresh_dryer_derived(&mut self.hal)?;
 
-        if self.cycle_state == CycleState::Running {
-            self.advance_cycle()?;
-            plant::step_dryer_plant(&mut self.hal)?;
-            plant::refresh_dryer_derived(&mut self.hal)?;
+        match self.cycle_state {
+            CycleState::Running => {
+                self.advance_cycle()?;
+                plant::step_dryer_plant(&mut self.hal)?;
+                plant::refresh_dryer_derived(&mut self.hal)?;
+            }
+            CycleState::Canceling => {
+                self.advance_cancel()?;
+                plant::step_dryer_plant(&mut self.hal)?;
+                plant::refresh_dryer_derived(&mut self.hal)?;
+            }
+            CycleState::Paused => {
+                self.hold_actuators_safe()?;
+            }
+            _ => {}
         }
         Ok(())
     }
@@ -169,11 +221,51 @@ impl DryerController {
 
     fn advance_cycle(&mut self) -> Result<(), Error> {
         match self.state {
-            DryerState::Idle | DryerState::Done => Ok(()),
+            DryerState::Idle | DryerState::Done | DryerState::CancelCool => Ok(()),
             DryerState::Lock => self.step_lock(),
             DryerState::Dry => self.step_dry(),
             DryerState::Cool => self.step_cool(),
         }
+    }
+
+    fn enter_cancel(&mut self) -> Result<(), Error> {
+        // Stop heat immediately; keep blower for cool-down (interlocks apply).
+        let _ = bridge::write_channel(&mut self.hal, "aout.heater_enable", false);
+        self.motor_off()?;
+        self.state = DryerState::CancelCool;
+        self.cycle_state = CycleState::Canceling;
+        self.dwell = 0;
+        Ok(())
+    }
+
+    fn advance_cancel(&mut self) -> Result<(), Error> {
+        let _ = bridge::write_channel(&mut self.hal, "aout.heater_enable", false);
+        // Vent with blower while cooling (door stays locked until done).
+        bridge::write_channel(&mut self.hal, "aout.blower", true)?;
+        plant::refresh_dryer_derived(&mut self.hal)?;
+        self.motor_off()?;
+
+        self.dwell += 1;
+        let temp = bridge::read_channel(&self.hal, "ain.drum_temp_c")?
+            .as_number()
+            .unwrap_or(0.0);
+        let cooled = temp <= self.opts.cool_temp_c;
+        let timed_out = self.dwell >= self.opts.max_cool_ticks;
+        if cooled || timed_out {
+            let _ = bridge::write_channel(&mut self.hal, "aout.blower", false);
+            bridge::write_channel(&mut self.hal, "aout.door_lock", false)?;
+            self.state = DryerState::Idle;
+            self.cycle_state = CycleState::Idle;
+            self.dwell = 0;
+        }
+        Ok(())
+    }
+
+    fn hold_actuators_safe(&mut self) -> Result<(), Error> {
+        let _ = bridge::write_channel(&mut self.hal, "aout.heater_enable", false);
+        let _ = bridge::write_channel(&mut self.hal, "aout.blower", false);
+        self.motor_off()?;
+        Ok(())
     }
 
     fn step_lock(&mut self) -> Result<(), Error> {

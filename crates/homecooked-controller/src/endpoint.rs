@@ -10,7 +10,8 @@
 //! CottonOptions knobs as adjacent catalog setpoints (`class.washer.wash_temp_c`,
 //! `class.washer.spin_rpm`) **before** void `trait.cycle.start` — same order as
 //! washer-dryer-io §6. Lab-only `class.washer.sim_tick` advances one host sim
-//! tick (cancel / pause / typical_capability remain follow-ups; dryer DryOptions
+//! tick. Void writes to `trait.cycle.pause` / `resume` / `cancel` map onto host
+//! pause/resume/cancel (typical_capability remains follow-up; dryer DryOptions
 //! live on [`crate::DryerControllerEndpoint`]).
 //! Dryer TCP: see [`crate::DryerControllerEndpoint`]. No TLS / OAuth.
 
@@ -51,6 +52,9 @@ const DOOR_LOCK_FB_CHANNEL: &str = "din.door_lock_fb";
 
 /// Catalog cycle points (host controller naming).
 const CYCLE_START_POINT: &str = "trait.cycle.start";
+const CYCLE_PAUSE_POINT: &str = "trait.cycle.pause";
+const CYCLE_RESUME_POINT: &str = "trait.cycle.resume";
+const CYCLE_CANCEL_POINT: &str = "trait.cycle.cancel";
 const CYCLE_STATE_POINT: &str = "trait.cycle.cycle_state";
 const CYCLE_PHASE_POINT: &str = "trait.cycle.cycle_phase";
 /// Lab-only class point: one host [`Controller::tick`] (not a catalog point).
@@ -352,6 +356,36 @@ impl ControllerEndpoint {
                     .start_cotton(self.cotton_opts.clone())
                     .map_err(|e| cycle_error_body(&point_id, e))
             }
+            CYCLE_PAUSE_POINT => {
+                if !matches!(op.value, Value::Void) {
+                    return Err(
+                        ErrorBody::new(ErrorCode::InvalidType, "expected void").at_point(&point_id)
+                    );
+                }
+                self.controller
+                    .pause()
+                    .map_err(|e| cycle_error_body(&point_id, e))
+            }
+            CYCLE_RESUME_POINT => {
+                if !matches!(op.value, Value::Void) {
+                    return Err(
+                        ErrorBody::new(ErrorCode::InvalidType, "expected void").at_point(&point_id)
+                    );
+                }
+                self.controller
+                    .resume()
+                    .map_err(|e| cycle_error_body(&point_id, e))
+            }
+            CYCLE_CANCEL_POINT => {
+                if !matches!(op.value, Value::Void) {
+                    return Err(
+                        ErrorBody::new(ErrorCode::InvalidType, "expected void").at_point(&point_id)
+                    );
+                }
+                self.controller
+                    .cancel()
+                    .map_err(|e| cycle_error_body(&point_id, e))
+            }
             WASH_TEMP_POINT => {
                 let n = op.value.as_f64().ok_or_else(|| {
                     ErrorBody::new(ErrorCode::InvalidType, "expected number").at_point(&point_id)
@@ -437,7 +471,7 @@ impl RequestHandler for ControllerEndpoint {
 }
 
 /// Thin lab capability: HAL-backed washer heater / door / water points + CottonOptions
-/// setpoints + cycle start/read.
+/// setpoints + cycle start/pause/resume/cancel + read.
 pub fn lab_washer_capability() -> CapabilityModel {
     let mut cap = CapabilityModel::new(ApplianceClassId::Washer);
     cap.class_version = DEFAULT_CLASS_VERSION;
@@ -514,10 +548,17 @@ pub fn lab_washer_capability() -> CapabilityModel {
         trait_version: DEFAULT_CLASS_VERSION,
         points: Vec::new(),
     });
-    // Catalog cycle points: start cotton (void; options via adjacent writes) + observe state/phase.
+    // Catalog cycle points: start/pause/resume/cancel + observe state/phase.
     let cycle = trait_table(TraitId::Cycle).expect("cycle trait table");
     let mut cycle_points = Vec::new();
-    for id in ["start", "cycle_state", "cycle_phase"] {
+    for id in [
+        "start",
+        "pause",
+        "resume",
+        "cancel",
+        "cycle_state",
+        "cycle_phase",
+    ] {
         let p = cycle
             .point(id)
             .unwrap_or_else(|| panic!("missing trait.cycle.{id}"));
@@ -539,6 +580,11 @@ fn cycle_error_body(point_id: &str, err: Error) -> ErrorBody {
     let code = match &err {
         Error::Cycle(m) if m.contains("already running") => ErrorCode::Busy,
         Error::Cycle(m) if m.contains("door") => ErrorCode::SafetyInterlock,
+        Error::Cycle(m)
+            if m.contains("no active") || m.contains("not running") || m.contains("not paused") =>
+        {
+            ErrorCode::InvalidRequest
+        }
         _ => ErrorCode::Internal,
     };
     ErrorBody::new(code, msg).at_point(point_id)
@@ -818,5 +864,158 @@ mod endpoint_tests {
             CottonOptions::default().wash_tumble_ticks
         );
         assert_eq!(ep.controller().cycle_state().as_str(), "running");
+    }
+
+    #[test]
+    fn cycle_pause_resume_cancel_via_handle() {
+        let mut ep = ControllerEndpoint::washer_lab().unwrap();
+        let id = ep.device_id().to_string();
+
+        // Cancel while idle → invalid_request.
+        let cancel_idle = Envelope::request(
+            Some(id.clone()),
+            Payload::Write(WriteRequest {
+                writes: vec![WriteOp {
+                    id: qid(CYCLE_CANCEL_POINT),
+                    value: Value::Void,
+                }],
+                dry_run: false,
+                atomic: false,
+            }),
+        );
+        match ep.handle_request(cancel_idle).payload {
+            Payload::Error(body) => assert_eq!(body.code, ErrorCode::InvalidRequest),
+            other => panic!("expected invalid_request cancel idle, got {other:?}"),
+        }
+
+        let start = Envelope::request(
+            Some(id.clone()),
+            Payload::Write(WriteRequest {
+                writes: vec![WriteOp {
+                    id: qid(CYCLE_START_POINT),
+                    value: Value::Void,
+                }],
+                dry_run: false,
+                atomic: false,
+            }),
+        );
+        assert!(matches!(
+            ep.handle_request(start).payload,
+            Payload::WriteOk(_)
+        ));
+
+        // A few ticks so we're mid-cycle.
+        for _ in 0..3 {
+            let tick = Envelope::request(
+                Some(id.clone()),
+                Payload::Write(WriteRequest {
+                    writes: vec![WriteOp {
+                        id: qid(LAB_TICK_POINT),
+                        value: Value::Void,
+                    }],
+                    dry_run: false,
+                    atomic: false,
+                }),
+            );
+            assert!(matches!(
+                ep.handle_request(tick).payload,
+                Payload::WriteOk(_)
+            ));
+        }
+
+        let pause = Envelope::request(
+            Some(id.clone()),
+            Payload::Write(WriteRequest {
+                writes: vec![WriteOp {
+                    id: qid(CYCLE_PAUSE_POINT),
+                    value: Value::Void,
+                }],
+                dry_run: false,
+                atomic: false,
+            }),
+        );
+        assert!(matches!(
+            ep.handle_request(pause).payload,
+            Payload::WriteOk(_)
+        ));
+        assert_eq!(ep.controller().cycle_state().as_str(), "paused");
+
+        // Phase frozen across paused ticks.
+        let phase_paused = ep.controller().phase().as_str().to_string();
+        for _ in 0..3 {
+            let tick = Envelope::request(
+                Some(id.clone()),
+                Payload::Write(WriteRequest {
+                    writes: vec![WriteOp {
+                        id: qid(LAB_TICK_POINT),
+                        value: Value::Void,
+                    }],
+                    dry_run: false,
+                    atomic: false,
+                }),
+            );
+            assert!(matches!(
+                ep.handle_request(tick).payload,
+                Payload::WriteOk(_)
+            ));
+        }
+        assert_eq!(ep.controller().cycle_state().as_str(), "paused");
+        assert_eq!(ep.controller().phase().as_str(), phase_paused);
+
+        let resume = Envelope::request(
+            Some(id.clone()),
+            Payload::Write(WriteRequest {
+                writes: vec![WriteOp {
+                    id: qid(CYCLE_RESUME_POINT),
+                    value: Value::Void,
+                }],
+                dry_run: false,
+                atomic: false,
+            }),
+        );
+        assert!(matches!(
+            ep.handle_request(resume).payload,
+            Payload::WriteOk(_)
+        ));
+        assert_eq!(ep.controller().cycle_state().as_str(), "running");
+
+        let cancel = Envelope::request(
+            Some(id.clone()),
+            Payload::Write(WriteRequest {
+                writes: vec![WriteOp {
+                    id: qid(CYCLE_CANCEL_POINT),
+                    value: Value::Void,
+                }],
+                dry_run: false,
+                atomic: false,
+            }),
+        );
+        assert!(matches!(
+            ep.handle_request(cancel).payload,
+            Payload::WriteOk(_)
+        ));
+        assert_eq!(ep.controller().cycle_state().as_str(), "canceling");
+
+        for _ in 0..40 {
+            if ep.controller().cycle_state().as_str() == "idle" {
+                break;
+            }
+            let tick = Envelope::request(
+                Some(id.clone()),
+                Payload::Write(WriteRequest {
+                    writes: vec![WriteOp {
+                        id: qid(LAB_TICK_POINT),
+                        value: Value::Void,
+                    }],
+                    dry_run: false,
+                    atomic: false,
+                }),
+            );
+            assert!(matches!(
+                ep.handle_request(tick).payload,
+                Payload::WriteOk(_)
+            ));
+        }
+        assert_eq!(ep.controller().cycle_state().as_str(), "idle");
     }
 }

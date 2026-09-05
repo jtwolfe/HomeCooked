@@ -106,7 +106,10 @@ impl Controller {
 
     /// Start the cotton program. Requires door closed when that channel exists.
     pub fn start_cotton(&mut self, opts: CottonOptions) -> Result<(), Error> {
-        if self.cycle_state == CycleState::Running {
+        if matches!(
+            self.cycle_state,
+            CycleState::Running | CycleState::Paused | CycleState::Canceling
+        ) {
             return Err(Error::Cycle("cycle already running".into()));
         }
         if let Ok(closed) = bridge::read_channel(&self.hal, "din.door_closed") {
@@ -121,6 +124,46 @@ impl Controller {
         Ok(())
     }
 
+    /// Pause a running cycle. Motors / heater / inlet / drain stop; door stays
+    /// locked if locked. Idempotent when already paused.
+    pub fn pause(&mut self) -> Result<(), Error> {
+        match self.cycle_state {
+            CycleState::Running => {
+                self.hold_actuators_safe()?;
+                self.cycle_state = CycleState::Paused;
+                Ok(())
+            }
+            CycleState::Paused => Ok(()),
+            _ => Err(Error::Cycle("cycle not running".into())),
+        }
+    }
+
+    /// Resume a paused cycle. Idempotent when already running is not offered —
+    /// resume requires [`CycleState::Paused`].
+    pub fn resume(&mut self) -> Result<(), Error> {
+        match self.cycle_state {
+            CycleState::Paused => {
+                self.cycle_state = CycleState::Running;
+                Ok(())
+            }
+            _ => Err(Error::Cycle("cycle not paused".into())),
+        }
+    }
+
+    /// Abort the cycle: enter [`CycleState::Canceling`], drain, then unlock →
+    /// [`CycleState::Idle`]. Idempotent while already canceling. Denied when
+    /// idle / complete / error (no active cycle).
+    pub fn cancel(&mut self) -> Result<(), Error> {
+        match self.cycle_state {
+            CycleState::Running | CycleState::Paused => {
+                self.enter_cancel()?;
+                Ok(())
+            }
+            CycleState::Canceling => Ok(()),
+            _ => Err(Error::Cycle("no active cycle to cancel".into())),
+        }
+    }
+
     /// One sim step: plant feedback → derived keys → cycle commands → plant again.
     pub fn tick(&mut self) -> Result<(), Error> {
         self.tick = self.tick.saturating_add(1);
@@ -130,12 +173,24 @@ impl Controller {
         plant::step_plant(&mut self.hal)?;
         plant::refresh_derived(&mut self.hal)?;
 
-        if self.cycle_state == CycleState::Running {
-            self.advance_cycle()?;
-            // Apply plant once more so sensors reflect this tick's commands
-            // (lock_fb, level) before the caller inspects state.
-            plant::step_plant(&mut self.hal)?;
-            plant::refresh_derived(&mut self.hal)?;
+        match self.cycle_state {
+            CycleState::Running => {
+                self.advance_cycle()?;
+                // Apply plant once more so sensors reflect this tick's commands
+                // (lock_fb, level) before the caller inspects state.
+                plant::step_plant(&mut self.hal)?;
+                plant::refresh_derived(&mut self.hal)?;
+            }
+            CycleState::Canceling => {
+                self.advance_cancel()?;
+                plant::step_plant(&mut self.hal)?;
+                plant::refresh_derived(&mut self.hal)?;
+            }
+            CycleState::Paused => {
+                // Keep a safe hold; do not advance phase.
+                self.hold_actuators_safe()?;
+            }
+            _ => {}
         }
         Ok(())
     }
@@ -181,7 +236,7 @@ impl Controller {
 
     fn advance_cycle(&mut self) -> Result<(), Error> {
         match self.state {
-            WasherState::Idle | WasherState::Done => Ok(()),
+            WasherState::Idle | WasherState::Done | WasherState::CancelDrain => Ok(()),
             WasherState::Lock => self.step_lock(),
             WasherState::Fill => self.step_fill(),
             WasherState::Heat => self.step_heat(),
@@ -192,6 +247,44 @@ impl Controller {
             WasherState::RinseDrain => self.step_drain(WasherState::Spin),
             WasherState::Spin => self.step_spin(),
         }
+    }
+
+    fn enter_cancel(&mut self) -> Result<(), Error> {
+        self.hold_actuators_safe()?;
+        self.state = WasherState::CancelDrain;
+        self.cycle_state = CycleState::Canceling;
+        self.dwell = 0;
+        Ok(())
+    }
+
+    fn advance_cancel(&mut self) -> Result<(), Error> {
+        // Drain remaining water (interlocks still apply), then unlock → idle.
+        let _ = bridge::write_channel(&mut self.hal, "aout.heater_enable", false);
+        let _ = bridge::write_channel(&mut self.hal, "aout.cold_inlet", false);
+        self.motor_off()?;
+        bridge::write_channel(&mut self.hal, "aout.drain_pump", true)?;
+
+        let level = bridge::read_channel(&self.hal, "ain.water_level_pa")?
+            .as_number()
+            .unwrap_or(0.0);
+        if level < WATER_PRESENT_PA {
+            bridge::write_channel(&mut self.hal, "aout.drain_pump", false)?;
+            bridge::write_channel(&mut self.hal, "aout.door_lock", false)?;
+            self.state = WasherState::Idle;
+            self.cycle_state = CycleState::Idle;
+            self.dwell = 0;
+        }
+        Ok(())
+    }
+
+    /// Safe hold for pause / cancel entry: heaters, motors, inlet, drain off.
+    /// Door lock is left as-is (stays locked mid-cycle).
+    fn hold_actuators_safe(&mut self) -> Result<(), Error> {
+        let _ = bridge::write_channel(&mut self.hal, "aout.heater_enable", false);
+        let _ = bridge::write_channel(&mut self.hal, "aout.cold_inlet", false);
+        let _ = bridge::write_channel(&mut self.hal, "aout.drain_pump", false);
+        self.motor_off()?;
+        Ok(())
     }
 
     fn step_lock(&mut self) -> Result<(), Error> {

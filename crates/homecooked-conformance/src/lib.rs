@@ -1884,6 +1884,399 @@ pub fn controller_tcp_dryer_dry_options() -> ScenarioResult {
     Ok(())
 }
 
+/// (9e) Controller-sim over TCP: washer cycle pause / resume / cancel.
+pub fn controller_tcp_washer_cycle_pause_cancel() -> ScenarioResult {
+    const NAME: &str = "controller_tcp_washer_cycle_pause_cancel";
+    let ep = ControllerEndpoint::washer_lab().map_err(|e| err(NAME, format!("washer_lab: {e}")))?;
+    let (addr, _shared, _server) = spawn_handler_server("127.0.0.1:0", ep)
+        .map_err(|e| err(NAME, format!("spawn_handler_server: {e}")))?;
+    thread::sleep(Duration::from_millis(20));
+
+    let mut client = TcpClient::connect(addr).map_err(|e| err(NAME, format!("connect: {e}")))?;
+
+    let desc = client
+        .describe(WASHER_CTRL_DEVICE_ID, vec![])
+        .map_err(|e| err(NAME, format!("describe: {e}")))?;
+    for point in [
+        "trait.cycle.pause",
+        "trait.cycle.resume",
+        "trait.cycle.cancel",
+    ] {
+        if desc.capability.point(point).is_none() {
+            return Err(err(NAME, format!("describe missing {point}")));
+        }
+    }
+
+    let denied = client.write(
+        WASHER_CTRL_DEVICE_ID,
+        vec![WriteOp {
+            id: QualifiedPointId::parse("trait.cycle.cancel")
+                .map_err(|e| err(NAME, e.to_string()))?,
+            value: Value::Void,
+        }],
+    );
+    match denied {
+        Err(TransportError::Remote(body)) => {
+            if body.code != ErrorCode::InvalidRequest {
+                return Err(err(
+                    NAME,
+                    format!("cancel idle code={:?}, expected invalid_request", body.code),
+                ));
+            }
+        }
+        other => {
+            return Err(err(
+                NAME,
+                format!("expected remote invalid_request for cancel idle, got {other:?}"),
+            ));
+        }
+    }
+
+    client
+        .write(
+            WASHER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: QualifiedPointId::parse("trait.cycle.start")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                value: Value::Void,
+            }],
+        )
+        .map_err(|e| err(NAME, format!("cycle start: {e}")))?;
+
+    for i in 0..4 {
+        client
+            .write(
+                WASHER_CTRL_DEVICE_ID,
+                vec![WriteOp {
+                    id: QualifiedPointId::parse("class.washer.sim_tick")
+                        .map_err(|e| err(NAME, e.to_string()))?,
+                    value: Value::Void,
+                }],
+            )
+            .map_err(|e| err(NAME, format!("lab tick {i}: {e}")))?;
+    }
+
+    client
+        .write(
+            WASHER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: QualifiedPointId::parse("trait.cycle.pause")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                value: Value::Void,
+            }],
+        )
+        .map_err(|e| err(NAME, format!("pause: {e}")))?;
+
+    let paused = client
+        .read(
+            WASHER_CTRL_DEVICE_ID,
+            vec![
+                QualifiedPointId::parse("trait.cycle.cycle_state")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                QualifiedPointId::parse("trait.cycle.cycle_phase")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+            ],
+        )
+        .map_err(|e| err(NAME, format!("read paused: {e}")))?;
+    if paused.values[0].value != Some(Value::Enum("paused".into())) {
+        return Err(err(
+            NAME,
+            format!("cycle_state={:?}, expected paused", paused.values[0].value),
+        ));
+    }
+    let phase_paused = paused.values[1].value.clone();
+
+    for i in 0..3 {
+        client
+            .write(
+                WASHER_CTRL_DEVICE_ID,
+                vec![WriteOp {
+                    id: QualifiedPointId::parse("class.washer.sim_tick")
+                        .map_err(|e| err(NAME, e.to_string()))?,
+                    value: Value::Void,
+                }],
+            )
+            .map_err(|e| err(NAME, format!("paused tick {i}: {e}")))?;
+    }
+    let still = client
+        .read(
+            WASHER_CTRL_DEVICE_ID,
+            vec![
+                QualifiedPointId::parse("trait.cycle.cycle_state")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                QualifiedPointId::parse("trait.cycle.cycle_phase")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+            ],
+        )
+        .map_err(|e| err(NAME, format!("read still paused: {e}")))?;
+    if still.values[0].value != Some(Value::Enum("paused".into())) {
+        return Err(err(
+            NAME,
+            format!(
+                "after paused ticks cycle_state={:?}, expected paused",
+                still.values[0].value
+            ),
+        ));
+    }
+    if still.values[1].value != phase_paused {
+        return Err(err(
+            NAME,
+            format!(
+                "phase drifted while paused: before={phase_paused:?} after={:?}",
+                still.values[1].value
+            ),
+        ));
+    }
+
+    client
+        .write(
+            WASHER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: QualifiedPointId::parse("trait.cycle.resume")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                value: Value::Void,
+            }],
+        )
+        .map_err(|e| err(NAME, format!("resume: {e}")))?;
+
+    client
+        .write(
+            WASHER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: QualifiedPointId::parse("trait.cycle.cancel")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                value: Value::Void,
+            }],
+        )
+        .map_err(|e| err(NAME, format!("cancel: {e}")))?;
+
+    let canceling = client
+        .read(
+            WASHER_CTRL_DEVICE_ID,
+            vec![QualifiedPointId::parse("trait.cycle.cycle_state")
+                .map_err(|e| err(NAME, e.to_string()))?],
+        )
+        .map_err(|e| err(NAME, format!("read canceling: {e}")))?;
+    if canceling.values[0].value != Some(Value::Enum("canceling".into())) {
+        return Err(err(
+            NAME,
+            format!(
+                "cycle_state={:?}, expected canceling",
+                canceling.values[0].value
+            ),
+        ));
+    }
+
+    for i in 0..40 {
+        let st = client
+            .read(
+                WASHER_CTRL_DEVICE_ID,
+                vec![QualifiedPointId::parse("trait.cycle.cycle_state")
+                    .map_err(|e| err(NAME, e.to_string()))?],
+            )
+            .map_err(|e| err(NAME, format!("read cancel tick: {e}")))?;
+        if st.values[0].value == Some(Value::Enum("idle".into())) {
+            return Ok(());
+        }
+        client
+            .write(
+                WASHER_CTRL_DEVICE_ID,
+                vec![WriteOp {
+                    id: QualifiedPointId::parse("class.washer.sim_tick")
+                        .map_err(|e| err(NAME, e.to_string()))?,
+                    value: Value::Void,
+                }],
+            )
+            .map_err(|e| err(NAME, format!("cancel tick {i}: {e}")))?;
+    }
+    Err(err(NAME, "cancel did not reach idle within 40 ticks"))
+}
+
+/// (9f) Controller-sim over TCP: dryer cycle pause / resume / cancel.
+pub fn controller_tcp_dryer_cycle_pause_cancel() -> ScenarioResult {
+    const NAME: &str = "controller_tcp_dryer_cycle_pause_cancel";
+    let ep =
+        DryerControllerEndpoint::dryer_lab().map_err(|e| err(NAME, format!("dryer_lab: {e}")))?;
+    let (addr, _shared, _server) = spawn_handler_server("127.0.0.1:0", ep)
+        .map_err(|e| err(NAME, format!("spawn_handler_server: {e}")))?;
+    thread::sleep(Duration::from_millis(20));
+
+    let mut client = TcpClient::connect(addr).map_err(|e| err(NAME, format!("connect: {e}")))?;
+
+    let desc = client
+        .describe(DRYER_CTRL_DEVICE_ID, vec![])
+        .map_err(|e| err(NAME, format!("describe: {e}")))?;
+    for point in [
+        "trait.cycle.pause",
+        "trait.cycle.resume",
+        "trait.cycle.cancel",
+    ] {
+        if desc.capability.point(point).is_none() {
+            return Err(err(NAME, format!("describe missing {point}")));
+        }
+    }
+
+    let denied = client.write(
+        DRYER_CTRL_DEVICE_ID,
+        vec![WriteOp {
+            id: QualifiedPointId::parse("trait.cycle.cancel")
+                .map_err(|e| err(NAME, e.to_string()))?,
+            value: Value::Void,
+        }],
+    );
+    match denied {
+        Err(TransportError::Remote(body)) => {
+            if body.code != ErrorCode::InvalidRequest {
+                return Err(err(
+                    NAME,
+                    format!("cancel idle code={:?}, expected invalid_request", body.code),
+                ));
+            }
+        }
+        other => {
+            return Err(err(
+                NAME,
+                format!("expected remote invalid_request for cancel idle, got {other:?}"),
+            ));
+        }
+    }
+
+    client
+        .write(
+            DRYER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: QualifiedPointId::parse("trait.cycle.start")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                value: Value::Void,
+            }],
+        )
+        .map_err(|e| err(NAME, format!("cycle start: {e}")))?;
+
+    for i in 0..4 {
+        client
+            .write(
+                DRYER_CTRL_DEVICE_ID,
+                vec![WriteOp {
+                    id: QualifiedPointId::parse("class.dryer.sim_tick")
+                        .map_err(|e| err(NAME, e.to_string()))?,
+                    value: Value::Void,
+                }],
+            )
+            .map_err(|e| err(NAME, format!("lab tick {i}: {e}")))?;
+    }
+
+    client
+        .write(
+            DRYER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: QualifiedPointId::parse("trait.cycle.pause")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                value: Value::Void,
+            }],
+        )
+        .map_err(|e| err(NAME, format!("pause: {e}")))?;
+
+    let paused = client
+        .read(
+            DRYER_CTRL_DEVICE_ID,
+            vec![
+                QualifiedPointId::parse("trait.cycle.cycle_state")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                QualifiedPointId::parse("trait.cycle.cycle_phase")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+            ],
+        )
+        .map_err(|e| err(NAME, format!("read paused: {e}")))?;
+    if paused.values[0].value != Some(Value::Enum("paused".into())) {
+        return Err(err(
+            NAME,
+            format!("cycle_state={:?}, expected paused", paused.values[0].value),
+        ));
+    }
+    let phase_paused = paused.values[1].value.clone();
+
+    for i in 0..3 {
+        client
+            .write(
+                DRYER_CTRL_DEVICE_ID,
+                vec![WriteOp {
+                    id: QualifiedPointId::parse("class.dryer.sim_tick")
+                        .map_err(|e| err(NAME, e.to_string()))?,
+                    value: Value::Void,
+                }],
+            )
+            .map_err(|e| err(NAME, format!("paused tick {i}: {e}")))?;
+    }
+    let still = client
+        .read(
+            DRYER_CTRL_DEVICE_ID,
+            vec![
+                QualifiedPointId::parse("trait.cycle.cycle_state")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                QualifiedPointId::parse("trait.cycle.cycle_phase")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+            ],
+        )
+        .map_err(|e| err(NAME, format!("read still paused: {e}")))?;
+    if still.values[0].value != Some(Value::Enum("paused".into()))
+        || still.values[1].value != phase_paused
+    {
+        return Err(err(
+            NAME,
+            format!(
+                "pause freeze failed: state={:?} phase={:?} (was {:?})",
+                still.values[0].value, still.values[1].value, phase_paused
+            ),
+        ));
+    }
+
+    client
+        .write(
+            DRYER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: QualifiedPointId::parse("trait.cycle.resume")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                value: Value::Void,
+            }],
+        )
+        .map_err(|e| err(NAME, format!("resume: {e}")))?;
+
+    client
+        .write(
+            DRYER_CTRL_DEVICE_ID,
+            vec![WriteOp {
+                id: QualifiedPointId::parse("trait.cycle.cancel")
+                    .map_err(|e| err(NAME, e.to_string()))?,
+                value: Value::Void,
+            }],
+        )
+        .map_err(|e| err(NAME, format!("cancel: {e}")))?;
+
+    for i in 0..40 {
+        let st = client
+            .read(
+                DRYER_CTRL_DEVICE_ID,
+                vec![QualifiedPointId::parse("trait.cycle.cycle_state")
+                    .map_err(|e| err(NAME, e.to_string()))?],
+            )
+            .map_err(|e| err(NAME, format!("read cancel tick: {e}")))?;
+        if st.values[0].value == Some(Value::Enum("idle".into())) {
+            return Ok(());
+        }
+        client
+            .write(
+                DRYER_CTRL_DEVICE_ID,
+                vec![WriteOp {
+                    id: QualifiedPointId::parse("class.dryer.sim_tick")
+                        .map_err(|e| err(NAME, e.to_string()))?,
+                    value: Value::Void,
+                }],
+            )
+            .map_err(|e| err(NAME, format!("cancel tick {i}: {e}")))?;
+    }
+    Err(err(NAME, "cancel did not reach idle within 40 ticks"))
+}
+
 /// (8) Optional lab hub: spawn lab set, TCP discover ≥3 devices, describe one.
 pub fn hub_lab_set_discover_describe() -> ScenarioResult {
     const NAME: &str = "hub_lab_set_discover_describe";
@@ -2433,6 +2826,14 @@ pub fn all_scenarios() -> &'static [(&'static str, ScenarioFn)] {
         (
             "controller_tcp_dryer_dry_options",
             controller_tcp_dryer_dry_options,
+        ),
+        (
+            "controller_tcp_washer_cycle_pause_cancel",
+            controller_tcp_washer_cycle_pause_cancel,
+        ),
+        (
+            "controller_tcp_dryer_cycle_pause_cancel",
+            controller_tcp_dryer_cycle_pause_cancel,
         ),
         (
             "hub_lab_set_discover_describe",

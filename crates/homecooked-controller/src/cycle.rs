@@ -12,7 +12,10 @@ use serde::{Deserialize, Serialize};
 pub enum CycleState {
     Idle,
     Running,
+    Paused,
     Complete,
+    /// Abort in progress (drain / cool as device policy).
+    Canceling,
     Error,
 }
 
@@ -21,7 +24,9 @@ impl CycleState {
         match self {
             Self::Idle => "idle",
             Self::Running => "running",
+            Self::Paused => "paused",
             Self::Complete => "complete",
+            Self::Canceling => "canceling",
             Self::Error => "error",
         }
     }
@@ -77,6 +82,8 @@ pub enum WasherState {
     RinseTumble,
     RinseDrain,
     Spin,
+    /// Cancel path: drain remaining water then unlock → Idle.
+    CancelDrain,
     Done,
 }
 
@@ -86,7 +93,7 @@ impl WasherState {
             Self::Idle => CyclePhase::None,
             Self::Lock | Self::Fill => CyclePhase::Fill,
             Self::Heat | Self::WashTumble => CyclePhase::Wash,
-            Self::Drain => CyclePhase::Drain,
+            Self::Drain | Self::CancelDrain => CyclePhase::Drain,
             Self::RinseFill | Self::RinseTumble | Self::RinseDrain => CyclePhase::Rinse,
             Self::Spin => CyclePhase::Spin,
             Self::Done => CyclePhase::Complete,
@@ -134,6 +141,8 @@ pub enum DryerState {
     /// Combined dry/heat: blower + heater + tumble until humidity/temp target.
     Dry,
     Cool,
+    /// Cancel path: stop heat, cool/vent, then unlock → Idle.
+    CancelCool,
     Done,
 }
 
@@ -143,7 +152,7 @@ impl DryerState {
             Self::Idle => CyclePhase::None,
             Self::Lock => CyclePhase::Heating,
             Self::Dry => CyclePhase::Drying,
-            Self::Cool => CyclePhase::Cooling,
+            Self::Cool | Self::CancelCool => CyclePhase::Cooling,
             Self::Done => CyclePhase::Complete,
         }
     }
