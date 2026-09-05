@@ -212,6 +212,8 @@ fn default_value(point: &PointCapability, ctx: &SeedCtx, zone: Option<&str>) -> 
         "wash_temp_c" => Value::F32(40.0),
         "bottle_count" => Value::U16(24),
         "can_capacity" => Value::U16(120),
+        "co2_kpa" => Value::F32(110.0),
+        "keg_percent" => Value::Percent(75.0),
         "water_level_ok" => match ctx.identity.class_id {
             ApplianceClassId::SousVide => Value::Bool(true),
             _ => Value::Bool(false),

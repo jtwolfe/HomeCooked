@@ -1,6 +1,6 @@
 # HomeCooked roadmap — ~75% project completeness
 
-Version **0.1.52**. Planning doc for a long flesh-out of the catalog, control
+Version **0.1.53**. Planning doc for a long flesh-out of the catalog, control
 stack, and simulator. It does **not** freeze APIs; crate and YAML shapes may
 evolve with the code that implements each stream.
 
@@ -47,7 +47,7 @@ catalog `thermal_port_*` on `water_heater` / `fridge` / `hvac` / `dishwasher` /
 (`HeatPortSpec`) + wasm/UI heat-port specs; **optional-depth deepen series**
 (#56–#73 + follow-on) on `wine_cooler` + `ice_maker` + `sous_vide` + `multi_cooker` +
 `toaster_oven` + `dehumidifier` + `range_hood` + `steam_oven` + `cooktop` +
-`humidifier` + `freezer` + `fridge_freezer` + `beverage_cooler` (13 classes; not catalog-complete);
+`humidifier` + `freezer` + `fridge_freezer` + `beverage_cooler` + `kegerator` (14 classes; not catalog-complete);
 `write_denial_matrix` + `catalog_hygiene` conformance.
 
 **Still open (beyond / still thin vs a strict §2 reading):** promote full plant
@@ -55,8 +55,8 @@ catalog `thermal_port_*` on `water_heater` / `fridge` / `hvac` / `dishwasher` /
 + `ClassTable.thermal_ports` landed; `ThermalPlant` / transfer dialogue still
 crate-local); **real bridge SDKs** (Modbus serial/TCP or Matter/CHIP — mocks only
 today); TLS (still out of scope for lab transport); **catalog optional depth not
-complete** — deepen series (#56–#73 + follow-on) landed optional-point passes on **13** classes
-(mostly Tier-A + Tier-B `humidifier` / `beverage_cooler`); **29 of 31 Tier-B** ids remain thin tables
+complete** — deepen series (#56–#73 + follow-on) landed optional-point passes on **14** classes
+(mostly Tier-A + Tier-B `humidifier` / `beverage_cooler` / `kegerator`); **28 of 31 Tier-B** ids remain thin tables
 only (see §4); procedure⇄thermal **multi-round negotiate dialogue** / soft decline /
 richer wasm UI (thin `thermal_wait` + `thermal_offer` immediate-accept are present);
 **CottonOptions** / **DryOptions** (and cancel/pause / typical_capability) over the
@@ -71,13 +71,13 @@ schema vocabulary / `ClassTable.HeatPortSpec` + wasm heat-port chips) + bridge
 mocks + write-denial matrix + **optional-depth deepen series** on
 `wine_cooler` / `ice_maker` / `sous_vide` / `multi_cooker` / `toaster_oven` /
 `dehumidifier` / `range_hood` / `steam_oven` / `cooktop` / `humidifier` /
-`freezer` / `fridge_freezer` / `beverage_cooler` ≈ **~75% of the §2 in-scope bar, met in spirit** for
+`freezer` / `fridge_freezer` / `beverage_cooler` / `kegerator` ≈ **~75% of the §2 in-scope bar, met in spirit** for
 lab/software depth (was ~30% at roadmap start; ~72% at the v0.1.35 refresh; still
 ~75% after the deepen wave — Tier-B depth **improved but not catalog-complete**).
 Recent grind: schema thermal vocab + `ClassTable.thermal_ports` + heat-port UI
 (#54–#55, #59); washer cotton-over-TCP (#60) + **dryer cycle TCP** (#62);
 thin **`thermal_offer`** (#65); catalog optional-depth PRs **#56–#57, #63–#64,
-#66–#73** + `beverage_cooler` (the thirteen classes above). Calling the target **substantially
+#66–#73** + `beverage_cooler` / `kegerator` (the fourteen classes above). Calling the target **substantially
 achieved** remains honest — not that every §2 bullet is production-complete or
 that every Tier-B table has optional depth. This is **not** IEC certification,
 production firmware, or a shipping commercial appliance. Remaining work is depth
@@ -130,10 +130,10 @@ production firmware:
 - **Richer UI** — picker + procedure runner + thermal panel + port chips are
   in; conformance-oriented / deeper screens remain.
 - **Deeper catalog optional points** — thin tables cover all 31 Tier-B ids;
-  optional-point depth landed (PRs **#56–#57, #63–#64, #66–#73** + follow-on) on **13** classes —
+  optional-point depth landed (PRs **#56–#57, #63–#64, #66–#73** + follow-on) on **14** classes —
   Tier-A `wine_cooler` + `ice_maker` + `sous_vide` + `multi_cooker` + `toaster_oven`
   + `dehumidifier` + `range_hood` + `steam_oven` + `cooktop` + `freezer` +
-  `fridge_freezer`, plus Tier-B `humidifier` + `beverage_cooler` (alarms / sabbath / bottle_count /
+  `fridge_freezer`, plus Tier-B `humidifier` + `beverage_cooler` + `kegerator` (alarms / sabbath / bottle_count /
   humidity; ice bin/filter life + harvest/scale alerts; sous-vide
   water/lid/timer/overtemp + cycle remaining; multi-cooker pot/pressure/saute/keep-warm
   + cycle remaining; toaster-oven door/timer/rack/bagel/slices + convection/broil/elements
@@ -149,8 +149,9 @@ production firmware:
   fridge_freezer dual-zone door_ajar_fridge/freezer/fast_freeze/ice_buildup/
   high_temp_alarm_fridge/freezer/convertible_zone_mode + cold-cabinet
   vacation/sabbath/eco/defrost/compressor/high_temp/power_fail;
-  beverage_cooler sabbath/eco/compressor/temp alarms/door_ajar/can_capacity).
-  **Remaining thin Tier-B (29):** `kegerator`, `warming_drawer`,
+  beverage_cooler sabbath/eco/compressor/temp alarms/door_ajar/can_capacity;
+  kegerator sabbath/eco/compressor/temp alarms/door_ajar/co2_kpa/keg_percent/keg_empty).
+  **Remaining thin Tier-B (28):** `warming_drawer`,
   `pizza_oven`, `electric_grill`, `electric_smoker`, `espresso_machine`,
   `drip_coffee_maker`, `coffee_grinder`, `water_dispenser`, `toaster`, `blender`,
   `food_processor`, `stand_mixer`, `juicer`, `rice_cooker`, `slow_cooker`,
@@ -461,15 +462,15 @@ sim spawn via `typical_capability`. `STATIC_CLASS_IDS` = Tier-A ∪ Tier-B =
 `ApplianceClassId::ALL`. To extend the catalog, see
 [`catalog/ADDING_A_CLASS.md`](catalog/ADDING_A_CLASS.md).
 
-**Optional-depth note:** `humidifier` (#71) and `beverage_cooler` received
-deepen-series optional-point passes. The other **29** Tier-B ids below remain thin
+**Optional-depth note:** `humidifier` (#71), `beverage_cooler`, and `kegerator`
+received deepen-series optional-point passes. The other **28** Tier-B ids below remain thin
 (no optional-depth extras beyond the initial thin table). Most deepen-series work
 (#56–#73) hit Tier-A classes listed in §4 Tier-A.
 
 | Id | Notes |
 |----|--------|
 | `beverage_cooler` | Optional depth: sabbath/eco/compressor_on/high_temp_alarm/low_temp_alarm/door_ajar/can_capacity; setpoint 1–10 °C |
-| `kegerator` | Cold + dispense; optional CO₂ / keg level |
+| `kegerator` | Optional depth: sabbath/eco/compressor_on/high_temp_alarm/low_temp_alarm/door_ajar/co2_kpa/keg_percent/keg_empty; setpoint 1–10 °C |
 | `warming_drawer` | Hold heat; level or °C |
 | `pizza_oven` | High-temp; stone/dome telemetry |
 | `electric_grill` | Contact grill plates |
@@ -500,8 +501,8 @@ deepen-series optional-point passes. The other **29** Tier-B ids below remain th
 | `water_filter` | TDS / flush |
 | `humidifier` | Optional depth: warm_mist/auto_humidity/mineral_filter/uv_clean/scale_alert/tank_removed/misting/night_mode + typical output_level/mist_type/wick_state + humidity setpoint |
 
-Count: **31** Tier-B ids, all with thin static tables + sim; **2** optional-depth
-passes (`humidifier` + `beverage_cooler`); **29** still thin.
+Count: **31** Tier-B ids, all with thin static tables + sim; **3** optional-depth
+passes (`humidifier` + `beverage_cooler` + `kegerator`); **28** still thin.
 
 ---
 
@@ -520,7 +521,7 @@ passes (`humidifier` + `beverage_cooler`); **29** still thin.
 | later | `feat/simulator-tier-a-ui` | 7 — grouped Tier-A picker (first UI slice) |
 | later | WASM UI + conformance suite | 7 — picker + procedure UI (kettle/Domino's/wash-then-dry/oven bake/coffee brew/air fryer cook) + thermal UI + device port chips + blob-load done; smoke suite + write-denial matrix + hub-in-suite done; richer UI remaining |
 | later | Tier-B thin tables | 2 — **Done** (31 Tier-B → 56 total static + sim) |
-| later | catalog optional depth | 7 — **Series progress** (#56–#73 + follow-on): 13 classes deepened (`wine_cooler` + `ice_maker` + `sous_vide` + `multi_cooker` + `toaster_oven` + `dehumidifier` + `range_hood` + `steam_oven` + `cooktop` + `humidifier` + `freezer` + `fridge_freezer` + `beverage_cooler`); **29/31 Tier-B still thin**; not catalog-complete |
+| later | catalog optional depth | 7 — **Series progress** (#56–#73 + follow-on): 14 classes deepened (`wine_cooler` + `ice_maker` + `sous_vide` + `multi_cooker` + `toaster_oven` + `dehumidifier` + `range_hood` + `steam_oven` + `cooktop` + `humidifier` + `freezer` + `fridge_freezer` + `beverage_cooler` + `kegerator`); **28/31 Tier-B still thin**; not catalog-complete |
 | later | lab hub + PSK | 4 — **Done** (`homecooked-hub`, transport PSK) |
 | later | bridge mocks (Matter/Zigbee/BACnet) | 6 — **Done** (thin mocks; real SDKs still open) |
 | later | dryer controller cycle | 4 — **Done** |
@@ -588,3 +589,4 @@ the code that implements them.
 | 0.1.50 | Stream 7 catalog depth: deepen `fridge_freezer` optional dual-zone class points (door_ajar_fridge/freezer, fast_freeze, ice_buildup, high_temp_alarm_fridge/freezer, convertible_zone_mode merged onto shared cold-cabinet; typical also advertises vacation/sabbath/eco/defrost/compressor/high_temp/power_fail; fridge thermal ports and freezer FREEZER_EXTRA unchanged) |
 | 0.1.51 | Docs refresh after Tier-B / catalog optional-depth series (#56–#73) + related: list 12 deepened classes; call out remaining thin Tier-B (30/31) and undepened Tier-A; keep **~75% met in spirit** (depth improved, not catalog-complete); highlight `thermal_offer` (#65) + dryer cycle TCP (#62); no fabricated metrics |
 | 0.1.52 | Stream 7 catalog depth: deepen `beverage_cooler` optional class points (sabbath_mode/eco_mode/compressor_on/high_temp_alarm/low_temp_alarm/door_ajar/can_capacity); remaining thin Tier-B 30→29 |
+| 0.1.53 | Stream 7 catalog depth: deepen `kegerator` optional class points (sabbath_mode/eco_mode/compressor_on/high_temp_alarm/low_temp_alarm/door_ajar + typical co2_kpa/keg_percent/keg_empty); remaining thin Tier-B 29→28 |

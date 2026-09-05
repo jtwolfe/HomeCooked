@@ -487,6 +487,21 @@ fn extra_typical_class_point(table: &ClassTable, point: &CatalogPoint) -> bool {
                 | "can_capacity"
         );
     }
+    // Stream 7 catalog depth: kegerator optional telemetry/settings in typical sim.
+    if table.class_id == ApplianceClassId::Kegerator {
+        return matches!(
+            point.id,
+            "co2_kpa"
+                | "keg_percent"
+                | "keg_empty"
+                | "sabbath_mode"
+                | "eco_mode"
+                | "compressor_on"
+                | "high_temp_alarm"
+                | "low_temp_alarm"
+                | "door_ajar"
+        );
+    }
     // Stream 7 catalog depth: steam oven optional telemetry/settings in typical sim.
     if table.class_id == ApplianceClassId::SteamOven {
         return matches!(
@@ -1797,6 +1812,59 @@ mod tests {
         assert_eq!(err.code, ErrorCode::NotWritable);
         let err = cap
             .validate_write("class.beverage_cooler.low_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+    }
+
+    #[test]
+    fn kegerator_optional_depth_points_in_typical() {
+        let cap = typical_capability(ApplianceClassId::Kegerator).unwrap();
+        for id in [
+            "class.kegerator.co2_kpa",
+            "class.kegerator.keg_percent",
+            "class.kegerator.keg_empty",
+            "class.kegerator.sabbath_mode",
+            "class.kegerator.eco_mode",
+            "class.kegerator.compressor_on",
+            "class.kegerator.high_temp_alarm",
+            "class.kegerator.low_temp_alarm",
+            "class.kegerator.door_ajar",
+        ] {
+            assert!(
+                cap.class_points.iter().any(|p| p.id == id),
+                "missing {id} in typical kegerator"
+            );
+        }
+        cap.validate_write("class.kegerator.sabbath_mode", &Value::Bool(true))
+            .unwrap();
+        cap.validate_write("class.kegerator.eco_mode", &Value::Bool(true))
+            .unwrap();
+        let err = cap
+            .validate_write("class.kegerator.co2_kpa", &Value::F32(120.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.kegerator.keg_percent", &Value::Percent(50.0))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.kegerator.keg_empty", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.kegerator.door_ajar", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.kegerator.compressor_on", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.kegerator.high_temp_alarm", &Value::Bool(true))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::NotWritable);
+        let err = cap
+            .validate_write("class.kegerator.low_temp_alarm", &Value::Bool(true))
             .unwrap_err();
         assert_eq!(err.code, ErrorCode::NotWritable);
     }

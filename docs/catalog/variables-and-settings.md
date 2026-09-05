@@ -851,9 +851,16 @@ clean cycle.
 | id | type | unit | range / enum | access | req | description |
 |----|------|------|--------------|--------|-----|-------------|
 | `co2_kpa` | f32 | kilopascal | 0–400 | r/e | opt | If sensed |
-| `keg_percent` | percent | percent | 0–100 | r/e | opt | |
+| `keg_percent` | percent | percent | 0–100 | r/e | opt | Estimated remaining keg |
+| `keg_empty` | bool | — | | r/e | opt | Empty / near-empty bit |
+| `sabbath_mode` | bool | — | | r/w/e | opt | |
+| `eco_mode` | bool | — | | r/w | opt | Energy-saving compressor duty |
+| `compressor_on` | bool | — | | r/e | opt | |
+| `high_temp_alarm` | bool | — | | r/e | opt | |
+| `low_temp_alarm` | bool | — | | r/e | opt | Freeze / too-cold risk |
+| `door_ajar` | bool | — | | r/e | opt | Door ajar bit |
 
-CO₂ setpoint writes are vendor unless advertised.
+Setpoint typically 1–10 °C. CO₂ setpoint writes are vendor unless advertised.
 
 ---
 
